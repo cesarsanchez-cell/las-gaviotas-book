@@ -1,0 +1,17 @@
+==== TESTING E2E — 2026-05-14 ====
+
+[BUG #001] RLS bloquea UPDATE responsable sobre hospedaje en borrador.
+   Error: "new row violates row-level security policy for table 'hospedajes'"
+   Reproducción: responsable edita su hospedaje en borrador y agrega URL de Google Maps.
+   Causa: exists() sobre perfiles dentro de WITH CHECK falla bajo RLS de perfiles.
+   Estado: ✅ FIXEADO — migración 20260514000000, commit 3726bfe.
+
+[BUG #002] Registro responsable falla con FK violation si email ya existe.
+   Error: "Cuenta creada, error al setear perfil: insert or update on table 'perfiles'
+           violates foreign key constraint 'perfiles_id_fkey'"
+   Reproducción: /registro con email que ya está en auth.users (ej. reintento, o uno
+                 ya creado por el seed script).
+   Causa: con "Confirm email" ON, Supabase obfusca signUp duplicado retornando user
+          con identities=[] e id fake → FK perfiles.id→auth.users(id) revienta.
+   Estado: ✅ FIXEADO — detectar data.user.identities vacío en signUpResponsableAction
+           y devolver mensaje claro. Rebuild + pm2 restart hechos.

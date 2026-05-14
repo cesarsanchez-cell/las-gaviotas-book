@@ -46,6 +46,17 @@ export async function signUpResponsableAction(
   if (error) return { error: error.message };
   if (!data.user) return { error: "No se pudo crear el usuario." };
 
+  // Anti-enumeration de Supabase: si el email ya existe y "Confirm email" está
+  // activado, signUp devuelve un user "obfuscado" con `identities` vacío y un
+  // id que NO existe en auth.users. Si seguimos, el insert de perfiles falla
+  // con FK violation. Detectarlo y devolver un mensaje claro.
+  if (!data.user.identities || data.user.identities.length === 0) {
+    return {
+      error:
+        "Ya existe una cuenta con ese email. Iniciá sesión desde /login o usá otro email.",
+    };
+  }
+
   // Crear perfil con service role (bypasea RLS y funciona aunque no haya sesión por email confirmation).
   // Si ya existe un perfil con rol admin para este uuid (mismo email reutilizado), abortamos.
   const admin = createAdminClient();
