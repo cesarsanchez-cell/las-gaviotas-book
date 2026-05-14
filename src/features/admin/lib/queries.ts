@@ -1,5 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
-import type { EstadoHospedaje, HospedajeRow } from "@/types/database";
+import type {
+  EstadoHospedaje,
+  HospedajeFotoRow,
+  HospedajeRow,
+} from "@/types/database";
 
 export interface AdminDashboardStats {
   publicados: number;
@@ -115,4 +119,34 @@ export async function listLocalidadesForSelect(
     .eq("destino_id", destinoId)
     .order("orden");
   return (data ?? []) as LocalidadOption[];
+}
+
+export async function listPendientesValidacion() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("hospedajes")
+    .select("*, hospedaje_fotos(*), destinos!inner(slug, nombre)")
+    .eq("estado", "pendiente_validacion")
+    .order("updated_at", { ascending: true });
+  return (data ?? []) as unknown as Array<
+    HospedajeRow & {
+      hospedaje_fotos: HospedajeFotoRow[];
+      destinos: { slug: string; nombre: string };
+    }
+  >;
+}
+
+export async function getLatestEventNote(
+  hospedajeId: string
+): Promise<{ notas: string | null; created_at: string } | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("validacion_eventos")
+    .select("notas, created_at")
+    .eq("hospedaje_id", hospedajeId)
+    .not("notas", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ notas: string | null; created_at: string }>();
+  return data;
 }

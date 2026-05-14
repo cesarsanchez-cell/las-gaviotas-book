@@ -37,7 +37,7 @@ export function HospedajeCard({
   className,
   priority = false,
 }: HospedajeCardProps) {
-  const href = `/${destinoSlug}/${hospedaje.slug}`;
+  const href = `/${destinoSlug}/hospedajes/${hospedaje.slug}`;
   const fotoUrl = hospedaje.foto_principal_path
     ? getFotoUrl(hospedaje.foto_principal_path)
     : getFotoUrl("placeholders/apart-1.jpg");

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/features/admin/lib/auth";
 import { parseFormDataToHospedaje } from "@/features/admin/lib/validation";
 import type { EstadoHospedaje } from "@/types/database";
@@ -37,7 +37,8 @@ export async function createHospedajeAction(
     return { error: "Error inesperado al parsear el formulario." };
   }
 
-  const supabase = await createClient();
+  // Service role: ya validamos rol admin server-side, RLS es redundante.
+  const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("hospedajes")
     .insert(input as never)
@@ -72,7 +73,8 @@ export async function updateHospedajeAction(
     return { error: "Error inesperado al parsear el formulario." };
   }
 
-  const supabase = await createClient();
+  // Service role: ya validamos rol admin server-side, RLS es redundante.
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("hospedajes")
     .update(input as never)
@@ -115,7 +117,7 @@ export async function changeEstadoAction(input: {
   const parsed = changeEstadoSchema.safeParse(input);
   if (!parsed.success) return { error: "Datos inválidos." };
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase
     .from("hospedajes")
     .update({ estado: parsed.data.estado } as never)
@@ -130,7 +132,7 @@ export async function changeEstadoAction(input: {
 
 export async function deleteHospedajeAction(id: string): Promise<ActionResult> {
   await requireAdmin();
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { error } = await supabase.from("hospedajes").delete().eq("id", id);
   if (error) return { error: error.message };
   revalidatePath("/admin/hospedajes");

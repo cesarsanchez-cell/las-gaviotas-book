@@ -33,20 +33,28 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isAdminRoute = pathname.startsWith("/admin");
-  const isLoginPage = pathname === "/admin/login";
+  const isAdminLoginPage = pathname === "/admin/login";
+  const isPanelRoute = pathname.startsWith("/panel");
 
-  if (isAdminRoute && !isLoginPage && !user) {
+  // Admin routes (excluyendo /admin/login)
+  if (isAdminRoute && !isAdminLoginPage && !user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/admin/login";
     redirectUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (isLoginPage && user) {
+  // Panel routes (responsable)
+  if (isPanelRoute && !user) {
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/admin";
+    redirectUrl.pathname = "/login";
+    redirectUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(redirectUrl);
   }
+
+  // No redirigimos automáticamente desde las páginas de login/registro
+  // aunque el usuario esté logueado: el rol puede no corresponder al destino.
+  // El page server-side se encarga del redirect correcto según rol.
 
   return response;
 }

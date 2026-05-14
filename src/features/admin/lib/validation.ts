@@ -111,11 +111,18 @@ export function parseFormDataToHospedaje(formData: FormData): HospedajeInput {
       raw.amenities ??= [];
       (raw.amenities as string[]).push(String(v));
     } else if (k === "destacado" || k === "responsable_validado") {
+      // Checkboxes presentes en el FormData solo cuando están marcados.
       raw[k] = v === "on" || v === "true";
+    } else if (typeof v === "string" && v.trim() === "") {
+      // Empty string → key absent. Evita que z.coerce.number() devuelva NaN.
+      // Los required fallarán con "Required" igual.
     } else {
       raw[k] = v;
     }
   }
   raw.amenities ??= [];
+  // Booleans no marcados no vienen en FormData — setear false explícito.
+  if (raw.destacado === undefined) raw.destacado = false;
+  if (raw.responsable_validado === undefined) raw.responsable_validado = false;
   return hospedajeSchema.parse(raw);
 }

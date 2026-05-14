@@ -46,6 +46,11 @@ interface HospedajeFormProps {
   initial?: Partial<HospedajeRow>;
   submitLabel: string;
   action: (formData: FormData) => Promise<ActionResult | void>;
+  /**
+   * "admin" muestra todos los campos. "responsable" oculta los exclusivos del admin
+   * (estado, destacado, orden_listado, responsable_validado).
+   */
+  mode?: "admin" | "responsable";
 }
 
 export function HospedajeForm({
@@ -54,7 +59,9 @@ export function HospedajeForm({
   initial,
   submitLabel,
   action,
+  mode = "admin",
 }: HospedajeFormProps) {
+  const isAdmin = mode === "admin";
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
   const [result, setResult] = React.useState<ActionResult | null>(null);
@@ -89,8 +96,13 @@ export function HospedajeForm({
     });
   }
 
-  async function handleSubmit(formData: FormData) {
-    // Inyectar amenities seleccionadas
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    // preventDefault evita el reset automático de React 19 al usar <form action>.
+    // Así los inputs preservan sus valores cuando hay error de validación.
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    // Inyectar amenities seleccionadas (estado controlado en React)
     formData.delete("amenities");
     amenities.forEach((a) => formData.append("amenities", a));
 
@@ -98,13 +110,26 @@ export function HospedajeForm({
       const res = await action(formData);
       if (res) {
         setResult(res);
-        if (res.ok) router.refresh();
+        if (res.ok) {
+          router.refresh();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        } else if (res.error) {
+          setTimeout(() => {
+            const firstError = document.querySelector(
+              "[data-form-error]"
+            ) as HTMLElement | null;
+            (firstError ?? document.querySelector("form"))?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          }, 50);
+        }
       }
     });
   }
 
   return (
-    <form action={handleSubmit} className="space-y-10">
+    <form onSubmit={handleSubmit} className="space-y-10">
       {/* Sección: Información básica */}
       <FormSection
         title="Información básica"
@@ -178,15 +203,17 @@ export function HospedajeForm({
             </Select>
           </Field>
 
-          <Field label="Estado" error={fieldError("estado")}>
-            <Select name="estado" defaultValue={initial?.estado ?? "borrador"}>
-              {ESTADOS.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          {isAdmin && (
+            <Field label="Estado" error={fieldError("estado")}>
+              <Select name="estado" defaultValue={initial?.estado ?? "borrador"}>
+                {ESTADOS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          )}
         </div>
       </FormSection>
 
@@ -418,15 +445,17 @@ export function HospedajeForm({
             />
           </Field>
         </div>
-        <Field error={fieldError("responsable_validado")}>
-          <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
-            <Checkbox
-              name="responsable_validado"
-              defaultChecked={initial?.responsable_validado ?? false}
-            />
-            Responsable validado (checkeé identidad y datos)
-          </label>
-        </Field>
+        {isAdmin && (
+          <Field error={fieldError("responsable_validado")}>
+            <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
+              <Checkbox
+                name="responsable_validado"
+                defaultChecked={initial?.responsable_validado ?? false}
+              />
+              Responsable validado (checkeé identidad y datos)
+            </label>
+          </Field>
+        )}
       </FormSection>
 
       {/* Sección: SEO */}
@@ -459,36 +488,51 @@ export function HospedajeForm({
         </Field>
       </FormSection>
 
-      {/* Sección: Configuración */}
-      <FormSection title="Visibilidad">
-        <div className="space-y-3">
-          <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
-            <Checkbox
-              name="destacado"
-              defaultChecked={initial?.destacado ?? false}
-            />
-            Marcar como destacado en la landing
-          </label>
-          <Field
-            label="Orden en listado"
-            error={fieldError("orden_listado")}
-            hint="Mayor valor = aparece antes. Default 0."
-          >
-            <Input
-              type="number"
-              name="orden_listado"
-              defaultValue={initial?.orden_listado ?? 0}
-              min={0}
-              max={10000}
-            />
-          </Field>
-        </div>
-      </FormSection>
+      {/* Sección: Configuración — solo admin */}
+      {isAdmin && (
+        <FormSection title="Visibilidad">
+          <div className="space-y-3">
+            <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
+              <Checkbox
+                name="destacado"
+                defaultChecked={initial?.destacado ?? false}
+              />
+              Marcar como destacado en la landing
+            </label>
+            <Field
+              label="Orden en listado"
+              error={fieldError("orden_listado")}
+              hint="Mayor valor = aparece antes. Default 0."
+            >
+              <Input
+                type="number"
+                name="orden_listado"
+                defaultValue={initial?.orden_listado ?? 0}
+                min={0}
+                max={10000}
+              />
+            </Field>
+          </div>
+        </FormSection>
+      )}
 
       {/* Errores generales */}
       {result?.error && (
-        <div className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {result.error}
+        <div
+          data-form-error
+          className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          <p className="font-medium">{result.error}</p>
+          {result.fieldErrors &&
+            Object.keys(result.fieldErrors).length > 0 && (
+              <ul className="mt-2 list-disc pl-5 text-xs">
+                {Object.entries(result.fieldErrors).map(([field, msg]) => (
+                  <li key={field}>
+                    <span className="font-medium">{field}:</span> {msg}
+                  </li>
+                ))}
+              </ul>
+            )}
         </div>
       )}
       {result?.ok && (
