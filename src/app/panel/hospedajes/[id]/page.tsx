@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, AlertTriangle } from "lucide-react";
 import { requireResponsable } from "@/features/panel/lib/auth";
 import { getMyHospedaje } from "@/features/panel/lib/queries";
 import {
@@ -112,6 +112,22 @@ export default async function EditMyHospedajePage({ params }: PageProps) {
         hospedajeId={hospedaje.id}
         fotos={hospedaje.hospedaje_fotos}
       />
+
+      {(hospedaje.estado === "publicado" || hospedaje.estado === "pausado") && (
+        <div className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <div>
+            <p className="font-medium">Cambios que requieren nueva revisión</p>
+            <p className="mt-0.5">
+              Modificar nombre, tipo, slug, destino, dirección, capacidad,
+              WhatsApp o datos del responsable hace que el hospedaje vuelva a{" "}
+              <strong>pendiente de revisión</strong> y salga del listado público
+              hasta que el equipo lo re-apruebe. Cambios de descripción, fotos,
+              amenities o redes sociales se aplican sin revisión.
+            </p>
+          </div>
+        </div>
+      )}
 
       <HospedajeForm
         destinos={destinos}

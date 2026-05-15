@@ -112,7 +112,7 @@ test.describe("Edge cases — control de seguridad y UX", () => {
     // El campo de estado NO debe aparecer (mode=responsable lo oculta)
     await expect(page.locator('select[name="estado"]')).toHaveCount(0);
 
-    // Modificar la descripción corta y guardar
+    // Modificar la descripción corta (campo NO crítico) y guardar
     const nuevaDesc = `Descripción actualizada en ${new Date().toISOString()}`;
     await page.locator('textarea[name="descripcion_corta"]').fill(nuevaDesc);
 
@@ -122,7 +122,39 @@ test.describe("Edge cases — control de seguridad y UX", () => {
     await expect(page.getByText(/row-level security/i)).toHaveCount(0, {
       timeout: 8_000,
     });
-    // El estado debe seguir siendo publicado
+    // El estado debe seguir siendo publicado (descripción no es crítica)
     await expect(page.getByText(/estado:\s*publicado/i)).toBeVisible();
+  });
+
+  test("E11 — cambio de campo crítico en publicado vuelve a pendiente_validacion", async ({
+    page,
+  }) => {
+    const slug = `${EDGE_SLUG_PREFIX}critico-${TS}`;
+    const hospedajeId = await seedHospedajeAsResponsable(
+      RESPONSABLE.email,
+      slug,
+      `Hospedaje Critico ${TS}`,
+      "publicado"
+    );
+
+    await loginResponsable(page, RESPONSABLE);
+    await page.goto(`/panel/hospedajes/${hospedajeId}`);
+
+    // El aviso de cambios críticos debe estar visible
+    await expect(
+      page.getByText(/cambios que requieren nueva revisi/i)
+    ).toBeVisible();
+
+    // Modificar la dirección (CAMPO CRÍTICO)
+    await page
+      .locator('input[name="direccion"]')
+      .fill("Nueva dirección modificada 123");
+
+    await page.getByRole("button", { name: /guardar cambios/i }).click();
+
+    // Esperar reload — el estado debe haber cambiado a pendiente_validacion
+    await expect(page.getByText(/estado:\s*pendiente/i)).toBeVisible({
+      timeout: 10_000,
+    });
   });
 });
