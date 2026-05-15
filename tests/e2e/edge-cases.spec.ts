@@ -9,6 +9,7 @@ import {
   cleanupTestHospedajes,
   resetResponsableHospedajes,
   seedHospedajeAsResponsable,
+  seedFotosForHospedaje,
 } from "../helpers/cleanup";
 
 const EDGE_SLUG_PREFIX = "test-edge-";
@@ -124,6 +125,40 @@ test.describe("Edge cases — control de seguridad y UX", () => {
     });
     // El estado debe seguir siendo publicado (descripción no es crítica)
     await expect(page.getByText(/estado:\s*publicado/i)).toBeVisible();
+  });
+
+  test("E12 — no permite borrar foto si dejaría hospedaje publicado con <5 buenas", async ({
+    page,
+  }) => {
+    const slug = `${EDGE_SLUG_PREFIX}fotos-${TS}`;
+    const hospedajeId = await seedHospedajeAsResponsable(
+      RESPONSABLE.email,
+      slug,
+      `Hospedaje Fotos ${TS}`,
+      "publicado"
+    );
+    // Exactamente 5 fotos buenas → borrar una dejaría 4 (menor al mínimo)
+    await seedFotosForHospedaje(hospedajeId, 5, 1600, 1200);
+
+    await loginResponsable(page, RESPONSABLE);
+    await page.goto(`/panel/hospedajes/${hospedajeId}`);
+
+    // El delete usa window.confirm() — aceptamos automáticamente.
+    page.on("dialog", (dialog) => dialog.accept());
+
+    // Click en el botón de borrar de la primera foto (title="Borrar foto")
+    await page.getByTitle("Borrar foto").first().click();
+
+    // Debe aparecer el error del check server-side
+    await expect(
+      page.getByText(/no podés borrar esta foto/i)
+    ).toBeVisible({ timeout: 8_000 });
+
+    // La cantidad de fotos NO debe haber bajado
+    const fotosSection = page.locator("section").filter({
+      has: page.locator('input[type="file"][accept^="image"]'),
+    });
+    await expect(fotosSection.locator("ul > li")).toHaveCount(5);
   });
 
   test("E11 — cambio de campo crítico en publicado vuelve a pendiente_validacion", async ({

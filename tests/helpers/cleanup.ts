@@ -105,3 +105,27 @@ export async function seedHospedajeAsResponsable(
 
   return hospedaje.id;
 }
+
+/**
+ * Crea N rows en hospedaje_fotos via service role con storage_path falso.
+ * No sube archivos reales — sirve para tests donde sólo importa el row
+ * en DB (counters, RLS, etc.).
+ */
+export async function seedFotosForHospedaje(
+  hospedajeId: string,
+  count: number,
+  width = 1600,
+  height = 1200
+): Promise<void> {
+  const admin = getAdminClient();
+  const rows = Array.from({ length: count }).map((_, i) => ({
+    hospedaje_id: hospedajeId,
+    storage_path: `test-fake/${hospedajeId}/foto-${i}-${Date.now()}.jpg`,
+    width,
+    height,
+    orden: i,
+    es_principal: i === 0,
+  }));
+  const { error } = await admin.from("hospedaje_fotos").insert(rows as never);
+  if (error) throw new Error(`seedFotos failed: ${error.message}`);
+}

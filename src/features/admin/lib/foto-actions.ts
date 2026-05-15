@@ -88,6 +88,9 @@ export async function registerFotoAction(input: z.infer<typeof insertFotoSchema>
   return { ok: true };
 }
 
+const MIN_FOTOS_PUBLICADO = 5;
+const MIN_FOTO_WIDTH = 1200;
+
 export async function deleteFotoAction(input: {
   fotoId: string;
   hospedajeId: string;
@@ -99,6 +102,33 @@ export async function deleteFotoAction(input: {
     return { error: (e as Error).message };
   }
   const admin = createAdminClient();
+
+  // Si el hospedaje está publicado, no permitir el borrado si dejaría
+  // al hospedaje con menos de 5 fotos en alta resolución. El responsable
+  // (o admin) debe pausar primero o subir un reemplazo de buena calidad.
+  const { data: hospedaje } = await admin
+    .from("hospedajes")
+    .select("estado")
+    .eq("id", input.hospedajeId)
+    .maybeSingle<{ estado: string }>();
+
+  if (hospedaje?.estado === "publicado") {
+    const { data: fotos } = await admin
+      .from("hospedaje_fotos")
+      .select("id, width")
+      .eq("hospedaje_id", input.hospedajeId)
+      .returns<{ id: string; width: number | null }[]>();
+
+    const remainingGoodWidth = (fotos ?? []).filter(
+      (f) => f.id !== input.fotoId && (f.width ?? 0) >= MIN_FOTO_WIDTH
+    ).length;
+
+    if (remainingGoodWidth < MIN_FOTOS_PUBLICADO) {
+      return {
+        error: `No podés borrar esta foto: el hospedaje quedaría con menos de ${MIN_FOTOS_PUBLICADO} fotos en alta resolución. Subí un reemplazo de buena calidad primero, o pausá el hospedaje antes de borrar.`,
+      };
+    }
+  }
 
   await admin.storage.from("hospedajes").remove([input.storagePath]);
 
