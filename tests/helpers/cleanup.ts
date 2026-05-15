@@ -59,7 +59,8 @@ const LAS_GAVIOTAS_DESTINO_ID = "11111111-1111-1111-1111-111111111111";
 export async function seedHospedajeAsResponsable(
   email: string,
   slug: string,
-  nombre: string
+  nombre: string,
+  estado: "borrador" | "pendiente_validacion" | "publicado" | "pausado" | "rechazado" = "borrador"
 ): Promise<string> {
   const admin = getAdminClient();
 
@@ -78,7 +79,7 @@ export async function seedHospedajeAsResponsable(
       direccion: "Calle 1 entre 1 y 1",
       whatsapp: "+5492257000000",
       responsable_nombre: "Tester Seed",
-      estado: "borrador",
+      estado,
     } as never)
     .select("id")
     .single<{ id: string }>();

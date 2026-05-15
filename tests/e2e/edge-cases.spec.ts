@@ -94,4 +94,35 @@ test.describe("Edge cases — control de seguridad y UX", () => {
     // requireResponsable detecta rol=admin y redirige a /admin
     await expect(page).toHaveURL(/\/admin(?!\/login)/, { timeout: 10_000 });
   });
+
+  test("E10 — responsable puede editar hospedaje publicado (regresión bug #003)", async ({
+    page,
+  }) => {
+    const slug = `${EDGE_SLUG_PREFIX}publicado-${TS}`;
+    const hospedajeId = await seedHospedajeAsResponsable(
+      RESPONSABLE.email,
+      slug,
+      `Hospedaje Publicado ${TS}`,
+      "publicado"
+    );
+
+    await loginResponsable(page, RESPONSABLE);
+    await page.goto(`/panel/hospedajes/${hospedajeId}`);
+
+    // El campo de estado NO debe aparecer (mode=responsable lo oculta)
+    await expect(page.locator('select[name="estado"]')).toHaveCount(0);
+
+    // Modificar la descripción corta y guardar
+    const nuevaDesc = `Descripción actualizada en ${new Date().toISOString()}`;
+    await page.locator('textarea[name="descripcion_corta"]').fill(nuevaDesc);
+
+    await page.getByRole("button", { name: /guardar cambios/i }).click();
+
+    // NO debe aparecer el error de RLS
+    await expect(page.getByText(/row-level security/i)).toHaveCount(0, {
+      timeout: 8_000,
+    });
+    // El estado debe seguir siendo publicado
+    await expect(page.getByText(/estado:\s*publicado/i)).toBeVisible();
+  });
 });

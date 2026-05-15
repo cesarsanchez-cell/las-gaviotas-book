@@ -15,3 +15,13 @@
           con identities=[] e id fake → FK perfiles.id→auth.users(id) revienta.
    Estado: ✅ FIXEADO — detectar data.user.identities vacío en signUpResponsableAction
            y devolver mensaje claro. Rebuild + pm2 restart hechos.
+
+[BUG #003] Responsable no puede editar hospedaje publicado.
+   Error: "new row violates row-level security policy for table 'hospedajes'"
+   Reproducción: responsable modifica la descripción de un hospedaje en estado
+                 'publicado' (o 'rechazado') y guarda.
+   Causa: el WITH CHECK de la policy "Hospedajes: responsable update propios"
+          tenía guard `and estado in ('borrador','pendiente_validacion','pausado')`.
+          RLS evalúa la NEW ROW completa aunque el estado no cambie.
+   Estado: ✅ FIXEADO — migración 20260514000001 quita el guard. La UI ya impide
+           al responsable cambiar el estado desde el form. Test E10 cubre la regresión.

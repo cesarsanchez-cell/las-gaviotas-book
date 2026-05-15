@@ -80,6 +80,7 @@ _(ninguno bloqueante en este momento — ver `errores.txt` para notas sueltas mi
 |-----|-------------|--------|-------------|
 | 001 | RLS bloqueaba UPDATE del responsable sobre hospedaje en borrador (`new row violates row-level security policy`). Causa: `exists()` sobre `perfiles` en WITH CHECK falla bajo RLS recursiva. | ✅ cerrado | migración `20260514000000`, commit `3726bfe` |
 | 002 | Registro `/registro` con email ya existente devolvía FK violation cruda (`perfiles_id_fkey`). Causa: anti-enumeration de Supabase obfusca el user retornado en `signUp` cuando el email ya está, con `identities=[]` e id fake. | ✅ cerrado | `signUpResponsableAction` detecta `identities` vacío y muestra mensaje claro |
+| 003 | Responsable no podía editar la descripción (u otro campo) de un hospedaje en estado `publicado` o `rechazado`. Causa: el WITH CHECK de la policy de UPDATE tenía `and estado in ('borrador','pendiente_validacion','pausado')`, y RLS evalúa la NEW ROW completa aunque el campo no se modifique. | ✅ cerrado | migración `20260514000001`, suite Playwright agrega test E10 de regresión |
 
 ---
 
