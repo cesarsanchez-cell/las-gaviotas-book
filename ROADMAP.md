@@ -11,12 +11,15 @@ Estado consolidado del proyecto. Visión y reglas detalladas en [CLAUDE.md](CLAU
 
 | Item              | Valor                                                                            |
 |-------------------|----------------------------------------------------------------------------------|
-| Etapa vigente     | **1.5 + deploy + hardening UX**  —  siguiente: SMTP propio, custom domain, Etapa 2 |
-| Último commit     | `3ad0b7b` — Bloquear borrado de foto si dejaría publicado con <5 buenas          |
-| Fecha             | 2026-05-14                                                                       |
+| Etapa vigente     | **1.5 + deploy + hardening UX + dominio + SMTP**  —  siguiente: Etapa 2 leads     |
+| Último commit     | `afc78aa` — Checkpoint día 2026-05-14: deploy + hardening UX                     |
+| Fecha             | 2026-05-15                                                                       |
 | Entorno local     | PM2 → `las-gaviotas-book` en `http://localhost:3005`                             |
-| **Deploy producción** | ✅ https://las-gaviotas-book.vercel.app (Vercel Hobby)                        |
+| **Deploy producción** | ✅ https://www.misescapadas.com.ar (canónico) + redirects desde apex y vercel.app |
 | Repo remoto       | https://github.com/cesarsanchez-cell/las-gaviotas-book (privado)                 |
+| Dominio           | `misescapadas.com.ar` — NIC.ar → Cloudflare DNS → Vercel                         |
+| Email entrante    | Google Workspace User Alias Domain (`hola@misescapadas.com.ar` cae en inbox primario) |
+| Email saliente    | Resend SMTP (`noreply@misescapadas.com.ar`, region `sa-east-1`)                  |
 
 ---
 
@@ -54,10 +57,22 @@ Estado consolidado del proyecto. Visión y reglas detalladas en [CLAUDE.md](CLAU
 - [x] Aviso UI amber al editar publicado/pausado explicando qué dispara revisión
 - [x] Borrado de foto bloqueado server-side si dejaría publicado con <5 buenas
 
-### Pendientes antes de abrir al público
-- [ ] SMTP propio en Supabase (Resend 100/día gratis o Brevo 300/día) — bypasea rate limit del built-in mailer
-- [ ] Custom domain (apuntar DNS de Hostinger a Vercel)
-- [ ] Mejorar copy del email de confirmación de signup
+### Dominio + Email (cerrado 2026-05-15)
+- [x] Compra de `misescapadas.com.ar` en NIC.ar
+- [x] Delegación NIC.ar → Cloudflare nameservers (`ashton.ns.cloudflare.com` + `evangeline.ns.cloudflare.com`)
+- [x] CNAME flattening en apex apuntando al per-project endpoint de Vercel (`d1a3de66a6c791c0.vercel-dns-017.com`)
+- [x] Custom domain en Vercel: `www.misescapadas.com.ar` (Production) + apex y `las-gaviotas-book.vercel.app` redirigen al www
+- [x] Google Workspace: `misescapadas.com.ar` agregado como User alias domain + MX/SPF/DKIM en Cloudflare
+- [x] DKIM activo: registro `google._domainkey` con `v=DKIM1; k=rsa; p=...` en Cloudflare
+- [x] Resend: dominio verificado, region `sa-east-1`, registros `send` MX + SPF + `resend._domainkey` DKIM + `_dmarc` cargados
+- [x] Custom SMTP en Supabase (via Management API porque la UI tenía bug con `.com.ar`): host `smtp.resend.com`, port 465, user `resend`, sender `Mis Escapadas <noreply@misescapadas.com.ar>`
+- [x] Site URL Supabase: `https://www.misescapadas.com.ar`
+- [x] Redirect URLs Supabase: nuevos dominios + legacy vercel.app + localhost dev
+- [x] `NEXT_PUBLIC_SITE_URL` en Vercel actualizado + redeploy
+- [x] Test end-to-end: signup → mail desde Resend con FROM correcto → click link → confirmación → redirect funcionan
+
+### Pendientes (menores, NO bloqueantes)
+- [ ] Mejorar copy del email de confirmación de signup (sigue siendo el default de Supabase)
 - [ ] UX: link "¿No tenés cuenta? Registrate" más visible o redirect inteligente cuando email no existe
 - [ ] Considerar trigger BEFORE UPDATE en hospedajes que valide transiciones de estado por rol (defensa en profundidad)
 
