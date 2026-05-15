@@ -86,11 +86,11 @@ export function evaluateChecklist(
     },
     {
       key: "fotos_calidad",
-      label: `Fotos con ancho mínimo ${MIN_FOTO_WIDTH}px`,
-      ok: fotos.length > 0 && fotos.every((f) => (f.width ?? 0) >= MIN_FOTO_WIDTH),
+      label: `Al menos ${MIN_FOTOS} fotos en alta resolución (${MIN_FOTO_WIDTH}px de ancho o más)`,
+      ok: fotosWithGoodWidth.length >= MIN_FOTOS,
       hint:
         fotos.length > 0
-          ? `${fotosWithGoodWidth.length}/${fotos.length} en alta resolución`
+          ? `${fotosWithGoodWidth.length}/${MIN_FOTOS} en alta resolución (tenés ${fotos.length} en total)`
           : undefined,
     },
     {
