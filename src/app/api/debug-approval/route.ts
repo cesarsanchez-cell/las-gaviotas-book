@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import { getCurrentAdmin } from "@/features/admin/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendEmail } from "@/lib/email/resend";
+import { hospedajeAprobadoTemplate } from "@/lib/email/templates";
+import { siteConfig } from "@/config/site";
 
 /**
- * Diagnóstico: dado un hospedaje_id, devuelve qué encuentra el flow de
- * notificación post-aprobación. Sirve para detectar por qué no se manda
- * el mail (responsable no encontrado, sin email, etc).
+ * Diagnóstico de aprobación.
  *
- * USO: GET /api/debug-approval?hid=<hospedaje-uuid>
+ * GET /api/debug-approval?hid=<uuid>            → inspecciona estado
+ * GET /api/debug-approval?hid=<uuid>&send=1     → SIMULA el flujo de
+ *   aprobación: ejecuta gatherNotificationContext + sendEmail y devuelve
+ *   el resultado paso por paso (sin tocar el estado del hospedaje).
  */
 export async function GET(request: Request) {
   const admin = await getCurrentAdmin();
@@ -17,79 +21,88 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const hid = url.searchParams.get("hid");
+  const shouldSend = url.searchParams.get("send") === "1";
   if (!hid) {
     return NextResponse.json(
-      { error: "Pasá ?hid=<uuid> en la query" },
+      { error: "Pasá ?hid=<uuid>" },
       { status: 400 }
     );
   }
 
   const sbAdmin = createAdminClient();
+  const log: Array<{ step: string; ok: boolean; data?: unknown }> = [];
 
   // 1) Hospedaje
   const { data: h, error: he } = await sbAdmin
     .from("hospedajes")
     .select("id, slug, nombre, destino_id, estado")
     .eq("id", hid)
-    .maybeSingle();
-
-  if (he || !h) {
-    return NextResponse.json({
-      step: "hospedaje",
-      ok: false,
-      error: he?.message ?? "Hospedaje no encontrado",
-    });
-  }
+    .maybeSingle<{
+      id: string;
+      slug: string;
+      nombre: string;
+      destino_id: string;
+      estado: string;
+    }>();
+  log.push({ step: "1-hospedaje", ok: !!h, data: h ?? he?.message });
+  if (!h) return NextResponse.json({ log });
 
   // 2) Destino
   const { data: d } = await sbAdmin
     .from("destinos")
     .select("slug, nombre")
-    .eq("id", (h as { destino_id: string }).destino_id)
-    .maybeSingle();
+    .eq("id", h.destino_id)
+    .maybeSingle<{ slug: string; nombre: string }>();
+  log.push({ step: "2-destino", ok: !!d, data: d });
+  if (!d) return NextResponse.json({ log });
 
-  // 3) Responsable: perfil cuyo hospedajes_ids contiene este hid
-  const { data: perfilContains } = await sbAdmin
+  // 3) Responsable
+  const { data: perfil } = await sbAdmin
     .from("perfiles")
-    .select("id, nombre, rol, hospedajes_ids")
-    .contains("hospedajes_ids", [hid]);
+    .select("id, nombre")
+    .contains("hospedajes_ids", [hid])
+    .eq("rol", "responsable")
+    .maybeSingle<{ id: string; nombre: string | null }>();
+  log.push({ step: "3-responsable", ok: !!perfil, data: perfil });
+  if (!perfil) return NextResponse.json({ log });
 
-  // 4) Todos los perfiles responsables (para comparar)
-  const { data: allResponsables } = await sbAdmin
-    .from("perfiles")
-    .select("id, nombre, rol, hospedajes_ids")
-    .eq("rol", "responsable");
+  // 4) Email del responsable
+  const { data: userInfo, error: ue } =
+    await sbAdmin.auth.admin.getUserById(perfil.id);
+  const email = userInfo?.user?.email ?? null;
+  log.push({
+    step: "4-email",
+    ok: !!email,
+    data: email ?? ue?.message,
+  });
+  if (!email) return NextResponse.json({ log });
 
-  // 5) Si encontramos el responsable, buscamos su email
-  let responsableEmail: string | null = null;
-  let responsableId: string | null = null;
-  const perfilResp = perfilContains?.find(
-    (p) => (p as { rol: string }).rol === "responsable"
-  );
-  if (perfilResp) {
-    responsableId = (perfilResp as { id: string }).id;
-    const { data: userInfo } = await sbAdmin.auth.admin.getUserById(
-      responsableId
-    );
-    responsableEmail = userInfo?.user?.email ?? null;
+  // 5) Si pidieron send=1, intentamos mandar el mail
+  if (shouldSend) {
+    const tpl = hospedajeAprobadoTemplate({
+      responsableNombre: perfil.nombre,
+      hospedajeNombre: h.nombre,
+      destinoNombre: d.nombre,
+      urlPublica: `${siteConfig.url}/${d.slug}/hospedajes/${h.slug}`,
+      urlPanel: `${siteConfig.url}/panel/hospedajes/${h.id}`,
+    });
+    try {
+      const result = await sendEmail({ to: email, ...tpl });
+      log.push({ step: "5-sendEmail", ok: result.ok, data: result });
+    } catch (e) {
+      log.push({
+        step: "5-sendEmail",
+        ok: false,
+        data: e instanceof Error ? `EXCEPTION: ${e.message}` : "unknown",
+      });
+    }
+  } else {
+    log.push({
+      step: "5-sendEmail",
+      ok: true,
+      data: "skipped — pasar &send=1 para enviar real",
+    });
   }
 
-  return NextResponse.json({
-    hospedaje: h,
-    destino: d,
-    perfilesQueLoContienen: perfilContains,
-    todosLosResponsables: allResponsables?.map((p) => ({
-      id: (p as { id: string }).id,
-      nombre: (p as { nombre: string | null }).nombre,
-      hospedajes_ids: (p as { hospedajes_ids: string[] }).hospedajes_ids,
-    })),
-    responsableEncontrado: !!perfilResp,
-    responsableId,
-    responsableEmail,
-    diagnostico: !perfilResp
-      ? "NO se encontró perfil responsable cuyo hospedajes_ids contenga este hid. Por eso no se manda mail."
-      : !responsableEmail
-        ? "Perfil encontrado pero sin email en auth.users. Caso raro."
-        : "OK — debería haberse mandado mail a responsableEmail.",
-  });
+  return NextResponse.json({ siteUrl: siteConfig.url, log });
 }
