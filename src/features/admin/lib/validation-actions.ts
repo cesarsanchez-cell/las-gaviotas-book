@@ -85,20 +85,33 @@ export async function approveHospedajeAction(
 
   if (notas && notas.trim()) await setLatestEventNote(id, notas.trim());
 
-  // Notificar al responsable. No-bloqueante: si falla, la aprobación queda OK
-  // igualmente y se logueá el error en consola del server.
-  void (async () => {
+  // Notificar al responsable. AWAIT directo dentro de try/catch — en serverless
+  // (Vercel) el patrón fire-and-forget se pierde porque el container termina
+  // con el response. Si Resend tarda 300ms agregamos esa latencia al admin,
+  // pero garantizamos que el mail efectivamente se mande.
+  try {
     const ctx = await gatherNotificationContext(id);
-    if (!ctx) return;
-    const tpl = hospedajeAprobadoTemplate({
-      responsableNombre: ctx.responsable.nombre,
-      hospedajeNombre: ctx.hospedaje.nombre,
-      destinoNombre: ctx.destino.nombre,
-      urlPublica: `${siteConfig.url}/${ctx.destino.slug}/hospedajes/${ctx.hospedaje.slug}`,
-      urlPanel: `${siteConfig.url}/panel/hospedajes/${id}`,
-    });
-    await sendEmail({ to: ctx.responsable.email, ...tpl });
-  })();
+    if (ctx) {
+      const tpl = hospedajeAprobadoTemplate({
+        responsableNombre: ctx.responsable.nombre,
+        hospedajeNombre: ctx.hospedaje.nombre,
+        destinoNombre: ctx.destino.nombre,
+        urlPublica: `${siteConfig.url}/${ctx.destino.slug}/hospedajes/${ctx.hospedaje.slug}`,
+        urlPanel: `${siteConfig.url}/panel/hospedajes/${id}`,
+      });
+      const result = await sendEmail({ to: ctx.responsable.email, ...tpl });
+      if (!result.ok) {
+        console.error("[approve] sendEmail falló:", result.error);
+      }
+    } else {
+      console.warn(
+        "[approve] No se pudo armar contexto de notificación para hospedaje",
+        id
+      );
+    }
+  } catch (e) {
+    console.error("[approve] Error notificando aprobación:", e);
+  }
 
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/validaciones");
@@ -126,19 +139,29 @@ export async function rejectHospedajeAction(
   const motivo = notas.trim();
   await setLatestEventNote(id, motivo);
 
-  // Notificar rechazo. No-bloqueante.
-  void (async () => {
+  try {
     const ctx = await gatherNotificationContext(id);
-    if (!ctx) return;
-    const tpl = hospedajeRechazadoTemplate({
-      responsableNombre: ctx.responsable.nombre,
-      hospedajeNombre: ctx.hospedaje.nombre,
-      destinoNombre: ctx.destino.nombre,
-      motivo,
-      urlPanel: `${siteConfig.url}/panel/hospedajes/${id}`,
-    });
-    await sendEmail({ to: ctx.responsable.email, ...tpl });
-  })();
+    if (ctx) {
+      const tpl = hospedajeRechazadoTemplate({
+        responsableNombre: ctx.responsable.nombre,
+        hospedajeNombre: ctx.hospedaje.nombre,
+        destinoNombre: ctx.destino.nombre,
+        motivo,
+        urlPanel: `${siteConfig.url}/panel/hospedajes/${id}`,
+      });
+      const result = await sendEmail({ to: ctx.responsable.email, ...tpl });
+      if (!result.ok) {
+        console.error("[reject] sendEmail falló:", result.error);
+      }
+    } else {
+      console.warn(
+        "[reject] No se pudo armar contexto de notificación para hospedaje",
+        id
+      );
+    }
+  } catch (e) {
+    console.error("[reject] Error notificando rechazo:", e);
+  }
 
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/validaciones");
