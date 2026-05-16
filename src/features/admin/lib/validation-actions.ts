@@ -4,12 +4,10 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/features/admin/lib/auth";
 import type { ActionResult } from "@/features/admin/lib/hospedaje-actions";
-import { sendEmail } from "@/lib/email/resend";
 import {
-  hospedajeAprobadoTemplate,
-  hospedajeRechazadoTemplate,
-} from "@/lib/email/templates";
-import { siteConfig } from "@/config/site";
+  notifyHospedajePublicado,
+  notifyHospedajeRechazado,
+} from "@/features/admin/lib/notifications";
 
 async function setLatestEventNote(hospedajeId: string, notas: string) {
   const admin = createAdminClient();
@@ -28,48 +26,6 @@ async function setLatestEventNote(hospedajeId: string, notas: string) {
   }
 }
 
-/**
- * Devuelve { responsable, hospedaje, destino } o null si no encuentra todo.
- * Usa service role para bypasear RLS — solo se llama desde acciones de admin.
- */
-async function gatherNotificationContext(hospedajeId: string) {
-  const admin = createAdminClient();
-
-  const { data: h } = await admin
-    .from("hospedajes")
-    .select("id, slug, nombre, destino_id")
-    .eq("id", hospedajeId)
-    .maybeSingle<{ id: string; slug: string; nombre: string; destino_id: string }>();
-  if (!h) return null;
-
-  const { data: d } = await admin
-    .from("destinos")
-    .select("slug, nombre")
-    .eq("id", h.destino_id)
-    .maybeSingle<{ slug: string; nombre: string }>();
-  if (!d) return null;
-
-  // Buscar el perfil responsable que tiene este hospedaje en su array.
-  const { data: perfil } = await admin
-    .from("perfiles")
-    .select("id, nombre")
-    .contains("hospedajes_ids", [hospedajeId])
-    .eq("rol", "responsable")
-    .maybeSingle<{ id: string; nombre: string | null }>();
-  if (!perfil) return null;
-
-  // Email del responsable vía auth.admin (service role).
-  const { data: userInfo } = await admin.auth.admin.getUserById(perfil.id);
-  const email = userInfo?.user?.email ?? null;
-  if (!email) return null;
-
-  return {
-    responsable: { email, nombre: perfil.nombre },
-    hospedaje: { slug: h.slug, nombre: h.nombre },
-    destino: { slug: d.slug, nombre: d.nombre },
-  };
-}
-
 export async function approveHospedajeAction(
   id: string,
   notas?: string
@@ -85,33 +41,9 @@ export async function approveHospedajeAction(
 
   if (notas && notas.trim()) await setLatestEventNote(id, notas.trim());
 
-  // Notificar al responsable. AWAIT directo dentro de try/catch — en serverless
-  // (Vercel) el patrón fire-and-forget se pierde porque el container termina
-  // con el response. Si Resend tarda 300ms agregamos esa latencia al admin,
-  // pero garantizamos que el mail efectivamente se mande.
-  try {
-    const ctx = await gatherNotificationContext(id);
-    if (ctx) {
-      const tpl = hospedajeAprobadoTemplate({
-        responsableNombre: ctx.responsable.nombre,
-        hospedajeNombre: ctx.hospedaje.nombre,
-        destinoNombre: ctx.destino.nombre,
-        urlPublica: `${siteConfig.url}/${ctx.destino.slug}/hospedajes/${ctx.hospedaje.slug}`,
-        urlPanel: `${siteConfig.url}/panel/hospedajes/${id}`,
-      });
-      const result = await sendEmail({ to: ctx.responsable.email, ...tpl });
-      if (!result.ok) {
-        console.error("[approve] sendEmail falló:", result.error);
-      }
-    } else {
-      console.warn(
-        "[approve] No se pudo armar contexto de notificación para hospedaje",
-        id
-      );
-    }
-  } catch (e) {
-    console.error("[approve] Error notificando aprobación:", e);
-  }
+  // AWAIT directo: en serverless el fire-and-forget se pierde porque el
+  // container termina con el response.
+  await notifyHospedajePublicado(id);
 
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/validaciones");
@@ -139,29 +71,7 @@ export async function rejectHospedajeAction(
   const motivo = notas.trim();
   await setLatestEventNote(id, motivo);
 
-  try {
-    const ctx = await gatherNotificationContext(id);
-    if (ctx) {
-      const tpl = hospedajeRechazadoTemplate({
-        responsableNombre: ctx.responsable.nombre,
-        hospedajeNombre: ctx.hospedaje.nombre,
-        destinoNombre: ctx.destino.nombre,
-        motivo,
-        urlPanel: `${siteConfig.url}/panel/hospedajes/${id}`,
-      });
-      const result = await sendEmail({ to: ctx.responsable.email, ...tpl });
-      if (!result.ok) {
-        console.error("[reject] sendEmail falló:", result.error);
-      }
-    } else {
-      console.warn(
-        "[reject] No se pudo armar contexto de notificación para hospedaje",
-        id
-      );
-    }
-  } catch (e) {
-    console.error("[reject] Error notificando rechazo:", e);
-  }
+  await notifyHospedajeRechazado(id, motivo);
 
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/validaciones");

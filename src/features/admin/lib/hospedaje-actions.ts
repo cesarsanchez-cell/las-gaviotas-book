@@ -6,6 +6,7 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/features/admin/lib/auth";
 import { parseFormDataToHospedaje } from "@/features/admin/lib/validation";
+import { notifyHospedajePublicado } from "@/features/admin/lib/notifications";
 import type { EstadoHospedaje } from "@/types/database";
 
 export interface ActionResult {
@@ -75,6 +76,16 @@ export async function updateHospedajeAction(
 
   // Service role: ya validamos rol admin server-side, RLS es redundante.
   const supabase = createAdminClient();
+
+  // Leemos el estado previo para detectar transiciones que disparan
+  // notificación (ej. publicado desde el editor sin pasar por validaciones).
+  const { data: previo } = await supabase
+    .from("hospedajes")
+    .select("estado")
+    .eq("id", id)
+    .maybeSingle<{ estado: EstadoHospedaje }>();
+  const estadoAnterior = previo?.estado ?? null;
+
   const { error } = await supabase
     .from("hospedajes")
     .update(input as never)
@@ -88,6 +99,10 @@ export async function updateHospedajeAction(
       };
     }
     return { error: error.message };
+  }
+
+  if (input.estado === "publicado" && estadoAnterior !== "publicado") {
+    await notifyHospedajePublicado(id);
   }
 
   revalidatePath("/admin/hospedajes");
