@@ -59,7 +59,12 @@ export function AdminSidebar({
         <Link href="/admin" className="block font-display text-xl tracking-tight">
           {siteConfig.shortName}
         </Link>
-        <p className="text-xs text-muted-foreground">Panel administración</p>
+        {destinoNombre ? (
+          <p className="mt-0.5 font-display text-base tracking-tight text-foreground">
+            {destinoNombre}
+          </p>
+        ) : null}
+        <p className="mt-1 text-xs text-muted-foreground">Panel administración</p>
       </div>
 
       <nav className="flex-1 space-y-0.5 px-3">
