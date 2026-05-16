@@ -1,17 +1,11 @@
 "use server";
 
 import { headers } from "next/headers";
-import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { consultaInputSchema } from "@/features/consultas/lib/validation";
 import { checkRateLimit } from "@/features/consultas/lib/rate-limit";
 import { notifyConsultaNueva } from "@/features/consultas/lib/notifications";
-
-export interface CreateConsultaResult {
-  ok?: boolean;
-  error?: string;
-  fieldErrors?: Record<string, string>;
-}
+import type { CreateConsultaResult } from "@/features/consultas/lib/types";
 
 async function getClientIp(): Promise<string | null> {
   const h = await headers();
@@ -108,6 +102,3 @@ export async function createConsultaAction(
 
   return { ok: true };
 }
-
-// Re-export para que la page server-side pueda usarlo si necesita.
-export type { z };
