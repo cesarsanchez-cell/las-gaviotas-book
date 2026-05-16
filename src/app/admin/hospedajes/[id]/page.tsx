@@ -17,7 +17,7 @@ interface PageProps {
 }
 
 export default async function EditHospedajePage({ params }: PageProps) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const { id } = await params;
 
   const hospedaje = (await getHospedajeForEdit(id)) as
@@ -25,7 +25,7 @@ export default async function EditHospedajePage({ params }: PageProps) {
     | null;
   if (!hospedaje) notFound();
 
-  const destinos = await listDestinosForSelect();
+  const destinos = await listDestinosForSelect(admin.destinoId);
   const localidadesPorDestino: Record<
     string,
     Awaited<ReturnType<typeof listLocalidadesForSelect>>

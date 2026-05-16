@@ -8,7 +8,11 @@ import type { PerfilRow } from "@/types/database";
 
 /**
  * Garantiza que el usuario actual puede gestionar fotos del hospedaje dado.
- * Permite admin (cualquiera) o responsable (solo si el hospedaje está en su lista).
+ *
+ * Permite:
+ * - super admin (destino_id=null): cualquier hospedaje
+ * - admin local (destino_id=<uuid>): solo hospedajes de su destino
+ * - responsable: solo hospedajes en su lista
  */
 async function requireAccessToHospedaje(hospedajeId: string) {
   const supabase = await createClient();
@@ -24,7 +28,21 @@ async function requireAccessToHospedaje(hospedajeId: string) {
     .maybeSingle<PerfilRow>();
   if (!perfil) throw new Error("Sin perfil");
 
-  if (perfil.rol === "admin") return { user, perfil };
+  if (perfil.rol === "admin") {
+    if (perfil.destino_id === null) return { user, perfil };
+    // Admin local: chequear que el hospedaje sea de su destino.
+    const sb = createAdminClient();
+    const { data: h } = await sb
+      .from("hospedajes")
+      .select("destino_id")
+      .eq("id", hospedajeId)
+      .maybeSingle<{ destino_id: string }>();
+    if (!h) throw new Error("Hospedaje no encontrado");
+    if (h.destino_id !== perfil.destino_id) {
+      throw new Error("Sin permisos sobre este hospedaje");
+    }
+    return { user, perfil };
+  }
   if (
     perfil.rol === "responsable" &&
     (perfil.hospedajes_ids ?? []).includes(hospedajeId)

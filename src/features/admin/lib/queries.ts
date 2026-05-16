@@ -14,16 +14,38 @@ export interface AdminDashboardStats {
   totalDestinos: number;
 }
 
-export async function getAdminStats(): Promise<AdminDashboardStats> {
+/**
+ * Stats del dashboard admin.
+ *
+ * Si `destinoId` viene seteado (admin local), los counts se filtran a ese
+ * destino. Si es `null` o no se pasa (super admin), cuenta toda la red.
+ *
+ * Las RLS ya filtran los SELECT, pero filtrar explícito hace los counts más
+ * predecibles y evita depender del scope implícito en cada lectura.
+ */
+export async function getAdminStats(
+  destinoId?: string | null
+): Promise<AdminDashboardStats> {
   const supabase = await createClient();
 
+  const baseCount = (estado: string) => {
+    let q = supabase
+      .from("hospedajes")
+      .select("id", { count: "exact", head: true })
+      .eq("estado", estado);
+    if (destinoId) q = q.eq("destino_id", destinoId);
+    return q;
+  };
+
   const counts = await Promise.all([
-    supabase.from("hospedajes").select("id", { count: "exact", head: true }).eq("estado", "publicado"),
-    supabase.from("hospedajes").select("id", { count: "exact", head: true }).eq("estado", "pendiente_validacion"),
-    supabase.from("hospedajes").select("id", { count: "exact", head: true }).eq("estado", "borrador"),
-    supabase.from("hospedajes").select("id", { count: "exact", head: true }).eq("estado", "pausado"),
-    supabase.from("hospedajes").select("id", { count: "exact", head: true }).eq("estado", "rechazado"),
-    supabase.from("destinos").select("id", { count: "exact", head: true }),
+    baseCount("publicado"),
+    baseCount("pendiente_validacion"),
+    baseCount("borrador"),
+    baseCount("pausado"),
+    baseCount("rechazado"),
+    destinoId
+      ? Promise.resolve({ count: 1 })
+      : supabase.from("destinos").select("id", { count: "exact", head: true }),
   ]);
 
   return {
@@ -49,7 +71,8 @@ export interface AdminHospedajeRow {
 }
 
 export async function listHospedajesAdmin(
-  estado?: EstadoHospedaje
+  estado?: EstadoHospedaje,
+  destinoId?: string | null
 ): Promise<AdminHospedajeRow[]> {
   const supabase = await createClient();
   let q = supabase
@@ -58,6 +81,7 @@ export async function listHospedajesAdmin(
     .order("updated_at", { ascending: false });
 
   if (estado) q = q.eq("estado", estado);
+  if (destinoId) q = q.eq("destino_id", destinoId);
 
   const { data } = await q;
   return (
@@ -99,13 +123,24 @@ export interface LocalidadOption {
   nombre: string;
 }
 
-export async function listDestinosForSelect(): Promise<DestinoOption[]> {
+/**
+ * Dropdown de destinos para el form de hospedaje.
+ *
+ * Si `destinoId` viene seteado (admin local), devuelve solo ese destino —
+ * impide que el admin local cree/asigne un hospedaje a otro destino, además
+ * de la defensa RLS.
+ */
+export async function listDestinosForSelect(
+  destinoId?: string | null
+): Promise<DestinoOption[]> {
   const supabase = await createClient();
-  const { data } = await supabase
+  let q = supabase
     .from("destinos")
     .select("id, slug, nombre")
     .eq("activo", true)
     .order("orden");
+  if (destinoId) q = q.eq("id", destinoId);
+  const { data } = await q;
   return (data ?? []) as DestinoOption[];
 }
 
@@ -121,13 +156,15 @@ export async function listLocalidadesForSelect(
   return (data ?? []) as LocalidadOption[];
 }
 
-export async function listPendientesValidacion() {
+export async function listPendientesValidacion(destinoId?: string | null) {
   const supabase = await createClient();
-  const { data } = await supabase
+  let q = supabase
     .from("hospedajes")
     .select("*, hospedaje_fotos(*), destinos!inner(slug, nombre)")
     .eq("estado", "pendiente_validacion")
     .order("updated_at", { ascending: true });
+  if (destinoId) q = q.eq("destino_id", destinoId);
+  const { data } = await q;
   return (data ?? []) as unknown as Array<
     HospedajeRow & {
       hospedaje_fotos: HospedajeFotoRow[];

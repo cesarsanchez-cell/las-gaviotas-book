@@ -6,6 +6,10 @@ export interface AdminUser {
   id: string;
   email: string;
   perfil: PerfilRow;
+  /** UUID del destino al que está scoped (admin local) o null (super admin). */
+  destinoId: string | null;
+  /** Atajo legible: true si destinoId === null. */
+  isSuperAdmin: boolean;
 }
 
 /**
@@ -32,6 +36,8 @@ export async function getCurrentAdmin(): Promise<AdminUser | null> {
     id: user.id,
     email: user.email ?? "",
     perfil,
+    destinoId: perfil.destino_id ?? null,
+    isSuperAdmin: perfil.destino_id == null,
   };
 }
 
@@ -60,5 +66,7 @@ export async function requireAdmin(): Promise<AdminUser> {
     id: user.id,
     email: user.email ?? "",
     perfil,
+    destinoId: perfil.destino_id ?? null,
+    isSuperAdmin: perfil.destino_id == null,
   };
 }

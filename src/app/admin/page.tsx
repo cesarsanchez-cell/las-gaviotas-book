@@ -51,7 +51,7 @@ const ESTADOS = [
 
 export default async function AdminDashboardPage() {
   const admin = await requireAdmin();
-  const stats = await getAdminStats();
+  const stats = await getAdminStats(admin.destinoId);
 
   return (
     <div className="max-w-6xl space-y-10">

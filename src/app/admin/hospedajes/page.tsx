@@ -20,11 +20,11 @@ interface PageProps {
 }
 
 export default async function HospedajesAdminPage({ searchParams }: PageProps) {
-  await requireAdmin();
+  const admin = await requireAdmin();
   const sp = await searchParams;
   const estadoFilter = sp.estado as EstadoHospedaje | undefined;
 
-  const rows = await listHospedajesAdmin(estadoFilter);
+  const rows = await listHospedajesAdmin(estadoFilter, admin.destinoId);
 
   return (
     <div className="max-w-7xl space-y-6">

@@ -9,9 +9,9 @@ import { HospedajeForm } from "@/features/admin/components/HospedajeForm";
 import { createHospedajeAction } from "@/features/admin/lib/hospedaje-actions";
 
 export default async function NuevoHospedajePage() {
-  await requireAdmin();
+  const admin = await requireAdmin();
 
-  const destinos = await listDestinosForSelect();
+  const destinos = await listDestinosForSelect(admin.destinoId);
 
   const localidadesPorDestino: Record<
     string,

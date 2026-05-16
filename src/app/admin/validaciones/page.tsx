@@ -3,8 +3,8 @@ import { listPendientesValidacion } from "@/features/admin/lib/queries";
 import { ValidacionCard } from "@/features/admin/components/ValidacionCard";
 
 export default async function ValidacionesPage() {
-  await requireAdmin();
-  const pendientes = await listPendientesValidacion();
+  const admin = await requireAdmin();
+  const pendientes = await listPendientesValidacion(admin.destinoId);
 
   return (
     <div className="max-w-6xl space-y-6">

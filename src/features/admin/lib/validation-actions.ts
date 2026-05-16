@@ -8,6 +8,7 @@ import {
   notifyHospedajePublicado,
   notifyHospedajeRechazado,
 } from "@/features/admin/lib/notifications";
+import { assertAdminCanAccessHospedaje } from "@/features/admin/lib/scope";
 
 async function setLatestEventNote(hospedajeId: string, notas: string) {
   const admin = createAdminClient();
@@ -30,7 +31,12 @@ export async function approveHospedajeAction(
   id: string,
   notas?: string
 ): Promise<ActionResult> {
-  await requireAdmin();
+  const user = await requireAdmin();
+  try {
+    await assertAdminCanAccessHospedaje(user, id);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
   const admin = createAdminClient();
 
   const { error } = await admin
@@ -56,9 +62,14 @@ export async function rejectHospedajeAction(
   id: string,
   notas: string
 ): Promise<ActionResult> {
-  await requireAdmin();
+  const user = await requireAdmin();
   if (!notas?.trim()) {
     return { error: "Tenés que escribir el motivo del rechazo." };
+  }
+  try {
+    await assertAdminCanAccessHospedaje(user, id);
+  } catch (e) {
+    return { error: (e as Error).message };
   }
 
   const admin = createAdminClient();
