@@ -247,7 +247,7 @@ export function ConsultaCard({ consulta, mode = "admin" }: Props) {
             Descartar
           </button>
         )}
-        {(estado === "respondida" || estado === "descartada") && (
+        {estado !== "nueva" && (
           <button
             type="button"
             disabled={pending}
