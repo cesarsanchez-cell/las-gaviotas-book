@@ -124,6 +124,29 @@ export interface ValidacionEventoRow {
   created_at: string;
 }
 
+export type EstadoConsulta = "nueva" | "leida" | "respondida" | "descartada";
+
+export interface ConsultaRow {
+  id: string;
+  hospedaje_id: string;
+  nombre: string;
+  email: string;
+  whatsapp: string | null;
+  mensaje: string;
+  /** Fecha ISO (YYYY-MM-DD). */
+  check_in: string;
+  /** Fecha ISO (YYYY-MM-DD). */
+  check_out: string;
+  cantidad_huespedes: number;
+  consentimiento_datos: boolean;
+  estado: EstadoConsulta;
+  origen: string;
+  ip: string | null;
+  user_agent: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 type Insert<T extends { id: string }> = Omit<T, "id" | "created_at" | "updated_at"> & {
   id?: string;
   created_at?: string;
@@ -170,6 +193,12 @@ export type Database = {
         Update: Update<ValidacionEventoRow>;
         Relationships: [];
       };
+      consultas: {
+        Row: ConsultaRow;
+        Insert: Insert<ConsultaRow>;
+        Update: Update<ConsultaRow>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -178,6 +207,7 @@ export type Database = {
     Enums: {
       tipo_hospedaje: TipoHospedaje;
       estado_hospedaje: EstadoHospedaje;
+      estado_consulta: EstadoConsulta;
     };
     CompositeTypes: Record<string, never>;
   };
