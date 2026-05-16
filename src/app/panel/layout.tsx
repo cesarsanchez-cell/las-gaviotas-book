@@ -3,7 +3,7 @@ import { PanelSidebar } from "@/features/panel/components/PanelSidebar";
 import { requireResponsable } from "@/features/panel/lib/auth";
 
 export const metadata: Metadata = {
-  title: "Panel · Las Gaviotas BOOK",
+  title: "Panel · Mis Escapadas",
   robots: { index: false, follow: false },
 };
 

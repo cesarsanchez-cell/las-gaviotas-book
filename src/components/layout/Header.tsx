@@ -7,23 +7,38 @@ interface HeaderProps {
   destinoNombre: string;
 }
 
+/**
+ * Header del sitio público con doble marca: Mis Escapadas (red) | {Destino}
+ * (comunidad). Los dos con peso visual equivalente — cada uno clickeable a
+ * su raíz. Mis Escapadas → /  (hub de destinos), Destino → /{slug}.
+ */
 export function Header({ destinoSlug, destinoNombre }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <Container size="xl">
         <div className="flex h-16 items-center justify-between gap-4">
-          <Link
-            href={`/${destinoSlug}`}
-            className="flex items-baseline gap-2"
-            aria-label={`${siteConfig.name} — ${destinoNombre}`}
-          >
-            <span className="font-display text-xl tracking-tight">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="font-display text-xl tracking-tight text-foreground transition hover:text-primary"
+              aria-label={`${siteConfig.name} — red de portales turísticos locales`}
+            >
               {siteConfig.shortName}
+            </Link>
+            <span
+              className="text-muted-foreground/70 select-none"
+              aria-hidden
+            >
+              ·
             </span>
-            <span className="hidden text-xs text-muted-foreground sm:inline">
+            <Link
+              href={`/${destinoSlug}`}
+              className="font-display text-xl tracking-tight text-foreground transition hover:text-primary"
+              aria-label={`Hospedajes en ${destinoNombre}`}
+            >
               {destinoNombre}
-            </span>
-          </Link>
+            </Link>
+          </div>
 
           <nav className="flex items-center gap-2 text-sm">
             <Link

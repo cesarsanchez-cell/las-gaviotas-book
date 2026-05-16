@@ -27,8 +27,8 @@ export function buildWhatsAppUrl({
   const text =
     mensaje ??
     (hospedajeNombre
-      ? `Hola, vi ${hospedajeNombre} en Las Gaviotas BOOK y quería consultar por disponibilidad.`
-      : "Hola, vi su hospedaje en Las Gaviotas BOOK y quería consultar.");
+      ? `Hola, vi ${hospedajeNombre} en Mis Escapadas y quería consultar por disponibilidad.`
+      : "Hola, vi su hospedaje en Mis Escapadas y quería consultar.");
 
   return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
 }

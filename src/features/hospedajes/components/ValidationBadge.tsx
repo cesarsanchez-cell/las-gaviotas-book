@@ -15,7 +15,7 @@ export function ValidationBadge({ className, size = "sm" }: ValidationBadgeProps
         size === "md" && "px-3 py-1 text-sm",
         className
       )}
-      title="Hospedaje verificado por Las Gaviotas BOOK"
+      title="Hospedaje verificado por Mis Escapadas"
     >
       <ShieldCheck className={cn("h-3 w-3", size === "md" && "h-4 w-4")} aria-hidden />
       <span>Verificado</span>

@@ -9,7 +9,7 @@ import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
   title: "Acceso administradores",
-  description: "Panel de administración de Las Gaviotas BOOK.",
+  description: "Panel de administración de Mis Escapadas.",
   robots: { index: false, follow: false },
 };
 

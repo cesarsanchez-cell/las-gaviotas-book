@@ -184,3 +184,41 @@ export async function listAllDestinosForSitemap(): Promise<
     .eq("activo", true);
   return data ?? [];
 }
+
+/**
+ * Destinos activos con conteo de hospedajes publicados — para el hub `/`.
+ * Devuelve nombre, slug, descripción corta y la cantidad de alojamientos
+ * verificados disponibles en cada destino.
+ */
+export async function listActiveDestinosWithCounts(): Promise<
+  Array<DestinoRow & { hospedajes_publicados: number }>
+> {
+  const supabase = await createClient();
+
+  const { data: destinos } = await supabase
+    .from("destinos")
+    .select("*")
+    .eq("activo", true)
+    .order("orden", { ascending: true })
+    .returns<DestinoRow[]>();
+
+  if (!destinos?.length) return [];
+
+  // Counts en paralelo (un destino = una query). Para 2-3 destinos es
+  // suficientemente liviano; si crece a 20+ pasaríamos a una VIEW agregada.
+  const counts = await Promise.all(
+    destinos.map(async (d) => {
+      const { count } = await supabase
+        .from("hospedajes")
+        .select("id", { count: "exact", head: true })
+        .eq("destino_id", d.id)
+        .eq("estado", "publicado");
+      return count ?? 0;
+    })
+  );
+
+  return destinos.map((d, i) => ({
+    ...d,
+    hospedajes_publicados: counts[i],
+  }));
+}

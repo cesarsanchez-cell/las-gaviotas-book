@@ -3,7 +3,7 @@ import { AdminSidebar } from "@/features/admin/components/AdminSidebar";
 import { getCurrentAdmin } from "@/features/admin/lib/auth";
 
 export const metadata: Metadata = {
-  title: "Admin · Las Gaviotas BOOK",
+  title: "Admin · Mis Escapadas",
   robots: { index: false, follow: false },
 };
 

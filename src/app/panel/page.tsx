@@ -28,7 +28,7 @@ export default async function PanelDashboardPage() {
         </p>
         <h1 className="mt-1 font-display text-4xl tracking-tight">Mi panel</h1>
         <p className="mt-2 text-muted-foreground">
-          Acá gestionás tus hospedajes en Las Gaviotas BOOK.
+          Acá gestionás tus hospedajes en Mis Escapadas.
         </p>
       </header>
 

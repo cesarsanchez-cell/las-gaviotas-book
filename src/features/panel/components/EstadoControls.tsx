@@ -155,7 +155,7 @@ function PendienteState(props: { pending: boolean; onWithdraw: () => void }) {
             En revisión
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            El equipo de Las Gaviotas BOOK está revisando tu hospedaje. Cuando
+            El equipo de Mis Escapadas está revisando tu hospedaje. Cuando
             esté aprobado vas a recibir un email.
           </p>
         </div>

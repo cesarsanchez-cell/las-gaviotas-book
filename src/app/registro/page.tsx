@@ -8,7 +8,7 @@ import { siteConfig } from "@/config/site";
 export const metadata: Metadata = {
   title: "Sumá tu hospedaje",
   description:
-    "Registrate como responsable y publicá tu alojamiento en Las Gaviotas BOOK.",
+    "Registrate como responsable y publicá tu alojamiento en Mis Escapadas — red de portales turísticos locales.",
   robots: { index: true, follow: true },
 };
 

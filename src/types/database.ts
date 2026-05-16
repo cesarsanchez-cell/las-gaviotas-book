@@ -53,6 +53,13 @@ export interface PerfilRow {
   nombre: string | null;
   rol: "admin" | "responsable";
   hospedajes_ids: string[];
+  /**
+   * Solo aplica a perfiles con rol=admin.
+   * NULL = super admin (toda la red).
+   * UUID = admin de ese destino, valida solo hospedajes de ese destino.
+   * Ignorado para rol=responsable.
+   */
+  destino_id: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -26,13 +26,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const destino = await getDestinoBySlug(slug);
   if (!destino) return {};
 
-  const title = `Hospedajes en ${destino.nombre}`;
+  // "Mis Escapadas a Las Gaviotas" — la fórmula de doble marca que damos por
+  // canónica. `absolute` evita que el template del root layout agregue otro
+  // "— Mis Escapadas" al final.
+  const title = `Mis Escapadas a ${destino.nombre}`;
   const description =
     destino.descripcion_corta ??
-    `Directorio premium de hospedajes en ${destino.nombre}.`;
+    `Hospedajes verificados por la comunidad de ${destino.nombre}.`;
 
   return {
-    title,
+    title: { absolute: title },
     description,
     alternates: { canonical: `/${slug}` },
     openGraph: {
@@ -104,7 +107,7 @@ export default async function DestinoPage({ params }: PageProps) {
                   Destacados
                 </h2>
                 <p className="mt-2 text-muted-foreground">
-                  Selección curada del equipo de {siteConfig.shortName}.
+                  Selección curada de la comunidad de {destino.nombre}.
                 </p>
               </header>
 
