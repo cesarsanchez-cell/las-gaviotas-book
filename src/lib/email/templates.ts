@@ -42,6 +42,47 @@ export function hospedajeAprobadoTemplate(args: {
   };
 }
 
+export function consultaNuevaTemplate(args: {
+  responsableNombre: string | null;
+  hospedajeNombre: string;
+  destinoNombre: string;
+  /** Datos del huésped que llenó el form. */
+  huespedNombre: string;
+  huespedEmail: string;
+  huespedWhatsapp: string | null;
+  /** Fechas ISO YYYY-MM-DD ya formateadas como dd/mm/yyyy. */
+  checkInFmt: string;
+  checkOutFmt: string;
+  cantidadHuespedes: number;
+  mensaje: string;
+  urlPanelLeads: string;
+}): SubjectAndHtml {
+  const saludo = args.responsableNombre
+    ? `Hola ${args.responsableNombre},`
+    : "Hola,";
+  const whatsappLine = args.huespedWhatsapp
+    ? `<tr><td style="padding:4px 0;color:#64748b;">WhatsApp:</td><td style="padding:4px 0;color:#0f172a;"><a href="https://wa.me/${args.huespedWhatsapp.replace(/[^0-9]/g, "")}" style="color:#0f172a;text-decoration:underline;">${args.huespedWhatsapp}</a></td></tr>`
+    : "";
+  return {
+    subject: `Nueva consulta para ${args.hospedajeNombre} (${args.checkInFmt} → ${args.checkOutFmt})`,
+    html: wrap(
+      `<h2 style="font-size:22px;margin-bottom:8px;">Nueva consulta recibida</h2>` +
+        `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">${saludo} alguien pregunta por <strong>${args.hospedajeNombre}</strong> en Mis Escapadas a ${args.destinoNombre}.</p>` +
+        `<table style="width:100%;font-size:14px;border-collapse:collapse;margin:16px 0;">` +
+        `<tr><td style="padding:4px 0;color:#64748b;width:120px;">Nombre:</td><td style="padding:4px 0;color:#0f172a;"><strong>${args.huespedNombre}</strong></td></tr>` +
+        `<tr><td style="padding:4px 0;color:#64748b;">Email:</td><td style="padding:4px 0;color:#0f172a;"><a href="mailto:${args.huespedEmail}" style="color:#0f172a;text-decoration:underline;">${args.huespedEmail}</a></td></tr>` +
+        whatsappLine +
+        `<tr><td style="padding:4px 0;color:#64748b;">Check-in:</td><td style="padding:4px 0;color:#0f172a;">${args.checkInFmt}</td></tr>` +
+        `<tr><td style="padding:4px 0;color:#64748b;">Check-out:</td><td style="padding:4px 0;color:#0f172a;">${args.checkOutFmt}</td></tr>` +
+        `<tr><td style="padding:4px 0;color:#64748b;">Huéspedes:</td><td style="padding:4px 0;color:#0f172a;">${args.cantidadHuespedes}</td></tr>` +
+        `</table>` +
+        `<div style="background:#f8fafc;border-left:3px solid #0f172a;padding:12px 16px;margin:16px 0;color:#0f172a;font-size:14px;line-height:1.6;white-space:pre-line;">${args.mensaje.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>` +
+        `<p style="color:#334155;line-height:1.6;margin:16px 0;">Respondé directo al huésped por mail o WhatsApp. Desde tu bandeja podés marcarla como respondida.</p>` +
+        button(args.urlPanelLeads, "Ver mis consultas")
+    ),
+  };
+}
+
 export function hospedajeRechazadoTemplate(args: {
   responsableNombre: string | null;
   hospedajeNombre: string;

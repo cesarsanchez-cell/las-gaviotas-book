@@ -10,6 +10,7 @@ import { AmenitiesList } from "@/features/hospedajes/components/AmenitiesList";
 import { HospedajeGallery } from "@/features/hospedajes/components/HospedajeGallery";
 import { WhatsAppButton } from "@/features/hospedajes/components/WhatsAppButton";
 import { ValidationBadge } from "@/features/hospedajes/components/ValidationBadge";
+import { ConsultaForm } from "@/features/consultas/components/ConsultaForm";
 import { JsonLd } from "@/components/seo/JsonLd";
 import {
   getDestinoBySlug,
@@ -227,6 +228,23 @@ export default async function HospedajeDetailPage({ params }: PageProps) {
                   </a>
                 </section>
               )}
+
+              <section id="consultar">
+                <h2 className="font-display text-2xl tracking-tight">
+                  Consultar disponibilidad
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Mandale tu consulta al responsable. Te contesta directo, sin
+                  intermediarios.
+                </p>
+                <div className="mt-5 rounded-xl border border-border bg-card p-5 sm:p-6">
+                  <ConsultaForm
+                    hospedajeId={hospedaje.id}
+                    hospedajeNombre={hospedaje.nombre}
+                    capacidadMax={hospedaje.capacidad_max ?? null}
+                  />
+                </div>
+              </section>
             </div>
 
             {/* Sidebar sticky con WhatsApp */}
