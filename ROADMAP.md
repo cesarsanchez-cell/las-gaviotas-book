@@ -11,8 +11,8 @@ Estado consolidado del proyecto. Visión y reglas detalladas en [CLAUDE.md](CLAU
 
 | Item              | Valor                                                                            |
 |-------------------|----------------------------------------------------------------------------------|
-| Etapa vigente     | **1.5 + deploy + hardening UX + dominio + SMTP**  —  siguiente: Etapa 2 leads     |
-| Último commit     | `9b89cda` — Fix: notificar al pasar a publicado desde el editor (bug #004)        |
+| Etapa vigente     | **1.5 + marca paraguas + jerarquía de admins**  —  siguiente: Etapa 2 leads      |
+| Último commit     | `336f99a` — Sidebar admin: destino debajo del wordmark cuando hay scope          |
 | Fecha             | 2026-05-16                                                                       |
 | Entorno local     | PM2 → `las-gaviotas-book` en `http://localhost:3005`                             |
 | **Deploy producción** | ✅ https://www.misescapadas.com.ar (canónico) + redirects desde apex y vercel.app |
@@ -70,6 +70,35 @@ Estado consolidado del proyecto. Visión y reglas detalladas en [CLAUDE.md](CLAU
 - [x] Redirect URLs Supabase: nuevos dominios + legacy vercel.app + localhost dev
 - [x] `NEXT_PUBLIC_SITE_URL` en Vercel actualizado + redeploy
 - [x] Test end-to-end: signup → mail desde Resend con FROM correcto → click link → confirmación → redirect funcionan
+
+### Marca paraguas + jerarquía de admins (cerrado 2026-05-16)
+
+Reframe del proyecto a "Mis Escapadas — red de portales turísticos locales" + implementación completa de super admin / admin local con scope por destino.
+
+Bloque A — RLS Postgres (`fd30275`, migración `20260516000001`):
+- [x] Helpers SECURITY DEFINER: `is_super_admin()`, `admin_owns_destino(uuid)`, `admin_owns_hospedaje(uuid)`
+- [x] Policies reescritas sobre destinos, localidades, hospedajes, hospedaje_fotos, perfiles, validacion_eventos
+- [x] Super admin (destino_id=NULL) ve toda la red, admin local (destino_id=UUID) solo su destino
+
+Bloque B — Server actions con scope (`fd30275`):
+- [x] `AdminUser` expone `destinoId` + `isSuperAdmin`
+- [x] Nuevo módulo `scope.ts` con `assertAdminCanAccessHospedaje/Destino` (defensa en código porque service role bypasea RLS)
+- [x] Queries `getAdminStats`, `listHospedajesAdmin`, `listPendientesValidacion`, `listDestinosForSelect` reciben `destinoId` opcional
+- [x] Server actions verifican scope antes de mutar: create/update/delete/changeEstado/approve/reject/fotos
+- [x] Admin local no puede mover un hospedaje a otro destino
+
+Bloque C — UI (`2b824fd` + `336f99a`):
+- [x] Sidebar muestra "Super admin" o "Admin · {destino}" (badge amber)
+- [x] Wordmark del sidebar muestra el nombre del destino debajo cuando hay scope
+- [x] Item "Administradores" visible solo para super admin
+- [x] `/admin/admins`: listado + alta de admin local + borrado
+- [x] `createAdminLocalAction` genera password temporal con randomBytes y lo muestra una sola vez
+- [x] `deleteAdminAction` bloquea borrarse a uno mismo
+
+Bloque D — Validación end-to-end:
+- [x] Creado destino dummy "Mar Azul" + hospedaje borrador
+- [x] Verificado que admin local de Las Gaviotas NO ve Mar Azul
+- [x] Mar Azul marcado `activo=false` — queda como semilla de testing, hub público vuelve a redirigir a Las Gaviotas
 
 ### Pendientes (menores, NO bloqueantes)
 - [ ] Mejorar copy del email de confirmación de signup (sigue siendo el default de Supabase)
