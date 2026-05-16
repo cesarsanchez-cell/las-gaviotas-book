@@ -101,6 +101,58 @@ export async function listConsultasAdmin(opts: {
   }));
 }
 
+/**
+ * Lista consultas del responsable autenticado.
+ *
+ * RLS aplica el filtro automáticamente vía la policy
+ * "Consultas: responsable lee las propias" usando responsable_owns_hospedaje
+ * (la query usa cookies del user, no service role). No necesitamos pasar
+ * perfilId ni hospedajes_ids al query — RLS lo hace.
+ */
+export async function listConsultasResponsable(opts: {
+  estado?: EstadoConsulta | null;
+}): Promise<ConsultaListRow[]> {
+  const supabase = await createClient();
+  let q = supabase
+    .from("consultas")
+    .select(
+      "id, hospedaje_id, nombre, email, whatsapp, mensaje, check_in, check_out, cantidad_huespedes, estado, origen, created_at, hospedajes!inner(nombre, slug, destinos!inner(slug))"
+    )
+    .order("created_at", { ascending: false });
+
+  if (opts.estado) q = q.eq("estado", opts.estado);
+
+  const { data } = await q.returns<
+    Array<
+      Omit<ConsultaJoined, "hospedajes"> & {
+        hospedajes: {
+          nombre: string;
+          slug: string;
+          destinos: { slug: string };
+        };
+      }
+    >
+  >();
+
+  return (data ?? []).map((c) => ({
+    id: c.id,
+    hospedaje_id: c.hospedaje_id,
+    hospedaje_nombre: c.hospedajes.nombre,
+    hospedaje_slug: c.hospedajes.slug,
+    destino_slug: c.hospedajes.destinos.slug,
+    nombre: c.nombre,
+    email: c.email,
+    whatsapp: c.whatsapp,
+    mensaje: c.mensaje,
+    check_in: c.check_in,
+    check_out: c.check_out,
+    cantidad_huespedes: c.cantidad_huespedes,
+    estado: c.estado,
+    origen: c.origen,
+    created_at: c.created_at,
+  }));
+}
+
 export interface ConsultasStats {
   total: number;
   nuevas: number;
@@ -126,6 +178,38 @@ export async function getConsultasStats(
       );
     if (estado) q = q.eq("estado", estado);
     if (destinoId) q = q.eq("hospedajes.destino_id", destinoId);
+    return q;
+  };
+
+  const counts = await Promise.all([
+    buildCount(),
+    buildCount("nueva"),
+    buildCount("leida"),
+    buildCount("respondida"),
+    buildCount("descartada"),
+  ]);
+
+  return {
+    total: counts[0].count ?? 0,
+    nuevas: counts[1].count ?? 0,
+    leidas: counts[2].count ?? 0,
+    respondidas: counts[3].count ?? 0,
+    descartadas: counts[4].count ?? 0,
+  };
+}
+
+/**
+ * Counts por estado para el responsable autenticado.
+ * RLS filtra al perfil — no necesita perfilId.
+ */
+export async function getConsultasStatsResponsable(): Promise<ConsultasStats> {
+  const supabase = await createClient();
+
+  const buildCount = (estado?: EstadoConsulta) => {
+    let q = supabase
+      .from("consultas")
+      .select("id", { count: "exact", head: true });
+    if (estado) q = q.eq("estado", estado);
     return q;
   };
 

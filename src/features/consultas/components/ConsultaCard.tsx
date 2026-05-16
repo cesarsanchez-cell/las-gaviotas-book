@@ -18,12 +18,21 @@ import {
   updateConsultaEstadoAction,
   deleteConsultaAction,
 } from "@/features/consultas/lib/admin-actions";
+import { updateConsultaEstadoResponsableAction } from "@/features/consultas/lib/responsable-actions";
 import type { EstadoConsulta } from "@/types/database";
 import type { ConsultaListRow } from "@/features/consultas/lib/queries";
 import { cn } from "@/lib/utils";
 
 interface Props {
   consulta: ConsultaListRow;
+  /**
+   * Define qué server actions usa la card y qué botones muestra:
+   * - "admin": usa admin-actions, muestra "Borrar" (purga definitiva), link
+   *   al hospedaje en /admin/hospedajes.
+   * - "responsable": usa responsable-actions, sin borrar, link al hospedaje
+   *   en /panel/hospedajes.
+   */
+  mode?: "admin" | "responsable";
 }
 
 const ESTADO_STYLES: Record<EstadoConsulta, string> = {
@@ -56,7 +65,7 @@ function formatDateTime(iso: string): string {
   });
 }
 
-export function ConsultaCard({ consulta }: Props) {
+export function ConsultaCard({ consulta, mode = "admin" }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [estado, setEstado] = useState<EstadoConsulta>(consulta.estado);
@@ -64,7 +73,11 @@ export function ConsultaCard({ consulta }: Props) {
   function cambiarEstado(nuevo: EstadoConsulta) {
     setError(null);
     startTransition(async () => {
-      const res = await updateConsultaEstadoAction({
+      const updateAction =
+        mode === "responsable"
+          ? updateConsultaEstadoResponsableAction
+          : updateConsultaEstadoAction;
+      const res = await updateAction({
         consultaId: consulta.id,
         estado: nuevo,
       });
@@ -115,7 +128,11 @@ export function ConsultaCard({ consulta }: Props) {
               {ESTADO_LABEL[estado]}
             </span>
             <Link
-              href={`/admin/hospedajes/${consulta.hospedaje_id}`}
+              href={
+                mode === "responsable"
+                  ? `/panel/hospedajes/${consulta.hospedaje_id}`
+                  : `/admin/hospedajes/${consulta.hospedaje_id}`
+              }
               className="text-xs text-muted-foreground hover:text-foreground"
             >
               → {consulta.hospedaje_nombre}
@@ -242,16 +259,18 @@ export function ConsultaCard({ consulta }: Props) {
           </button>
         )}
         <span className="flex-1" />
-        <button
-          type="button"
-          disabled={pending}
-          onClick={borrar}
-          className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2.5 py-1 text-xs text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
-          title="Borrar definitivo (para spam)"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-          Borrar
-        </button>
+        {mode === "admin" && (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={borrar}
+            className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2.5 py-1 text-xs text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+            title="Borrar definitivo (para spam)"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Borrar
+          </button>
+        )}
       </footer>
     </article>
   );

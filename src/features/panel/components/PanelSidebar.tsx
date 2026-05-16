@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Building2,
+  Inbox,
   LogOut,
   ExternalLink,
 } from "lucide-react";
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/panel", label: "Mi panel", icon: LayoutDashboard, exact: true },
   { href: "/panel/hospedajes", label: "Mis hospedajes", icon: Building2 },
+  { href: "/panel/leads", label: "Consultas", icon: Inbox },
 ];
 
 interface PanelSidebarProps {
