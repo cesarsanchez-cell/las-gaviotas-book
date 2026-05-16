@@ -10,6 +10,7 @@ import {
   LogOut,
   ExternalLink,
   Users,
+  Inbox,
 } from "lucide-react";
 import { signOutAction } from "@/features/admin/lib/session-actions";
 import { siteConfig } from "@/config/site";
@@ -28,6 +29,7 @@ const NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/validaciones", label: "Cola de validación", icon: ShieldCheck },
   { href: "/admin/hospedajes", label: "Hospedajes", icon: Building2 },
+  { href: "/admin/consultas", label: "Consultas", icon: Inbox },
   { href: "/admin/admins", label: "Administradores", icon: Users, superOnly: true },
   { href: "/admin/fotos", label: "Fotos", icon: ImageIcon, soon: true },
 ];
