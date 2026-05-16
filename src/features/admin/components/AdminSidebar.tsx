@@ -9,25 +9,49 @@ import {
   ShieldCheck,
   LogOut,
   ExternalLink,
+  Users,
 } from "lucide-react";
 import { signOutAction } from "@/features/admin/lib/session-actions";
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 
-const NAV = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+  soon?: boolean;
+  superOnly?: boolean;
+}
+
+const NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/validaciones", label: "Cola de validación", icon: ShieldCheck },
   { href: "/admin/hospedajes", label: "Hospedajes", icon: Building2 },
+  { href: "/admin/admins", label: "Administradores", icon: Users, superOnly: true },
   { href: "/admin/fotos", label: "Fotos", icon: ImageIcon, soon: true },
 ];
 
 interface AdminSidebarProps {
   email: string;
   nombre: string | null;
+  isSuperAdmin: boolean;
+  destinoNombre: string | null;
 }
 
-export function AdminSidebar({ email, nombre }: AdminSidebarProps) {
+export function AdminSidebar({
+  email,
+  nombre,
+  isSuperAdmin,
+  destinoNombre,
+}: AdminSidebarProps) {
   const pathname = usePathname();
+  const visibleNav = NAV.filter((item) => !item.superOnly || isSuperAdmin);
+  const scopeLabel = isSuperAdmin
+    ? "Super admin"
+    : destinoNombre
+      ? `Admin · ${destinoNombre}`
+      : "Admin";
 
   return (
     <aside className="flex h-full w-full flex-col border-r border-border bg-card">
@@ -39,7 +63,7 @@ export function AdminSidebar({ email, nombre }: AdminSidebarProps) {
       </div>
 
       <nav className="flex-1 space-y-0.5 px-3">
-        {NAV.map((item) => {
+        {visibleNav.map((item) => {
           const active = item.exact
             ? pathname === item.href
             : pathname.startsWith(item.href);
@@ -83,8 +107,15 @@ export function AdminSidebar({ email, nombre }: AdminSidebarProps) {
       <div className="border-t border-border p-4">
         <div className="mb-3 px-1 text-xs">
           <div className="flex items-center gap-1.5">
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
-              Admin
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
+                isSuperAdmin
+                  ? "bg-primary/10 text-primary"
+                  : "bg-amber-100 text-amber-800"
+              )}
+            >
+              {scopeLabel}
             </span>
           </div>
           <p className="mt-1.5 truncate font-medium text-foreground">
