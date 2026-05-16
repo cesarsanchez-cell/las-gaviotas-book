@@ -10,6 +10,8 @@ export interface AuthResult {
   error?: string;
   ok?: boolean;
   pendingConfirmation?: boolean;
+  needsConfirmation?: boolean;
+  email?: string;
 }
 
 const signUpSchema = z.object({
@@ -35,11 +37,17 @@ export async function signUpResponsableAction(
   }
 
   const supabase = await createClient();
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.misescapadas.com.ar";
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
       data: { nombre: parsed.data.nombre },
+      // Después de que confirme el email, lo mandamos al callback que setea
+      // la sesión en cookies del dominio y redirige a /panel para que cargue
+      // su primer hospedaje.
+      emailRedirectTo: `${siteUrl}/auth/callback?next=/panel`,
     },
   });
 
@@ -118,6 +126,21 @@ export async function signInResponsableAction(
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error || !data.user) {
+    // Email no confirmado: Supabase devuelve code "email_not_confirmed" o
+    // mensaje "Email not confirmed". Lo detectamos para ofrecer reenvío.
+    const isUnconfirmed =
+      error?.code === "email_not_confirmed" ||
+      /not confirmed/i.test(error?.message ?? "");
+
+    if (isUnconfirmed) {
+      return {
+        error:
+          "Todavía no confirmaste tu email. Revisá tu casilla (incluido spam) y hacé click en el link que te enviamos.",
+        needsConfirmation: true,
+        email: parsed.data.email,
+      };
+    }
+
     return { error: error?.message ?? "Credenciales inválidas." };
   }
 
@@ -153,4 +176,37 @@ export async function signOutPanelAction() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+export async function resendConfirmationAction(
+  email: string
+): Promise<AuthResult> {
+  const trimmed = (email ?? "").trim();
+  if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+    return { error: "Email inválido." };
+  }
+
+  const supabase = await createClient();
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.misescapadas.com.ar";
+  const { error } = await supabase.auth.resend({
+    type: "signup",
+    email: trimmed,
+    options: {
+      emailRedirectTo: `${siteUrl}/auth/callback?next=/panel`,
+    },
+  });
+
+  if (error) {
+    // Rate limit típico: "For security purposes, you can only request this once every N seconds"
+    if (/rate limit|once every/i.test(error.message)) {
+      return {
+        error:
+          "Tenés que esperar unos segundos antes de pedir otro reenvío. Revisá tu casilla, el mail anterior puede estar por llegar.",
+      };
+    }
+    return { error: error.message };
+  }
+
+  return { ok: true };
 }
