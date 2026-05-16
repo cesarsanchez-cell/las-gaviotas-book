@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useTransition, useId } from "react";
+import {
+  useState,
+  useTransition,
+  useId,
+  useRef,
+  useEffect,
+  type FormEvent,
+} from "react";
 import { CheckCircle2 } from "lucide-react";
 import { createConsultaAction } from "@/features/consultas/lib/consulta-actions";
 
@@ -20,6 +27,20 @@ function tomorrowISO(): string {
   return t.toISOString().slice(0, 10);
 }
 
+// Orden en que buscamos el primer campo con error para mover el foco.
+const FIELD_ORDER = [
+  "nombre",
+  "email",
+  "whatsapp",
+  "checkIn",
+  "checkOut",
+  "cantidadHuespedes",
+  "mensaje",
+  "consentimiento",
+] as const;
+
+type FieldKey = (typeof FIELD_ORDER)[number];
+
 export function ConsultaForm({
   hospedajeId,
   hospedajeNombre,
@@ -31,10 +52,37 @@ export function ConsultaForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
 
-  function handleSubmit(formData: FormData) {
+  const refs: Record<FieldKey, React.RefObject<HTMLElement | null>> = {
+    nombre: useRef<HTMLInputElement | null>(null),
+    email: useRef<HTMLInputElement | null>(null),
+    whatsapp: useRef<HTMLInputElement | null>(null),
+    checkIn: useRef<HTMLInputElement | null>(null),
+    checkOut: useRef<HTMLInputElement | null>(null),
+    cantidadHuespedes: useRef<HTMLInputElement | null>(null),
+    mensaje: useRef<HTMLTextAreaElement | null>(null),
+    consentimiento: useRef<HTMLInputElement | null>(null),
+  };
+
+  // Cuando llegan field errors, mover el foco al primer campo con error
+  // (en el orden visual del form). NO se limpian los valores cargados —
+  // como usamos onSubmit con preventDefault, React no resetea el form.
+  useEffect(() => {
+    const keys = Object.keys(fieldErrors);
+    if (keys.length === 0) return;
+    const firstKey = FIELD_ORDER.find((k) => keys.includes(k));
+    if (firstKey) {
+      const el = refs[firstKey].current;
+      if (el && "focus" in el) (el as HTMLElement).focus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldErrors]);
+
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
     setError(null);
     setFieldErrors({});
 
+    const formData = new FormData(e.currentTarget);
     const input = {
       hospedajeId,
       nombre: String(formData.get("nombre") ?? ""),
@@ -77,9 +125,13 @@ export function ConsultaForm({
   const fe = (k: string) => fieldErrors[k];
   const inputBase =
     "mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40";
+  const inputError =
+    "border-rose-400 focus:ring-rose-300";
+  const cls = (k: string) =>
+    `${inputBase}${fieldErrors[k] ? ` ${inputError}` : ""}`;
 
   return (
-    <form action={handleSubmit} className="space-y-4" id={formId}>
+    <form onSubmit={handleSubmit} className="space-y-4" id={formId} noValidate>
       {error && (
         <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
           {error}
@@ -110,7 +162,8 @@ export function ConsultaForm({
             minLength={2}
             maxLength={120}
             placeholder="María Pérez"
-            className={inputBase}
+            ref={refs.nombre as React.RefObject<HTMLInputElement>}
+            className={cls("nombre")}
           />
           {fe("nombre") && (
             <p className="mt-1 text-xs text-rose-600">{fe("nombre")}</p>
@@ -126,7 +179,8 @@ export function ConsultaForm({
             type="email"
             required
             placeholder="maria@ejemplo.com"
-            className={inputBase}
+            ref={refs.email as React.RefObject<HTMLInputElement>}
+            className={cls("email")}
           />
           {fe("email") && (
             <p className="mt-1 text-xs text-rose-600">{fe("email")}</p>
@@ -142,9 +196,14 @@ export function ConsultaForm({
           id={`${formId}-whatsapp`}
           name="whatsapp"
           type="tel"
-          placeholder="+5491155555555"
-          className={inputBase}
+          placeholder="1155555555"
+          ref={refs.whatsapp as React.RefObject<HTMLInputElement>}
+          className={cls("whatsapp")}
         />
+        <p className="mt-1 text-xs text-muted-foreground">
+          Sin código de país: cargá tus 10 dígitos. Si sos del exterior usá el
+          número completo con <code>+</code>.
+        </p>
         {fe("whatsapp") && (
           <p className="mt-1 text-xs text-rose-600">{fe("whatsapp")}</p>
         )}
@@ -162,7 +221,8 @@ export function ConsultaForm({
             required
             min={todayISO()}
             defaultValue={todayISO()}
-            className={inputBase}
+            ref={refs.checkIn as React.RefObject<HTMLInputElement>}
+            className={cls("checkIn")}
           />
           {fe("checkIn") && (
             <p className="mt-1 text-xs text-rose-600">{fe("checkIn")}</p>
@@ -179,7 +239,8 @@ export function ConsultaForm({
             required
             min={tomorrowISO()}
             defaultValue={tomorrowISO()}
-            className={inputBase}
+            ref={refs.checkOut as React.RefObject<HTMLInputElement>}
+            className={cls("checkOut")}
           />
           {fe("checkOut") && (
             <p className="mt-1 text-xs text-rose-600">{fe("checkOut")}</p>
@@ -197,7 +258,8 @@ export function ConsultaForm({
             min={1}
             max={capacidadMax ?? 20}
             defaultValue={2}
-            className={inputBase}
+            ref={refs.cantidadHuespedes as React.RefObject<HTMLInputElement>}
+            className={cls("cantidadHuespedes")}
           />
           {fe("cantidadHuespedes") && (
             <p className="mt-1 text-xs text-rose-600">
@@ -219,7 +281,8 @@ export function ConsultaForm({
           maxLength={1000}
           rows={4}
           placeholder="Contame qué necesitás (disponibilidad, precios, servicios incluidos…)"
-          className={inputBase}
+          ref={refs.mensaje as React.RefObject<HTMLTextAreaElement>}
+          className={cls("mensaje")}
         />
         {fe("mensaje") && (
           <p className="mt-1 text-xs text-rose-600">{fe("mensaje")}</p>
@@ -231,6 +294,7 @@ export function ConsultaForm({
           name="consentimiento"
           type="checkbox"
           required
+          ref={refs.consentimiento as React.RefObject<HTMLInputElement>}
           className="mt-0.5 h-4 w-4 rounded border-input"
         />
         <span>

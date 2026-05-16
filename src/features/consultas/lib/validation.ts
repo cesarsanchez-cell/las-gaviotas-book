@@ -7,6 +7,36 @@ const isoDate = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha en formato YYYY-MM-DD");
 
 /**
+ * Normaliza WhatsApp para usuarios argentinos.
+ *
+ * Reglas:
+ * - Si viene vacío → undefined.
+ * - Si empieza con `+` (formato internacional explícito) → se respeta tal cual,
+ *   solo se sacan espacios/guiones/paréntesis (extranjeros).
+ * - Sin `+` → asumimos celular argentino y prefijamos `+549`. Quitamos un `0`
+ *   inicial si vino (formato `01155555555`).
+ *
+ * Ejemplos:
+ *   "1155555555"      → "+5491155555555"
+ *   "01155555555"     → "+5491155555555"
+ *   "11 5555 5555"    → "+5491155555555"
+ *   "+5491155555555"  → "+5491155555555"
+ *   "+15551234567"    → "+15551234567"
+ *   ""                → undefined
+ */
+export function normalizeWhatsApp(
+  raw: string | null | undefined
+): string | undefined {
+  if (!raw) return undefined;
+  const cleaned = raw.replace(/[\s\-().]/g, "");
+  if (!cleaned) return undefined;
+  if (cleaned.startsWith("+")) return cleaned;
+  const noLeadingZero = cleaned.replace(/^0+/, "");
+  if (!noLeadingZero) return undefined;
+  return `+549${noLeadingZero}`;
+}
+
+/**
  * Schema de creación de consulta desde el form público.
  *
  * Reglas de fechas:
@@ -28,12 +58,16 @@ export const consultaInputSchema = z
       .min(2, "Nombre demasiado corto")
       .max(120, "Nombre demasiado largo"),
     email: z.string().trim().email("Email inválido"),
-    whatsapp: z
-      .string()
-      .trim()
-      .regex(whatsappRegex, "Formato +5491155555555")
-      .optional()
-      .or(z.literal("").transform(() => undefined)),
+    whatsapp: z.preprocess(
+      (v) => (typeof v === "string" ? normalizeWhatsApp(v) : undefined),
+      z
+        .string()
+        .regex(
+          whatsappRegex,
+          "Formato inválido. Ej: 1155555555 (AR) o +5491155555555"
+        )
+        .optional()
+    ),
     mensaje: z
       .string()
       .trim()
