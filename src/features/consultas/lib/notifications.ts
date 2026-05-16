@@ -1,6 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email/resend";
-import { consultaNuevaTemplate } from "@/lib/email/templates";
+import {
+  consultaNuevaTemplate,
+  consultaNuevaSinResponsableTemplate,
+} from "@/lib/email/templates";
 import { siteConfig } from "@/config/site";
 
 function formatDateISO(iso: string): string {
@@ -62,26 +65,8 @@ export async function notifyConsultaNueva(consultaId: string): Promise<void> {
       .contains("hospedajes_ids", [h.id])
       .eq("rol", "responsable")
       .maybeSingle<{ id: string; nombre: string | null }>();
-    if (!perfil) {
-      console.warn(
-        "[notifyConsulta] Hospedaje sin responsable asignado",
-        h.id
-      );
-      return;
-    }
 
-    const { data: userInfo } = await sb.auth.admin.getUserById(perfil.id);
-    const responsableEmail = userInfo?.user?.email ?? null;
-    if (!responsableEmail) {
-      console.warn(
-        "[notifyConsulta] Responsable sin email",
-        perfil.id
-      );
-      return;
-    }
-
-    const tpl = consultaNuevaTemplate({
-      responsableNombre: perfil.nombre,
+    const fechasCommon = {
       hospedajeNombre: h.nombre,
       destinoNombre: d.nombre,
       huespedNombre: consulta.nombre,
@@ -91,13 +76,72 @@ export async function notifyConsultaNueva(consultaId: string): Promise<void> {
       checkOutFmt: formatDateISO(consulta.check_out),
       cantidadHuespedes: consulta.cantidad_huespedes,
       mensaje: consulta.mensaje,
-      urlPanelLeads: `${siteConfig.url}/panel/leads`,
-    });
+    };
 
-    const result = await sendEmail({ to: responsableEmail, ...tpl });
-    if (!result.ok) {
-      console.error("[notifyConsulta] sendEmail falló:", result.error);
+    // Camino feliz: hay responsable asignado, le mandamos directo.
+    if (perfil) {
+      const { data: userInfo } = await sb.auth.admin.getUserById(perfil.id);
+      const responsableEmail = userInfo?.user?.email ?? null;
+      if (!responsableEmail) {
+        console.warn("[notifyConsulta] Responsable sin email", perfil.id);
+        // Cae al fallback de abajo.
+      } else {
+        const tpl = consultaNuevaTemplate({
+          responsableNombre: perfil.nombre,
+          urlPanelLeads: `${siteConfig.url}/panel/leads`,
+          ...fechasCommon,
+        });
+        const result = await sendEmail({ to: responsableEmail, ...tpl });
+        if (!result.ok) {
+          console.error("[notifyConsulta] sendEmail responsable falló:", result.error);
+        }
+        return;
+      }
+    } else {
+      console.warn(
+        "[notifyConsulta] Hospedaje sin responsable, cayendo a fallback admins",
+        h.id
+      );
     }
+
+    // Fallback: mandar a todos los admins del destino del hospedaje
+    // (super admins con destino_id=null + admins locales con destino_id=h.destino_id).
+    const { data: admins } = await sb
+      .from("perfiles")
+      .select("id, nombre")
+      .eq("rol", "admin")
+      .or(`destino_id.is.null,destino_id.eq.${h.destino_id}`)
+      .returns<Array<{ id: string; nombre: string | null }>>();
+
+    if (!admins || admins.length === 0) {
+      console.error(
+        "[notifyConsulta] Sin responsable ni admins para destino — consulta queda sin notificar",
+        h.destino_id
+      );
+      return;
+    }
+
+    const urlHospedajeAdmin = `${siteConfig.url}/admin/hospedajes/${h.id}`;
+    await Promise.all(
+      admins.map(async (a) => {
+        const { data: u } = await sb.auth.admin.getUserById(a.id);
+        const adminEmail = u?.user?.email ?? null;
+        if (!adminEmail) return;
+        const tpl = consultaNuevaSinResponsableTemplate({
+          adminNombre: a.nombre,
+          urlHospedajeAdmin,
+          ...fechasCommon,
+        });
+        const result = await sendEmail({ to: adminEmail, ...tpl });
+        if (!result.ok) {
+          console.error(
+            "[notifyConsulta] sendEmail admin falló:",
+            adminEmail,
+            result.error
+          );
+        }
+      })
+    );
   } catch (e) {
     console.error("[notifyConsulta] Error:", e);
   }

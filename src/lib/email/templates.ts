@@ -83,6 +83,49 @@ export function consultaNuevaTemplate(args: {
   };
 }
 
+/**
+ * Variante de consulta cuando el hospedaje destinatario NO tiene responsable
+ * asignado — el mail se manda al admin (super admin del destino o admin local).
+ * El admin tiene que contactar al huésped manualmente y/o asignar un responsable
+ * al hospedaje para que las próximas consultas vayan directo.
+ */
+export function consultaNuevaSinResponsableTemplate(args: {
+  adminNombre: string | null;
+  hospedajeNombre: string;
+  destinoNombre: string;
+  huespedNombre: string;
+  huespedEmail: string;
+  huespedWhatsapp: string | null;
+  checkInFmt: string;
+  checkOutFmt: string;
+  cantidadHuespedes: number;
+  mensaje: string;
+  urlHospedajeAdmin: string;
+}): SubjectAndHtml {
+  const saludo = args.adminNombre ? `Hola ${args.adminNombre},` : "Hola,";
+  const whatsappLine = args.huespedWhatsapp
+    ? `<tr><td style="padding:4px 0;color:#64748b;">WhatsApp:</td><td style="padding:4px 0;color:#0f172a;"><a href="https://wa.me/${args.huespedWhatsapp.replace(/[^0-9]/g, "")}" style="color:#0f172a;text-decoration:underline;">${args.huespedWhatsapp}</a></td></tr>`
+    : "";
+  return {
+    subject: `[Sin responsable] Nueva consulta para ${args.hospedajeNombre} (${args.checkInFmt} → ${args.checkOutFmt})`,
+    html: wrap(
+      `<h2 style="font-size:22px;margin-bottom:8px;">Consulta sin responsable asignado</h2>` +
+        `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">${saludo} llegó una consulta para <strong>${args.hospedajeNombre}</strong> en Mis Escapadas a ${args.destinoNombre}, pero este hospedaje todavía no tiene responsable asignado, así que te avisamos a vos.</p>` +
+        `<div style="background:#fef3c7;border-left:3px solid #f59e0b;padding:12px 16px;margin:16px 0;color:#78350f;font-size:14px;line-height:1.5;">Acción sugerida: contactá al huésped directo y asigná un responsable al hospedaje para que las próximas consultas le lleguen automáticamente.</div>` +
+        `<table style="width:100%;font-size:14px;border-collapse:collapse;margin:16px 0;">` +
+        `<tr><td style="padding:4px 0;color:#64748b;width:120px;">Nombre:</td><td style="padding:4px 0;color:#0f172a;"><strong>${args.huespedNombre}</strong></td></tr>` +
+        `<tr><td style="padding:4px 0;color:#64748b;">Email:</td><td style="padding:4px 0;color:#0f172a;"><a href="mailto:${args.huespedEmail}" style="color:#0f172a;text-decoration:underline;">${args.huespedEmail}</a></td></tr>` +
+        whatsappLine +
+        `<tr><td style="padding:4px 0;color:#64748b;">Check-in:</td><td style="padding:4px 0;color:#0f172a;">${args.checkInFmt}</td></tr>` +
+        `<tr><td style="padding:4px 0;color:#64748b;">Check-out:</td><td style="padding:4px 0;color:#0f172a;">${args.checkOutFmt}</td></tr>` +
+        `<tr><td style="padding:4px 0;color:#64748b;">Huéspedes:</td><td style="padding:4px 0;color:#0f172a;">${args.cantidadHuespedes}</td></tr>` +
+        `</table>` +
+        `<div style="background:#f8fafc;border-left:3px solid #0f172a;padding:12px 16px;margin:16px 0;color:#0f172a;font-size:14px;line-height:1.6;white-space:pre-line;">${args.mensaje.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>` +
+        button(args.urlHospedajeAdmin, "Ver hospedaje en el admin")
+    ),
+  };
+}
+
 export function hospedajeRechazadoTemplate(args: {
   responsableNombre: string | null;
   hospedajeNombre: string;
