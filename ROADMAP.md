@@ -12,8 +12,8 @@ Estado consolidado del proyecto. Visión y reglas detalladas en [CLAUDE.md](CLAU
 | Item              | Valor                                                                            |
 |-------------------|----------------------------------------------------------------------------------|
 | Etapa vigente     | **1.5 + deploy + hardening UX + dominio + SMTP**  —  siguiente: Etapa 2 leads     |
-| Último commit     | `afc78aa` — Checkpoint día 2026-05-14: deploy + hardening UX                     |
-| Fecha             | 2026-05-15                                                                       |
+| Último commit     | `9b89cda` — Fix: notificar al pasar a publicado desde el editor (bug #004)        |
+| Fecha             | 2026-05-16                                                                       |
 | Entorno local     | PM2 → `las-gaviotas-book` en `http://localhost:3005`                             |
 | **Deploy producción** | ✅ https://www.misescapadas.com.ar (canónico) + redirects desde apex y vercel.app |
 | Repo remoto       | https://github.com/cesarsanchez-cell/las-gaviotas-book (privado)                 |
@@ -111,6 +111,7 @@ _(ninguno bloqueante en este momento — ver `errores.txt` para notas sueltas mi
 | 001 | RLS bloqueaba UPDATE del responsable sobre hospedaje en borrador (`new row violates row-level security policy`). Causa: `exists()` sobre `perfiles` en WITH CHECK falla bajo RLS recursiva. | ✅ cerrado | migración `20260514000000`, commit `3726bfe` |
 | 002 | Registro `/registro` con email ya existente devolvía FK violation cruda (`perfiles_id_fkey`). Causa: anti-enumeration de Supabase obfusca el user retornado en `signUp` cuando el email ya está, con `identities=[]` e id fake. | ✅ cerrado | `signUpResponsableAction` detecta `identities` vacío y muestra mensaje claro |
 | 003 | Responsable no podía editar la descripción (u otro campo) de un hospedaje en estado `publicado` o `rechazado`. Causa: el WITH CHECK de la policy de UPDATE tenía `and estado in ('borrador','pendiente_validacion','pausado')`, y RLS evalúa la NEW ROW completa aunque el campo no se modifique. | ✅ cerrado | migración `20260514000001`, suite Playwright agrega test E10 de regresión |
+| 004 | El mail de aprobación al responsable no se enviaba cuando el admin republicaba un hospedaje desde el editor `/admin/hospedajes/[id]` (publicado → pausado → publicado). Causa: solo `approveHospedajeAction` (usado en `/admin/validaciones`) disparaba el mail; el dropdown de estado del form pasa por `updateHospedajeAction`, que no notificaba. | ✅ cerrado | commit `9b89cda` — extracción a `notifications.ts` + transición detectada en `updateHospedajeAction` |
 
 ---
 
