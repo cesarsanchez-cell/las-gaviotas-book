@@ -17,6 +17,12 @@ interface Props {
   diasBloqueados: DiaBloqueado[];
   /** Cantidad de meses a mostrar (default 6). */
   mesesVisibles?: number;
+  /**
+   * Modo lectura: oculta los controles de bulk y deshabilita el click por
+   * día. Usado en la vista de admin (la disponibilidad solo la edita el
+   * responsable).
+   */
+  readOnly?: boolean;
 }
 
 const DAYS_OF_WEEK = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"];
@@ -85,6 +91,7 @@ export function DisponibilidadCalendar({
   hospedajeNombre,
   diasBloqueados,
   mesesVisibles = 6,
+  readOnly = false,
 }: Props) {
   const today = todayLocal();
   const [offsetMes, setOffsetMes] = useState(0);
@@ -157,6 +164,7 @@ export function DisponibilidadCalendar({
         </div>
       )}
 
+      {!readOnly && (
       <section className="rounded-xl border border-border bg-card p-5">
         <h2 className="font-display text-lg tracking-tight">
           Bloquear / desbloquear un rango
@@ -227,6 +235,7 @@ export function DisponibilidadCalendar({
           </button>
         </div>
       </section>
+      )}
 
       <section className="rounded-xl border border-border bg-card p-5">
         <header className="flex flex-wrap items-center justify-between gap-3">
@@ -235,9 +244,9 @@ export function DisponibilidadCalendar({
               Calendario · {hospedajeNombre}
             </h2>
             <p className="mt-1 text-xs text-muted-foreground">
-              Click sobre un día para alternar bloqueado/libre. Fondo rojo =
-              ocupado. Reservas (Etapa futura) aparecerán en otro color y no
-              se pueden tocar desde acá.
+              {readOnly
+                ? "Vista de solo lectura. La disponibilidad la gestiona únicamente el responsable del hospedaje."
+                : "Click sobre un día para alternar bloqueado/libre. Fondo rojo = ocupado. Reservas (Etapa futura) aparecerán en otro color y no se pueden tocar desde acá."}
             </p>
           </div>
           <div className="flex items-center gap-1.5">
@@ -285,8 +294,8 @@ export function DisponibilidadCalendar({
                       <button
                         key={cell.iso}
                         type="button"
-                        disabled={pending || cell.isPast || isReserva}
-                        onClick={() => handleToggle(cell.iso)}
+                        disabled={pending || cell.isPast || isReserva || readOnly}
+                        onClick={readOnly ? undefined : () => handleToggle(cell.iso)}
                         title={
                           cell.isPast
                             ? "Fecha pasada"

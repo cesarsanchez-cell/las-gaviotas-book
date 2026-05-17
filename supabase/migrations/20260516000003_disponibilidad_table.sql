@@ -78,17 +78,15 @@ create policy "Disponibilidad: responsable gestiona manual"
     and tipo = 'manual'
   );
 
--- Admin: scope por destino del hospedaje (super admin ve todo).
+-- Admin: SOLO LECTURA scoped por destino. La disponibilidad la define
+-- únicamente el responsable del hospedaje — el admin nunca la edita porque
+-- es el responsable quien sabe qué puede ofrecer (cualquier error sale caro).
+-- Si en el futuro hace falta que admin edite (ej. resolver un conflicto),
+-- la decisión debe ser explícita y por escrito.
 create policy "Disponibilidad: admin lectura scoped"
   on disponibilidad for select
   to authenticated
   using (admin_owns_hospedaje(hospedaje_id));
-
-create policy "Disponibilidad: admin escritura scoped"
-  on disponibilidad for all
-  to authenticated
-  using (admin_owns_hospedaje(hospedaje_id))
-  with check (admin_owns_hospedaje(hospedaje_id));
 
 -- Nota: el conteo de días bloqueados en un rango se hace desde TypeScript
 -- con createAdminClient + count('exact') en vez de una función SQL helper.

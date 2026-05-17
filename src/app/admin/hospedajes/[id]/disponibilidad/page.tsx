@@ -53,8 +53,8 @@ export default async function AdminDisponibilidadPage({ params }: PageProps) {
           Disponibilidad · {hospedaje.nombre}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Como admin podés editar la disponibilidad de cualquier hospedaje de
-          tu scope. Cambios afectan al calendario público y al estado en consultas.
+          Vista de solo lectura. La disponibilidad la gestiona únicamente el
+          responsable del hospedaje — quien sabe qué puede ofrecer.
         </p>
       </header>
 
@@ -63,6 +63,7 @@ export default async function AdminDisponibilidadPage({ params }: PageProps) {
         hospedajeNombre={hospedaje.nombre}
         diasBloqueados={diasBloqueados}
         mesesVisibles={MESES_VISIBLES}
+        readOnly
       />
     </div>
   );

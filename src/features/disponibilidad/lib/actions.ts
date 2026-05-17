@@ -4,8 +4,6 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentResponsable } from "@/features/panel/lib/auth";
-import { getCurrentAdmin } from "@/features/admin/lib/auth";
-import { assertAdminCanAccessHospedaje } from "@/features/admin/lib/scope";
 import type { ActionResult } from "@/features/admin/lib/hospedaje-actions";
 
 interface AccessContext {
@@ -13,29 +11,25 @@ interface AccessContext {
 }
 
 /**
- * Verifica que el usuario actual pueda gestionar disponibilidad del hospedaje.
+ * Verifica que el usuario sea responsable del hospedaje.
  *
- * - Admin: vía assertAdminCanAccessHospedaje (super pasa todo, local solo su destino).
- * - Responsable: hospedaje en su perfil.hospedajes_ids.
+ * Por diseño, la disponibilidad la maneja SOLO el responsable. El admin
+ * puede ver pero no editar — el responsable es el único que sabe qué
+ * puede ofrecer y cualquier error en bloqueo/desbloqueo sale caro.
  */
-async function requireAccessToHospedaje(
+async function requireResponsableOwnsHospedaje(
   hospedajeId: string
 ): Promise<AccessContext> {
-  const admin = await getCurrentAdmin();
-  if (admin) {
-    await assertAdminCanAccessHospedaje(admin, hospedajeId);
-    return { userId: admin.id };
-  }
-
   const responsable = await getCurrentResponsable();
-  if (responsable && responsable.perfil.rol === "responsable") {
-    if (!(responsable.perfil.hospedajes_ids ?? []).includes(hospedajeId)) {
-      throw new Error("Sin permisos sobre este hospedaje.");
-    }
-    return { userId: responsable.id };
+  if (!responsable || responsable.perfil.rol !== "responsable") {
+    throw new Error(
+      "Solo el responsable del hospedaje puede modificar la disponibilidad."
+    );
   }
-
-  throw new Error("No autenticado.");
+  if (!(responsable.perfil.hospedajes_ids ?? []).includes(hospedajeId)) {
+    throw new Error("Sin permisos sobre este hospedaje.");
+  }
+  return { userId: responsable.id };
 }
 
 const isoDate = z
@@ -81,7 +75,7 @@ export async function bloquearRangoAction(input: {
 
   let ctx: AccessContext;
   try {
-    ctx = await requireAccessToHospedaje(parsed.data.hospedajeId);
+    ctx = await requireResponsableOwnsHospedaje(parsed.data.hospedajeId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -132,7 +126,7 @@ export async function desbloquearRangoAction(input: {
   if (!parsed.success) return { error: "Datos inválidos." };
 
   try {
-    await requireAccessToHospedaje(parsed.data.hospedajeId);
+    await requireResponsableOwnsHospedaje(parsed.data.hospedajeId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -171,7 +165,7 @@ export async function toggleFechaAction(input: {
 
   let ctx: AccessContext;
   try {
-    ctx = await requireAccessToHospedaje(parsed.data.hospedajeId);
+    ctx = await requireResponsableOwnsHospedaje(parsed.data.hospedajeId);
   } catch (e) {
     return { error: (e as Error).message };
   }
