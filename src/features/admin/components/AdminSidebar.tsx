@@ -11,6 +11,7 @@ import {
   ExternalLink,
   Users,
   UserCog,
+  MapPinned,
   Inbox,
 } from "lucide-react";
 import { signOutAction } from "@/features/admin/lib/session-actions";
@@ -32,6 +33,7 @@ const NAV: NavItem[] = [
   { href: "/admin/hospedajes", label: "Hospedajes", icon: Building2 },
   { href: "/admin/consultas", label: "Consultas", icon: Inbox },
   { href: "/admin/responsables", label: "Responsables", icon: UserCog },
+  { href: "/admin/destinos", label: "Destinos", icon: MapPinned },
   { href: "/admin/admins", label: "Administradores", icon: Users, superOnly: true },
   { href: "/admin/fotos", label: "Fotos", icon: ImageIcon, soon: true },
 ];

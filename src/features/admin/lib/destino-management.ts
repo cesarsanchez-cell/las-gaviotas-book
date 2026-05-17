@@ -1,0 +1,275 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { requireAdmin } from "@/features/admin/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
+import type { ActionResult } from "@/features/admin/lib/hospedaje-actions";
+import type { DestinoRow } from "@/types/database";
+
+export interface DestinoListRow {
+  id: string;
+  slug: string;
+  nombre: string;
+  region: string | null;
+  provincia: string | null;
+  pais: string | null;
+  activo: boolean;
+  orden: number;
+  hospedajesCount: number;
+}
+
+/**
+ * Lista todos los destinos con conteo de hospedajes. Visible a cualquier
+ * admin (super o local) — RLS permite SELECT abierto sobre destinos via
+ * "Destinos: admin lectura total".
+ */
+export async function listDestinosAdmin(): Promise<DestinoListRow[]> {
+  await requireAdmin();
+  const sb = createAdminClient();
+
+  const { data: destinos } = await sb
+    .from("destinos")
+    .select("id, slug, nombre, region, provincia, pais, activo, orden")
+    .order("orden", { ascending: true })
+    .order("nombre", { ascending: true })
+    .returns<
+      Array<{
+        id: string;
+        slug: string;
+        nombre: string;
+        region: string | null;
+        provincia: string | null;
+        pais: string | null;
+        activo: boolean;
+        orden: number;
+      }>
+    >();
+  if (!destinos) return [];
+
+  // Contar hospedajes por destino. Una sola query agregada.
+  const { data: counts } = await sb
+    .from("hospedajes")
+    .select("destino_id")
+    .returns<Array<{ destino_id: string }>>();
+  const countByDestino = new Map<string, number>();
+  for (const h of counts ?? []) {
+    countByDestino.set(h.destino_id, (countByDestino.get(h.destino_id) ?? 0) + 1);
+  }
+
+  return destinos.map((d) => ({
+    ...d,
+    hospedajesCount: countByDestino.get(d.id) ?? 0,
+  }));
+}
+
+export async function getDestino(id: string): Promise<DestinoRow | null> {
+  await requireAdmin();
+  const sb = createAdminClient();
+  const { data } = await sb
+    .from("destinos")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle<DestinoRow>();
+  return data;
+}
+
+const slugRegex = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+const destinoSchema = z.object({
+  slug: z
+    .string()
+    .trim()
+    .min(2, "Slug muy corto")
+    .max(60, "Slug muy largo")
+    .regex(slugRegex, "Solo minúsculas, números y guiones (ej. mar-azul)"),
+  nombre: z.string().trim().min(2, "Nombre requerido").max(120),
+  region: z.string().trim().max(120).optional().or(z.literal("").transform(() => undefined)),
+  provincia: z
+    .string()
+    .trim()
+    .max(120)
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  pais: z
+    .string()
+    .trim()
+    .max(60)
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  descripcion_corta: z
+    .string()
+    .trim()
+    .max(280)
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  descripcion_larga: z
+    .string()
+    .trim()
+    .max(2000)
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  lat: z
+    .union([z.coerce.number().min(-90).max(90), z.literal("").transform(() => null)])
+    .nullable()
+    .optional(),
+  lng: z
+    .union([z.coerce.number().min(-180).max(180), z.literal("").transform(() => null)])
+    .nullable()
+    .optional(),
+  activo: z.coerce.boolean().default(true),
+  orden: z.coerce.number().int().min(0).max(10000).default(0),
+});
+
+export type DestinoInput = z.infer<typeof destinoSchema>;
+
+function parseFormData(formData: FormData): unknown {
+  const raw: Record<string, unknown> = {};
+  for (const [k, v] of formData.entries()) {
+    if (k === "activo") {
+      raw.activo = v === "on" || v === "true";
+    } else if (typeof v === "string" && v.trim() === "") {
+      // skip empty strings to avoid coercion issues
+    } else {
+      raw[k] = v;
+    }
+  }
+  // El checkbox no aparece en FormData si no está marcado.
+  if (!("activo" in raw)) raw.activo = false;
+  return raw;
+}
+
+function formatZodError(err: z.ZodError): ActionResult {
+  const fieldErrors: Record<string, string> = {};
+  for (const issue of err.issues) {
+    const key = issue.path.join(".");
+    fieldErrors[key] ??= issue.message;
+  }
+  return { error: "Hay errores en el formulario.", fieldErrors };
+}
+
+export async function createDestinoAction(formData: FormData): Promise<ActionResult> {
+  const me = await requireAdmin();
+  if (!me.isSuperAdmin) {
+    return { error: "Solo super admin puede crear destinos." };
+  }
+
+  const parsed = destinoSchema.safeParse(parseFormData(formData));
+  if (!parsed.success) return formatZodError(parsed.error);
+
+  const sb = createAdminClient();
+  const { data, error } = await sb
+    .from("destinos")
+    .insert(parsed.data as never)
+    .select("id")
+    .single<{ id: string }>();
+  if (error) {
+    if (error.code === "23505") {
+      return {
+        error: "Ya existe un destino con ese slug.",
+        fieldErrors: { slug: "Slug duplicado" },
+      };
+    }
+    return { error: error.message };
+  }
+
+  revalidatePath("/admin/destinos");
+  revalidatePath("/");
+  redirect(`/admin/destinos/${data.id}`);
+}
+
+export async function updateDestinoAction(
+  id: string,
+  formData: FormData
+): Promise<ActionResult> {
+  const me = await requireAdmin();
+  if (!me.isSuperAdmin) {
+    return { error: "Solo super admin puede editar destinos." };
+  }
+
+  const parsed = destinoSchema.safeParse(parseFormData(formData));
+  if (!parsed.success) return formatZodError(parsed.error);
+
+  const sb = createAdminClient();
+  const { error } = await sb
+    .from("destinos")
+    .update(parsed.data as never)
+    .eq("id", id);
+  if (error) {
+    if (error.code === "23505") {
+      return {
+        error: "Ya existe otro destino con ese slug.",
+        fieldErrors: { slug: "Slug duplicado" },
+      };
+    }
+    return { error: error.message };
+  }
+
+  revalidatePath("/admin/destinos");
+  revalidatePath(`/admin/destinos/${id}`);
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/**
+ * Atajo para toggle activo desde el listado, sin abrir el form completo.
+ * Solo super admin.
+ */
+export async function toggleDestinoActivoAction(
+  id: string
+): Promise<ActionResult> {
+  const me = await requireAdmin();
+  if (!me.isSuperAdmin) {
+    return { error: "Solo super admin puede activar/desactivar destinos." };
+  }
+  const sb = createAdminClient();
+  const { data: actual } = await sb
+    .from("destinos")
+    .select("activo")
+    .eq("id", id)
+    .maybeSingle<{ activo: boolean }>();
+  if (!actual) return { error: "Destino no encontrado." };
+
+  const { error } = await sb
+    .from("destinos")
+    .update({ activo: !actual.activo } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/destinos");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/**
+ * Borra un destino. Falla si tiene hospedajes (FK destinos sin on delete
+ * cascade). En ese caso el admin debe primero borrar/migrar los hospedajes
+ * o marcar el destino como inactivo en vez de borrarlo.
+ */
+export async function deleteDestinoAction(id: string): Promise<ActionResult> {
+  const me = await requireAdmin();
+  if (!me.isSuperAdmin) {
+    return { error: "Solo super admin puede borrar destinos." };
+  }
+
+  const sb = createAdminClient();
+  const { count } = await sb
+    .from("hospedajes")
+    .select("id", { count: "exact", head: true })
+    .eq("destino_id", id);
+  if ((count ?? 0) > 0) {
+    return {
+      error: `No se puede borrar: el destino tiene ${count} hospedaje${
+        count === 1 ? "" : "s"
+      } asociado${count === 1 ? "" : "s"}. Migralos a otro destino o marcalo como inactivo.`,
+    };
+  }
+
+  const { error } = await sb.from("destinos").delete().eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/destinos");
+  revalidatePath("/");
+  return { ok: true };
+}
