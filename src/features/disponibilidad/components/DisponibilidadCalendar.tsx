@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import {
   bloquearRangoAction,
@@ -93,6 +94,7 @@ export function DisponibilidadCalendar({
   mesesVisibles = 6,
   readOnly = false,
 }: Props) {
+  const router = useRouter();
   const today = todayLocal();
   const [offsetMes, setOffsetMes] = useState(0);
   const [pending, startTransition] = useTransition();
@@ -113,7 +115,11 @@ export function DisponibilidadCalendar({
     setError(null);
     startTransition(async () => {
       const res = await toggleFechaAction({ hospedajeId, fecha: iso });
-      if (res.error) setError(res.error);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      router.refresh();
     });
   }
 
@@ -126,7 +132,11 @@ export function DisponibilidadCalendar({
         hasta: rangoHasta,
         notas: rangoNotas.trim() || undefined,
       });
-      if (res.error) setError(res.error);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      router.refresh();
     });
   }
 
@@ -138,7 +148,11 @@ export function DisponibilidadCalendar({
         desde: rangoDesde,
         hasta: rangoHasta,
       });
-      if (res.error) setError(res.error);
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      router.refresh();
     });
   }
 
@@ -171,7 +185,9 @@ export function DisponibilidadCalendar({
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Útil para temporada baja, refacciones, vacaciones del staff, etc. El
-          click directo sobre cada día también funciona (más abajo).
+          rango bloquea <strong>desde y hasta inclusive</strong> (ambos días
+          quedan ocupados). Si solo querés bloquear hoy, poné la misma fecha
+          en ambos campos.
         </p>
         <div className="mt-4 grid gap-3 sm:grid-cols-4">
           <div>

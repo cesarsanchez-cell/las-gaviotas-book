@@ -108,6 +108,10 @@ export async function bloquearRangoAction(input: {
 
   revalidatePath(`/panel/hospedajes/${parsed.data.hospedajeId}/disponibilidad`);
   revalidatePath(`/admin/hospedajes/${parsed.data.hospedajeId}/disponibilidad`);
+  // El badge de disponibilidad en las consultas se calcula contra esta tabla,
+  // así que invalidamos las dos bandejas.
+  revalidatePath("/admin/consultas");
+  revalidatePath("/panel/leads");
   return { ok: true };
 }
 
@@ -143,6 +147,10 @@ export async function desbloquearRangoAction(input: {
 
   revalidatePath(`/panel/hospedajes/${parsed.data.hospedajeId}/disponibilidad`);
   revalidatePath(`/admin/hospedajes/${parsed.data.hospedajeId}/disponibilidad`);
+  // El badge de disponibilidad en las consultas se calcula contra esta tabla,
+  // así que invalidamos las dos bandejas.
+  revalidatePath("/admin/consultas");
+  revalidatePath("/panel/leads");
   return { ok: true };
 }
 
@@ -202,5 +210,9 @@ export async function toggleFechaAction(input: {
 
   revalidatePath(`/panel/hospedajes/${parsed.data.hospedajeId}/disponibilidad`);
   revalidatePath(`/admin/hospedajes/${parsed.data.hospedajeId}/disponibilidad`);
+  // El badge de disponibilidad en las consultas se calcula contra esta tabla,
+  // así que invalidamos las dos bandejas.
+  revalidatePath("/admin/consultas");
+  revalidatePath("/panel/leads");
   return { ok: true };
 }
