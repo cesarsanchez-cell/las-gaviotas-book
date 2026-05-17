@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAdmin } from "@/features/admin/lib/auth";
 import {
   listResponsablesAction,
@@ -42,9 +43,9 @@ export default async function ResponsablesPage() {
           {hospedajesDisponibles.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No hay hospedajes disponibles para asignar. Creá uno primero desde{" "}
-              <a href="/admin/hospedajes/nuevo" className="underline">
+              <Link href="/admin/hospedajes/nuevo" className="underline">
                 /admin/hospedajes/nuevo
-              </a>
+              </Link>
               .
             </p>
           ) : (
