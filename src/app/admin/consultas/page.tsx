@@ -3,6 +3,7 @@ import { requireAdmin } from "@/features/admin/lib/auth";
 import {
   listConsultasAdmin,
   getConsultasStats,
+  enrichConsultasConDisponibilidad,
 } from "@/features/consultas/lib/queries";
 import { ConsultaCard } from "@/features/consultas/components/ConsultaCard";
 import type { EstadoConsulta } from "@/types/database";
@@ -31,13 +32,14 @@ export default async function AdminConsultasPage({ searchParams }: PageProps) {
     ESTADO_TABS.some((t) => t.value === sp.estado) ? sp.estado : undefined
   ) as EstadoConsulta | undefined;
 
-  const [consultas, stats] = await Promise.all([
+  const [consultasRaw, stats] = await Promise.all([
     listConsultasAdmin({
       destinoId: admin.destinoId,
       estado: estadoFilter ?? null,
     }),
     getConsultasStats(admin.destinoId),
   ]);
+  const consultas = await enrichConsultasConDisponibilidad(consultasRaw);
 
   return (
     <div className="max-w-6xl space-y-6">

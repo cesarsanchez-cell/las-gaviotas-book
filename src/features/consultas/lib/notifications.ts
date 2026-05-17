@@ -3,13 +3,40 @@ import { sendEmail } from "@/lib/email/resend";
 import {
   consultaNuevaTemplate,
   consultaNuevaSinResponsableTemplate,
+  type DisponibilidadFlag,
 } from "@/lib/email/templates";
+import { countDiasBloqueadosEnRango } from "@/features/disponibilidad/lib/queries";
 import { siteConfig } from "@/config/site";
 
 function formatDateISO(iso: string): string {
   // YYYY-MM-DD → DD/MM/YYYY (no usamos toLocaleDateString para evitar TZ surprises)
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
+}
+
+function diffDays(checkInISO: string, checkOutISO: string): number {
+  const a = new Date(checkInISO + "T00:00:00Z");
+  const b = new Date(checkOutISO + "T00:00:00Z");
+  return Math.max(
+    1,
+    Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24))
+  );
+}
+
+async function getDisponibilidadFlag(
+  hospedajeId: string,
+  checkIn: string,
+  checkOut: string
+): Promise<DisponibilidadFlag> {
+  const bloqueados = await countDiasBloqueadosEnRango(
+    hospedajeId,
+    checkIn,
+    checkOut
+  );
+  if (bloqueados === 0) return "disponible";
+  const total = diffDays(checkIn, checkOut);
+  if (bloqueados >= total) return "ocupado";
+  return "parcial";
 }
 
 /**
@@ -66,6 +93,12 @@ export async function notifyConsultaNueva(consultaId: string): Promise<void> {
       .eq("rol", "responsable")
       .maybeSingle<{ id: string; nombre: string | null }>();
 
+    const disponibilidad = await getDisponibilidadFlag(
+      h.id,
+      consulta.check_in,
+      consulta.check_out
+    );
+
     const fechasCommon = {
       hospedajeNombre: h.nombre,
       destinoNombre: d.nombre,
@@ -76,6 +109,7 @@ export async function notifyConsultaNueva(consultaId: string): Promise<void> {
       checkOutFmt: formatDateISO(consulta.check_out),
       cantidadHuespedes: consulta.cantidad_huespedes,
       mensaje: consulta.mensaje,
+      disponibilidad,
     };
 
     // Camino feliz: hay responsable asignado, le mandamos directo.

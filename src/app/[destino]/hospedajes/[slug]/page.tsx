@@ -11,6 +11,8 @@ import { HospedajeGallery } from "@/features/hospedajes/components/HospedajeGall
 import { WhatsAppButton } from "@/features/hospedajes/components/WhatsAppButton";
 import { ValidationBadge } from "@/features/hospedajes/components/ValidationBadge";
 import { ConsultaForm } from "@/features/consultas/components/ConsultaForm";
+import { DisponibilidadPublica } from "@/features/disponibilidad/components/DisponibilidadPublica";
+import { listDiasBloqueados } from "@/features/disponibilidad/lib/queries";
 import { JsonLd } from "@/components/seo/JsonLd";
 import {
   getDestinoBySlug,
@@ -64,6 +66,17 @@ export default async function HospedajeDetailPage({ params }: PageProps) {
   if (!hospedaje) notFound();
 
   const url = `${siteConfig.url}/${destinoSlug}/hospedajes/${slug}`;
+
+  // Disponibilidad pública: próximos 3 meses desde hoy.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const end = new Date(today);
+  end.setMonth(end.getMonth() + 3);
+  const diasBloqueados = await listDiasBloqueados(
+    hospedaje.id,
+    today.toISOString().slice(0, 10),
+    end.toISOString().slice(0, 10)
+  );
 
   return (
     <>
@@ -228,6 +241,18 @@ export default async function HospedajeDetailPage({ params }: PageProps) {
                   </a>
                 </section>
               )}
+
+              <section id="disponibilidad">
+                <h2 className="font-display text-2xl tracking-tight">
+                  Disponibilidad
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Próximos 3 meses. Los días en rojo ya están ocupados.
+                </p>
+                <div className="mt-5 rounded-xl border border-border bg-card p-5 sm:p-6">
+                  <DisponibilidadPublica diasBloqueados={diasBloqueados} />
+                </div>
+              </section>
 
               <section id="consultar">
                 <h2 className="font-display text-2xl tracking-tight">

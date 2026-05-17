@@ -3,6 +3,7 @@ import { requireResponsable } from "@/features/panel/lib/auth";
 import {
   listConsultasResponsable,
   getConsultasStatsResponsable,
+  enrichConsultasConDisponibilidad,
 } from "@/features/consultas/lib/queries";
 import { ConsultaCard } from "@/features/consultas/components/ConsultaCard";
 import type { EstadoConsulta } from "@/types/database";
@@ -31,10 +32,11 @@ export default async function PanelLeadsPage({ searchParams }: PageProps) {
     ESTADO_TABS.some((t) => t.value === sp.estado) ? sp.estado : undefined
   ) as EstadoConsulta | undefined;
 
-  const [consultas, stats] = await Promise.all([
+  const [consultasRaw, stats] = await Promise.all([
     listConsultasResponsable({ estado: estadoFilter ?? null }),
     getConsultasStatsResponsable(),
   ]);
+  const consultas = await enrichConsultasConDisponibilidad(consultasRaw);
 
   return (
     <div className="max-w-5xl space-y-6">

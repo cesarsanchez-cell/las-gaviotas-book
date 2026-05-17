@@ -42,6 +42,19 @@ export function hospedajeAprobadoTemplate(args: {
   };
 }
 
+export type DisponibilidadFlag = "disponible" | "ocupado" | "parcial" | null;
+
+function disponibilidadBanner(d: DisponibilidadFlag): string {
+  if (d === null) return "";
+  if (d === "disponible") {
+    return `<div style="background:#ecfdf5;border-left:3px solid #10b981;padding:10px 14px;margin:0 0 16px;color:#065f46;font-size:13px;line-height:1.5;"><strong>✓ Disponible</strong> según tu calendario para esas fechas.</div>`;
+  }
+  if (d === "ocupado") {
+    return `<div style="background:#fef2f2;border-left:3px solid #ef4444;padding:10px 14px;margin:0 0 16px;color:#7f1d1d;font-size:13px;line-height:1.5;"><strong>✗ Ocupado</strong> según tu calendario. Igual respondele al huésped si podés ofrecerle otras fechas.</div>`;
+  }
+  return `<div style="background:#fffbeb;border-left:3px solid #f59e0b;padding:10px 14px;margin:0 0 16px;color:#78350f;font-size:13px;line-height:1.5;"><strong>⚠ Parcialmente ocupado</strong> según tu calendario. Algunos días del rango están bloqueados.</div>`;
+}
+
 export function consultaNuevaTemplate(args: {
   responsableNombre: string | null;
   hospedajeNombre: string;
@@ -56,6 +69,8 @@ export function consultaNuevaTemplate(args: {
   cantidadHuespedes: number;
   mensaje: string;
   urlPanelLeads: string;
+  /** Estado de disponibilidad del hospedaje para el rango. NULL = sin info. */
+  disponibilidad?: DisponibilidadFlag;
 }): SubjectAndHtml {
   const saludo = args.responsableNombre
     ? `Hola ${args.responsableNombre},`
@@ -68,6 +83,7 @@ export function consultaNuevaTemplate(args: {
     html: wrap(
       `<h2 style="font-size:22px;margin-bottom:8px;">Nueva consulta recibida</h2>` +
         `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">${saludo} alguien pregunta por <strong>${args.hospedajeNombre}</strong> en Mis Escapadas a ${args.destinoNombre}.</p>` +
+        disponibilidadBanner(args.disponibilidad ?? null) +
         `<table style="width:100%;font-size:14px;border-collapse:collapse;margin:16px 0;">` +
         `<tr><td style="padding:4px 0;color:#64748b;width:120px;">Nombre:</td><td style="padding:4px 0;color:#0f172a;"><strong>${args.huespedNombre}</strong></td></tr>` +
         `<tr><td style="padding:4px 0;color:#64748b;">Email:</td><td style="padding:4px 0;color:#0f172a;"><a href="mailto:${args.huespedEmail}" style="color:#0f172a;text-decoration:underline;">${args.huespedEmail}</a></td></tr>` +
@@ -101,6 +117,7 @@ export function consultaNuevaSinResponsableTemplate(args: {
   cantidadHuespedes: number;
   mensaje: string;
   urlHospedajeAdmin: string;
+  disponibilidad?: DisponibilidadFlag;
 }): SubjectAndHtml {
   const saludo = args.adminNombre ? `Hola ${args.adminNombre},` : "Hola,";
   const whatsappLine = args.huespedWhatsapp
@@ -112,6 +129,7 @@ export function consultaNuevaSinResponsableTemplate(args: {
       `<h2 style="font-size:22px;margin-bottom:8px;">Consulta sin responsable asignado</h2>` +
         `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">${saludo} llegó una consulta para <strong>${args.hospedajeNombre}</strong> en Mis Escapadas a ${args.destinoNombre}, pero este hospedaje todavía no tiene responsable asignado, así que te avisamos a vos.</p>` +
         `<div style="background:#fef3c7;border-left:3px solid #f59e0b;padding:12px 16px;margin:16px 0;color:#78350f;font-size:14px;line-height:1.5;">Acción sugerida: contactá al huésped directo y asigná un responsable al hospedaje para que las próximas consultas le lleguen automáticamente.</div>` +
+        disponibilidadBanner(args.disponibilidad ?? null) +
         `<table style="width:100%;font-size:14px;border-collapse:collapse;margin:16px 0;">` +
         `<tr><td style="padding:4px 0;color:#64748b;width:120px;">Nombre:</td><td style="padding:4px 0;color:#0f172a;"><strong>${args.huespedNombre}</strong></td></tr>` +
         `<tr><td style="padding:4px 0;color:#64748b;">Email:</td><td style="padding:4px 0;color:#0f172a;"><a href="mailto:${args.huespedEmail}" style="color:#0f172a;text-decoration:underline;">${args.huespedEmail}</a></td></tr>` +

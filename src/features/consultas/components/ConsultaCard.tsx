@@ -20,11 +20,14 @@ import {
 } from "@/features/consultas/lib/admin-actions";
 import { updateConsultaEstadoResponsableAction } from "@/features/consultas/lib/responsable-actions";
 import type { EstadoConsulta } from "@/types/database";
-import type { ConsultaListRow } from "@/features/consultas/lib/queries";
+import type {
+  ConsultaListRow,
+  DisponibilidadStatus,
+} from "@/features/consultas/lib/queries";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  consulta: ConsultaListRow;
+  consulta: ConsultaListRow & { disponibilidad?: DisponibilidadStatus };
   /**
    * Define qué server actions usa la card y qué botones muestra:
    * - "admin": usa admin-actions, muestra "Borrar" (purga definitiva), link
@@ -34,6 +37,24 @@ interface Props {
    */
   mode?: "admin" | "responsable";
 }
+
+const DISPONIBILIDAD_BADGE: Record<
+  DisponibilidadStatus,
+  { label: string; className: string }
+> = {
+  disponible: {
+    label: "Disponible",
+    className: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  },
+  ocupado: {
+    label: "Ocupado",
+    className: "bg-rose-100 text-rose-800 border-rose-200",
+  },
+  parcial: {
+    label: "Parcialmente ocupado",
+    className: "bg-amber-100 text-amber-900 border-amber-200",
+  },
+};
 
 const ESTADO_STYLES: Record<EstadoConsulta, string> = {
   nueva: "bg-amber-100 text-amber-900 border-amber-200",
@@ -180,10 +201,24 @@ export function ConsultaCard({ consulta, mode = "admin" }: Props) {
       <dl className="mt-4 grid gap-2 text-sm sm:grid-cols-3">
         <div className="flex items-center gap-1.5">
           <Calendar className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-          <div>
+          <div className="min-w-0">
             <dt className="sr-only">Fechas</dt>
-            <dd>
-              {formatDate(consulta.check_in)} → {formatDate(consulta.check_out)}
+            <dd className="flex flex-wrap items-center gap-1.5">
+              <span>
+                {formatDate(consulta.check_in)} →{" "}
+                {formatDate(consulta.check_out)}
+              </span>
+              {consulta.disponibilidad && (
+                <span
+                  className={cn(
+                    "rounded-full border px-1.5 py-0.5 text-[10px] font-medium",
+                    DISPONIBILIDAD_BADGE[consulta.disponibilidad].className
+                  )}
+                  title="Estado del hospedaje para estas fechas según el calendario"
+                >
+                  {DISPONIBILIDAD_BADGE[consulta.disponibilidad].label}
+                </span>
+              )}
             </dd>
           </div>
         </div>

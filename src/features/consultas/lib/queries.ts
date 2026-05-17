@@ -1,5 +1,59 @@
 import { createClient } from "@/lib/supabase/server";
+import { countDiasBloqueadosEnRango } from "@/features/disponibilidad/lib/queries";
 import type { EstadoConsulta } from "@/types/database";
+
+export type DisponibilidadStatus = "disponible" | "ocupado" | "parcial";
+
+function diffDays(checkInISO: string, checkOutISO: string): number {
+  const a = new Date(checkInISO + "T00:00:00Z");
+  const b = new Date(checkOutISO + "T00:00:00Z");
+  return Math.max(
+    1,
+    Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24))
+  );
+}
+
+/**
+ * Calcula el estado de disponibilidad de una consulta:
+ * - "disponible": 0 días bloqueados en el rango
+ * - "ocupado": todos los días del rango están bloqueados
+ * - "parcial": al menos uno bloqueado pero no todos
+ */
+export async function getDisponibilidadStatusForConsulta(
+  hospedajeId: string,
+  checkIn: string,
+  checkOut: string
+): Promise<DisponibilidadStatus> {
+  const bloqueados = await countDiasBloqueadosEnRango(
+    hospedajeId,
+    checkIn,
+    checkOut
+  );
+  if (bloqueados === 0) return "disponible";
+  const total = diffDays(checkIn, checkOut);
+  if (bloqueados >= total) return "ocupado";
+  return "parcial";
+}
+
+/**
+ * Enriquece un array de filas de consulta con su DisponibilidadStatus
+ * computado contra la tabla `disponibilidad`. Promise.all paralelo —
+ * para volúmenes actuales (<100) es suficiente.
+ */
+export async function enrichConsultasConDisponibilidad<
+  T extends { id: string; hospedaje_id: string; check_in: string; check_out: string }
+>(rows: T[]): Promise<Array<T & { disponibilidad: DisponibilidadStatus }>> {
+  return Promise.all(
+    rows.map(async (r) => ({
+      ...r,
+      disponibilidad: await getDisponibilidadStatusForConsulta(
+        r.hospedaje_id,
+        r.check_in,
+        r.check_out
+      ),
+    }))
+  );
+}
 
 export interface ConsultaListRow {
   id: string;
