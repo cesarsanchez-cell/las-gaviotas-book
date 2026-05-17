@@ -11,8 +11,8 @@ Estado consolidado del proyecto. Visión y reglas detalladas en [CLAUDE.md](CLAU
 
 | Item              | Valor                                                                            |
 |-------------------|----------------------------------------------------------------------------------|
-| Etapa vigente     | **1.5 + marca paraguas + jerarquía de admins**  —  siguiente: Etapa 2 leads      |
-| Último commit     | `336f99a` — Sidebar admin: destino debajo del wordmark cuando hay scope          |
+| Etapa vigente     | **Etapa 2 cerrada — Leads y consultas operativas**  —  siguiente: Etapa 3 disponibilidad |
+| Último commit     | `62e09d1` — ConsultaCard: "Volver a nueva" disponible desde leída                |
 | Fecha             | 2026-05-16                                                                       |
 | Entorno local     | PM2 → `las-gaviotas-book` en `http://localhost:3005`                             |
 | **Deploy producción** | ✅ https://www.misescapadas.com.ar (canónico) + redirects desde apex y vercel.app |
@@ -105,16 +105,46 @@ Bloque D — Validación end-to-end:
 - [ ] UX: link "¿No tenés cuenta? Registrate" más visible o redirect inteligente cuando email no existe
 - [ ] Considerar trigger BEFORE UPDATE en hospedajes que valide transiciones de estado por rol (defensa en profundidad)
 
-### Etapa 2 — Leads y consultas (planeada)
-- [ ] Formulario de consulta por hospedaje (no requiere login del huésped)
-- [ ] Almacenamiento de leads en Supabase + notificación al responsable por email
-- [ ] Bandeja de leads en `/panel/leads`
-- [ ] Métricas: cuántas consultas recibió cada hospedaje
+### Etapa 2 — Leads y consultas ✅ cerrada (2026-05-16)
 
-### Etapa 3 — Disponibilidad simple (planeada)
-- [ ] Calendario manual del responsable (días bloqueados / disponibles)
-- [ ] Visualización pública del calendario en la página del hospedaje
-- [ ] Sin reservas todavía — solo informativo
+Form público de consulta + bandejas de admin y responsable + notificaciones por mail con fallback a admin del destino.
+
+Bloque B2.1 — Schema + RLS + tipos (`8640871`):
+- [x] Tabla `consultas` con fechas estructuradas (check_in/check_out DATE, no texto — patrón Progressive OTA)
+- [x] Constraints en BD: check_out > check_in, cantidad_huespedes 1-20, consentimiento_datos=true, longitudes de nombre/mensaje
+- [x] 6 RLS policies: INSERT público sobre hospedaje publicado, SELECT/UPDATE responsable dueño + admin scoped, DELETE admin scoped
+- [x] Tipos TS (`EstadoConsulta`, `ConsultaRow`) + entry en `Database['consultas']`
+
+Bloque B2.2 — Form público + mail (`2020d6f` + `0a82e4b` + `b5e9aed`):
+- [x] `ConsultaForm` integrado en `/[destino]/hospedajes/[slug]` sección "Consultar disponibilidad"
+- [x] Anti-spam: honeypot + rate limit 5/10min por IP en memoria
+- [x] Mail al responsable vía Resend con datos completos + botón al `/panel/leads`
+- [x] Fallback: si hospedaje no tiene responsable → mail a admins del destino con template `[Sin responsable]` amber-tone
+- [x] UX: onSubmit+preventDefault (no reset en error), focus al primer campo con error, normalizeWhatsApp (`1155555555` → `+5491155555555`)
+
+Bloque B2.4 — Bandeja `/admin/consultas` (`ade6fec` + `1503537`):
+- [x] Listado scope-aware: super admin ve toda la red, admin local solo su destino
+- [x] Tabs por estado con contadores (getConsultasStats), filtro vía URL params
+- [x] ConsultaCard con datos + acciones de contacto rápido (mailto, WhatsApp click-to-chat)
+- [x] Acciones: marcar leída/respondida/descartada/volver a nueva + borrar definitivo (solo admin, para spam)
+- [x] Verificación de scope via assertAdminCanAccessHospedaje antes de mutar
+
+Bloque B2.3 — Bandeja `/panel/leads` (`40968c9` + `62e09d1`):
+- [x] Listado del responsable autenticado (RLS filtra automáticamente via responsable_owns_hospedaje)
+- [x] `updateConsultaEstadoResponsableAction` verifica scope leyendo `perfil.hospedajes_ids`
+- [x] Reutiliza ConsultaCard con prop `mode="responsable"` — sin botón borrar
+- [x] Item "Consultas" en PanelSidebar
+- [x] Validado end-to-end con responsable real (`administracion@postacangrejoapart.com.ar` vinculado a Posta Cangrejo Apart)
+
+### Etapa 3 — Disponibilidad simple (próxima)
+
+Calendario manual del responsable para marcar días bloqueados/disponibles, visible al público en la página del hospedaje. Cruzar con `consultas.check_in/check_out` para informar al responsable si la consulta cae en período bloqueado o libre.
+
+- [ ] Schema: tabla `disponibilidad` (hospedaje_id, fecha, estado: 'bloqueado'|'disponible'|'auto-bloqueado') + RLS
+- [ ] UI panel: calendario en `/panel/hospedajes/[id]/disponibilidad` con bulk-toggle (rango de fechas)
+- [ ] Visualización pública: mini-calendario en la página del hospedaje mostrando próximos 3-6 meses
+- [ ] En `/panel/leads`: badge visual "✓ disponible" / "✗ ocupado" en cada consulta según fechas vs calendario
+- [ ] Mail al responsable de consulta incluye estado de disponibilidad para esas fechas
 
 ### Etapa 4 — Reservas online (planeada)
 - [ ] Motor de reservas con bloqueo de fechas
