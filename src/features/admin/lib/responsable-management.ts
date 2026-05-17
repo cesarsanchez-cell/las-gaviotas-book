@@ -207,26 +207,35 @@ export async function createResponsableAction(
   return { ok: true, tempPassword, email };
 }
 
-const updateHospedajesSchema = z.object({
+const updateResponsableSchema = z.object({
   responsableId: z.string().uuid(),
+  nombre: z.string().trim().min(2, "Nombre requerido").max(120),
   hospedajeIds: z.array(z.string().uuid()),
 });
 
 /**
- * Reasigna los hospedajes de un responsable (reemplaza el array completo).
+ * Actualiza nombre + hospedajes asignados de un responsable. El email NO
+ * se modifica desde acá (cambiar email en Supabase Auth dispara verificación
+ * y puede confundir al responsable — se hace por separado si hace falta).
  *
  * Scope:
- *  - Admin local solo puede modificar la asignación si TODOS los hospedajes
- *    actuales y nuevos del responsable están en su destino. Si el responsable
- *    tiene hospedajes en otros destinos, el admin local no puede tocarlo
- *    (necesita super admin).
+ *  - Admin local solo puede modificar si TODOS los hospedajes actuales y
+ *    nuevos del responsable están en su destino. Si tiene hospedajes en
+ *    otros destinos, requiere super admin.
  */
-export async function updateResponsableHospedajesAction(
-  input: z.infer<typeof updateHospedajesSchema>
+export async function updateResponsableAction(
+  input: z.infer<typeof updateResponsableSchema>
 ): Promise<ActionResult> {
   const me = await requireAdmin();
-  const parsed = updateHospedajesSchema.safeParse(input);
-  if (!parsed.success) return { error: "Datos inválidos." };
+  const parsed = updateResponsableSchema.safeParse(input);
+  if (!parsed.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of parsed.error.issues) {
+      const key = issue.path.join(".");
+      fieldErrors[key] ??= issue.message;
+    }
+    return { error: "Datos inválidos.", fieldErrors };
+  }
 
   const sb = createAdminClient();
   const { data: perfil } = await sb
@@ -266,7 +275,10 @@ export async function updateResponsableHospedajesAction(
 
   const { error } = await sb
     .from("perfiles")
-    .update({ hospedajes_ids: parsed.data.hospedajeIds } as never)
+    .update({
+      nombre: parsed.data.nombre,
+      hospedajes_ids: parsed.data.hospedajeIds,
+    } as never)
     .eq("id", parsed.data.responsableId);
   if (error) return { error: error.message };
 

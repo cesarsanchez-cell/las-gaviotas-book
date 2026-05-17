@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Trash2, Building2, Pencil, X, Check } from "lucide-react";
 import {
   deleteResponsableAction,
-  updateResponsableHospedajesAction,
+  updateResponsableAction,
   type ResponsableListRow,
   type HospedajeOption,
 } from "@/features/admin/lib/responsable-management";
@@ -17,7 +17,9 @@ interface Props {
 export function ResponsablesList({ responsables, hospedajesDisponibles }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editNombre, setEditNombre] = useState<string>("");
   const [editSelected, setEditSelected] = useState<string[]>([]);
 
   function handleDelete(row: ResponsableListRow) {
@@ -34,8 +36,10 @@ export function ResponsablesList({ responsables, hospedajesDisponibles }: Props)
 
   function startEdit(row: ResponsableListRow) {
     setEditingId(row.id);
+    setEditNombre(row.nombre ?? "");
     setEditSelected(row.hospedajes.map((h) => h.id));
     setError(null);
+    setFieldErrors({});
   }
 
   function toggleEdit(id: string) {
@@ -46,13 +50,16 @@ export function ResponsablesList({ responsables, hospedajesDisponibles }: Props)
 
   function saveEdit(row: ResponsableListRow) {
     setError(null);
+    setFieldErrors({});
     startTransition(async () => {
-      const res = await updateResponsableHospedajesAction({
+      const res = await updateResponsableAction({
         responsableId: row.id,
+        nombre: editNombre.trim(),
         hospedajeIds: editSelected,
       });
       if (res.error) {
         setError(res.error);
+        setFieldErrors(res.fieldErrors ?? {});
         return;
       }
       setEditingId(null);
@@ -97,7 +104,7 @@ export function ResponsablesList({ responsables, hospedajesDisponibles }: Props)
                     className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs transition hover:bg-secondary disabled:opacity-50"
                   >
                     <Pencil className="h-3 w-3" />
-                    Editar hospedajes
+                    Editar
                   </button>
                 )}
                 <button
@@ -114,6 +121,26 @@ export function ResponsablesList({ responsables, hospedajesDisponibles }: Props)
 
             {isEditing ? (
               <div className="mt-4 space-y-3">
+                <div>
+                  <label className="text-xs font-medium">
+                    Nombre completo <span className="text-rose-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={editNombre}
+                    onChange={(e) => setEditNombre(e.target.value)}
+                    placeholder="María Pérez"
+                    className="mt-1 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+                  />
+                  {fieldErrors.nombre && (
+                    <p className="mt-1 text-xs text-rose-600">
+                      {fieldErrors.nombre}
+                    </p>
+                  )}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    El email no se puede cambiar desde acá.
+                  </p>
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Tildá los hospedajes que querés que este responsable gestione.
                 </p>
