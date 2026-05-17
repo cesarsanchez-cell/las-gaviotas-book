@@ -124,6 +124,21 @@ export interface ValidacionEventoRow {
   created_at: string;
 }
 
+export type TipoDisponibilidad = "manual" | "reserva";
+
+export interface DisponibilidadRow {
+  id: string;
+  hospedaje_id: string;
+  /** Fecha ISO YYYY-MM-DD. Si existe la fila → fecha bloqueada. */
+  fecha: string;
+  tipo: TipoDisponibilidad;
+  /** Apunta a reserva (Etapa 4) cuando tipo='reserva'. NULL para manual. */
+  reserva_id: string | null;
+  notas: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
 export type EstadoConsulta = "nueva" | "leida" | "respondida" | "descartada";
 
 export interface ConsultaRow {
@@ -199,6 +214,15 @@ export type Database = {
         Update: Update<ConsultaRow>;
         Relationships: [];
       };
+      disponibilidad: {
+        Row: DisponibilidadRow;
+        Insert: Omit<DisponibilidadRow, "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Update<DisponibilidadRow>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -208,6 +232,7 @@ export type Database = {
       tipo_hospedaje: TipoHospedaje;
       estado_hospedaje: EstadoHospedaje;
       estado_consulta: EstadoConsulta;
+      tipo_disponibilidad: TipoDisponibilidad;
     };
     CompositeTypes: Record<string, never>;
   };

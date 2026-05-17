@@ -85,16 +85,24 @@ export default async function EditMyHospedajePage({ params }: PageProps) {
             Estado: {ESTADO_LABEL[hospedaje.estado] ?? hospedaje.estado}
           </p>
         </div>
-        {publicHref && (
+        <div className="flex flex-wrap items-center gap-3">
           <Link
-            href={publicHref}
-            target="_blank"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+            href={`/panel/hospedajes/${hospedaje.id}/disponibilidad`}
+            className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium transition hover:bg-secondary"
           >
-            Ver publicado
-            <ExternalLink className="h-4 w-4" />
+            Disponibilidad
           </Link>
-        )}
+          {publicHref && (
+            <Link
+              href={publicHref}
+              target="_blank"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+            >
+              Ver publicado
+              <ExternalLink className="h-4 w-4" />
+            </Link>
+          )}
+        </div>
       </header>
 
       <EstadoControls

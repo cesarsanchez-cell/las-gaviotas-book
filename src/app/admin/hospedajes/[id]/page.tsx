@@ -57,16 +57,24 @@ export default async function EditHospedajePage({ params }: PageProps) {
             Editor — {hospedaje.estado}
           </p>
         </div>
-        {destinoSlug && hospedaje.estado === "publicado" && (
+        <div className="flex flex-wrap items-center gap-3">
           <Link
-            href={`/${destinoSlug}/hospedajes/${hospedaje.slug}`}
-            target="_blank"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+            href={`/admin/hospedajes/${id}/disponibilidad`}
+            className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium transition hover:bg-secondary"
           >
-            Ver publicado
-            <ExternalLink className="h-4 w-4" />
+            Disponibilidad
           </Link>
-        )}
+          {destinoSlug && hospedaje.estado === "publicado" && (
+            <Link
+              href={`/${destinoSlug}/hospedajes/${hospedaje.slug}`}
+              target="_blank"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+            >
+              Ver publicado
+              <ExternalLink className="h-4 w-4" />
+            </Link>
+          )}
+        </div>
       </header>
 
       <FotosManager
