@@ -11,8 +11,8 @@ Estado consolidado del proyecto. Visión y reglas detalladas en [CLAUDE.md](CLAU
 
 | Item              | Valor                                                                            |
 |-------------------|----------------------------------------------------------------------------------|
-| Etapa vigente     | **Etapa 2 cerrada — Leads y consultas operativas**  —  siguiente: Etapa 3 disponibilidad |
-| Último commit     | `62e09d1` — ConsultaCard: "Volver a nueva" disponible desde leída                |
+| Etapa vigente     | **Etapa 3 cerrada — Disponibilidad operativa + UI admin completa**  —  siguiente: pendientes menores o Etapa 4 |
+| Último commit     | `802c023` — Fix disponibilidad: revalidar bandejas + router.refresh en calendar  |
 | Fecha             | 2026-05-16                                                                       |
 | Entorno local     | PM2 → `las-gaviotas-book` en `http://localhost:3005`                             |
 | **Deploy producción** | ✅ https://www.misescapadas.com.ar (canónico) + redirects desde apex y vercel.app |
@@ -136,15 +136,46 @@ Bloque B2.3 — Bandeja `/panel/leads` (`40968c9` + `62e09d1`):
 - [x] Item "Consultas" en PanelSidebar
 - [x] Validado end-to-end con responsable real (`administracion@postacangrejoapart.com.ar` vinculado a Posta Cangrejo Apart)
 
-### Etapa 3 — Disponibilidad simple (próxima)
+### UI admin operativa (cerrada 2026-05-16)
 
-Calendario manual del responsable para marcar días bloqueados/disponibles, visible al público en la página del hospedaje. Cruzar con `consultas.check_in/check_out` para informar al responsable si la consulta cae en período bloqueado o libre.
+Cerró los últimos gaps operativos antes de Etapa 3.
 
-- [ ] Schema: tabla `disponibilidad` (hospedaje_id, fecha, estado: 'bloqueado'|'disponible'|'auto-bloqueado') + RLS
-- [ ] UI panel: calendario en `/panel/hospedajes/[id]/disponibilidad` con bulk-toggle (rango de fechas)
-- [ ] Visualización pública: mini-calendario en la página del hospedaje mostrando próximos 3-6 meses
-- [ ] En `/panel/leads`: badge visual "✓ disponible" / "✗ ocupado" en cada consulta según fechas vs calendario
-- [ ] Mail al responsable de consulta incluye estado de disponibilidad para esas fechas
+- [x] `/admin/responsables` (`b10d45d` + `3b054c5`): listado scope-aware, alta con multi-select de hospedajes + password temporal, edición de nombre + reasignación de hospedajes, borrado. Antes era 100% SQL manual.
+- [x] `/admin/destinos` (`8489498` + `79aa974` fix Link): listado con conteo de hospedajes, alta/edición con DestinoForm (slug kebab-case validado, lat/lng, orden), toggle activo, borrado bloqueado si tiene hospedajes. Solo super admin escribe.
+
+### Etapa 3 — Disponibilidad simple ✅ cerrada (2026-05-16)
+
+Calendario manual del responsable, cruce automático con consultas, vista admin read-only.
+
+Bloque E3.1 — Schema + RLS + tipos (`1b78958`):
+- [x] Tabla `disponibilidad` con (hospedaje_id, fecha) unique. Semántica: presencia de fila = bloqueado. Sin fila = disponible.
+- [x] Enum `tipo_disponibilidad` ('manual' | 'reserva') + columna `reserva_id` preparada para Etapa 4 sin FK todavía (Progressive OTA).
+- [x] Tipo `DisponibilidadRow` + entry en `Database['disponibilidad']`.
+
+Bloque E3.2 — Calendario interactivo (`1b78958`):
+- [x] Server actions `bloquearRangoAction` (upsert idempotente, max 366 días/op), `desbloquearRangoAction` (solo tipo manual), `toggleFechaAction` (click por día).
+- [x] `DisponibilidadCalendar` con grilla de 6 meses, paginación, bulk de rango con notas, click por día, legenda visual.
+- [x] Pages `/panel/hospedajes/[id]/disponibilidad` (responsable edita) y `/admin/hospedajes/[id]/disponibilidad` (admin vista read-only).
+- [x] Botón "Disponibilidad" en header de cada hospedaje en panel y admin.
+
+Bloque E3.3 — Mini-calendario público (`8dc8484`):
+- [x] `DisponibilidadPublica` server component read-only, 3 meses en la página `/[destino]/hospedajes/[slug]` sección "Disponibilidad".
+- [x] Días bloqueados en rojo con tachado, disponibles en verde claro.
+
+Bloque E3.4 — Badge en consultas (`8dc8484`):
+- [x] `getDisponibilidadStatusForConsulta`: "disponible" / "ocupado" / "parcial" según count de días bloqueados vs total del rango.
+- [x] `enrichConsultasConDisponibilidad` Promise.all paralelo para enriquecer las listas antes del render.
+- [x] Badge inline al lado de las fechas en ConsultaCard.
+
+Bloque E3.5 — Banner en el mail (`8dc8484`):
+- [x] `disponibilidadBanner()` color-coded (emerald/rose/amber).
+- [x] Tanto `consultaNuevaTemplate` como `consultaNuevaSinResponsableTemplate` aceptan `disponibilidad` opcional.
+- [x] `notifyConsultaNueva` calcula la flag y la pasa a ambos templates.
+
+Ajustes finales (`457cc4f` + `802c023`):
+- [x] **Admin read-only** sobre disponibilidad. Decisión del usuario: "la disponibilidad solo en manos del responsable, cualquier error sale caro". Policy de admin escritura removida de RLS; `requireResponsableOwnsHospedaje` rechaza cualquier admin en código; prop `readOnly` en el calendar oculta controles y deshabilita clicks.
+- [x] Fix cache: `revalidatePath` de `/admin/consultas` + `/panel/leads` en cada action de disponibilidad. `router.refresh()` en el calendar para que el UI se actualice sin reload.
+- [x] Copy del rango aclara explícitamente "desde y hasta inclusive" (ambos extremos quedan bloqueados).
 
 ### Etapa 4 — Reservas online (planeada)
 - [ ] Motor de reservas con bloqueo de fechas
