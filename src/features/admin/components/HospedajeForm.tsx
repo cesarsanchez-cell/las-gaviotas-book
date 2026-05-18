@@ -330,13 +330,13 @@ export function HospedajeForm({
             label="WhatsApp"
             required
             error={fieldError("whatsapp")}
-            hint="Formato internacional: +5491155555555"
+            hint="Cargá solo el celular argentino. El +549 se agrega solo."
           >
             <Input
               name="whatsapp"
               defaultValue={initial?.whatsapp ?? ""}
               required
-              placeholder="+5491155555555"
+              placeholder="1155555555"
             />
           </Field>
           <Field label="Email" error={fieldError("email")}>
@@ -346,10 +346,15 @@ export function HospedajeForm({
               defaultValue={initial?.email ?? ""}
             />
           </Field>
-          <Field label="Teléfono" error={fieldError("telefono")}>
+          <Field
+            label="Teléfono"
+            error={fieldError("telefono")}
+            hint="Opcional. Mismo formato: 1155555555"
+          >
             <Input
               name="telefono"
               defaultValue={initial?.telefono ?? ""}
+              placeholder="1155555555"
             />
           </Field>
           <Field
@@ -437,11 +442,12 @@ export function HospedajeForm({
           <Field
             label="WhatsApp del responsable"
             error={fieldError("responsable_whatsapp")}
+            hint="Mismo formato: 1155555555"
           >
             <Input
               name="responsable_whatsapp"
               defaultValue={initial?.responsable_whatsapp ?? ""}
-              placeholder="+5491155555555"
+              placeholder="1155555555"
             />
           </Field>
         </div>

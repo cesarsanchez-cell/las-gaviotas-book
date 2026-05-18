@@ -128,6 +128,8 @@ export type TipoDisponibilidad = "manual" | "reserva";
 
 export interface DisponibilidadRow {
   id: string;
+  unidad_id: string;
+  /** Denormalizado para queries rápidas y RLS — coincide con unidades.hospedaje_id. */
   hospedaje_id: string;
   /** Fecha ISO YYYY-MM-DD. Si existe la fila → fecha bloqueada. */
   fecha: string;
@@ -137,6 +139,89 @@ export interface DisponibilidadRow {
   notas: string | null;
   created_by: string | null;
   created_at: string;
+}
+
+// =============================================================================
+// Arquitectura de Unidades (Etapa 1 Foundation — refactor 2026-05-18)
+// =============================================================================
+
+export interface UnidadTypeRow {
+  id: string;
+  hospedaje_id: string;
+  nombre: string;
+  descripcion: string | null;
+  capacidad_adultos: number;
+  capacidad_ninos: number;
+  camas_descripcion: string | null;
+  amenities: string[];
+  activo: boolean;
+  orden: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UnidadTypeFotoRow {
+  id: string;
+  unidad_type_id: string;
+  storage_path: string;
+  alt: string | null;
+  orden: number;
+  es_principal: boolean;
+  width: number;
+  height: number;
+  created_at: string;
+}
+
+export interface UnidadRow {
+  id: string;
+  unidad_type_id: string;
+  /** Denormalizado — coincide con unidad_types.hospedaje_id, enforced por trigger. */
+  hospedaje_id: string;
+  nombre: string;
+  activa: boolean;
+  notas_internas: string | null;
+  orden: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type Moneda = "ARS" | "USD";
+
+export interface TarifaRow {
+  id: string;
+  unidad_type_id: string;
+  hospedaje_id: string;
+  nombre: string;
+  /** Fecha ISO YYYY-MM-DD. */
+  desde: string;
+  /** Fecha ISO YYYY-MM-DD. */
+  hasta: string;
+  /** Precio por noche de la unidad ENTERA (no por pax). */
+  precio_noche: number;
+  moneda: Moneda;
+  notas: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RestriccionRow {
+  id: string;
+  unidad_type_id: string;
+  hospedaje_id: string;
+  nombre: string;
+  /** Fecha ISO YYYY-MM-DD. */
+  desde: string;
+  /** Fecha ISO YYYY-MM-DD. */
+  hasta: string;
+  /** Mínimo de noches. NULL = sin mínimo. */
+  estadia_minima_noches: number | null;
+  /** ISO weekday (1=lunes, 7=domingo). NULL = cualquier día. */
+  dia_ingreso: number | null;
+  /** ISO weekday (1=lunes, 7=domingo). NULL = cualquier día. */
+  dia_egreso: number | null;
+  notas: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export type EstadoConsulta = "nueva" | "leida" | "respondida" | "descartada";
@@ -223,6 +308,39 @@ export type Database = {
         Update: Update<DisponibilidadRow>;
         Relationships: [];
       };
+      unidad_types: {
+        Row: UnidadTypeRow;
+        Insert: Insert<UnidadTypeRow>;
+        Update: Update<UnidadTypeRow>;
+        Relationships: [];
+      };
+      unidad_type_fotos: {
+        Row: UnidadTypeFotoRow;
+        Insert: Omit<UnidadTypeFotoRow, "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Update<UnidadTypeFotoRow>;
+        Relationships: [];
+      };
+      unidades: {
+        Row: UnidadRow;
+        Insert: Insert<UnidadRow>;
+        Update: Update<UnidadRow>;
+        Relationships: [];
+      };
+      tarifas: {
+        Row: TarifaRow;
+        Insert: Insert<TarifaRow>;
+        Update: Update<TarifaRow>;
+        Relationships: [];
+      };
+      restricciones: {
+        Row: RestriccionRow;
+        Insert: Insert<RestriccionRow>;
+        Update: Update<RestriccionRow>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -233,6 +351,7 @@ export type Database = {
       estado_hospedaje: EstadoHospedaje;
       estado_consulta: EstadoConsulta;
       tipo_disponibilidad: TipoDisponibilidad;
+      moneda: Moneda;
     };
     CompositeTypes: Record<string, never>;
   };

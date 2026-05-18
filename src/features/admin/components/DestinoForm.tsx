@@ -3,6 +3,7 @@
 import { useState, useTransition, type FormEvent } from "react";
 import type { DestinoRow } from "@/types/database";
 import type { ActionResult } from "@/features/admin/lib/hospedaje-actions";
+import { slugify } from "@/lib/utils";
 
 interface Props {
   initial?: DestinoRow;
@@ -14,6 +15,11 @@ export function DestinoForm({ initial, submitLabel, action }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [nombre, setNombre] = useState<string>(initial?.nombre ?? "");
+  const [slug, setSlug] = useState<string>(initial?.slug ?? "");
+  // Si estamos editando, no auto-sugerimos slug (el usuario ya tiene uno fijo).
+  // Si es alta, auto-sugerimos hasta que el usuario edite el slug manualmente.
+  const [slugDirty, setSlugDirty] = useState<boolean>(Boolean(initial?.slug));
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -59,7 +65,12 @@ export function DestinoForm({ initial, submitLabel, action }: Props) {
               name="nombre"
               type="text"
               required
-              defaultValue={initial?.nombre ?? ""}
+              value={nombre}
+              onChange={(e) => {
+                const v = e.target.value;
+                setNombre(v);
+                if (!slugDirty) setSlug(slugify(v));
+              }}
               placeholder="Mar Azul"
               className={cls("nombre")}
             />
@@ -76,13 +87,17 @@ export function DestinoForm({ initial, submitLabel, action }: Props) {
               name="slug"
               type="text"
               required
-              defaultValue={initial?.slug ?? ""}
+              value={slug}
+              onChange={(e) => {
+                setSlug(e.target.value);
+                setSlugDirty(true);
+              }}
               placeholder="mar-azul"
               className={cls("slug")}
             />
             <p className="mt-1 text-xs text-muted-foreground">
-              URL pública: <code>/{`{slug}`}</code>. Solo minúsculas, números y
-              guiones.
+              URL pública: <code>/{`{slug}`}</code>. Se autogenera desde el
+              nombre, podés editarlo. Solo minúsculas, números y guiones.
             </p>
             {fe("slug") && (
               <p className="mt-1 text-xs text-rose-600">{fe("slug")}</p>

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AMENITY_KEYS } from "@/config/amenities";
+import { normalizeWhatsApp } from "@/features/consultas/lib/validation";
 
 const tipoEnum = z.enum([
   "hotel",
@@ -58,13 +59,22 @@ export const hospedajeSchema = z.object({
     .optional()
     .or(z.literal("").transform(() => undefined)),
 
-  whatsapp: z.string().regex(whatsappRegex, "Formato +5491155555555"),
+  whatsapp: z.preprocess(
+    (v) => (typeof v === "string" ? normalizeWhatsApp(v) : v),
+    z.string().regex(whatsappRegex, "Ingresá un celular válido. Ej: 1155555555")
+  ),
   email: z
     .string()
     .email("Email inválido")
     .optional()
     .or(z.literal("").transform(() => undefined)),
-  telefono: z.string().max(40).optional().or(z.literal("").transform(() => undefined)),
+  telefono: z.preprocess(
+    (v) => (typeof v === "string" ? normalizeWhatsApp(v) : v),
+    z
+      .string()
+      .regex(whatsappRegex, "Ingresá un teléfono válido. Ej: 1155555555")
+      .optional()
+  ),
   instagram: z
     .string()
     .max(40)
@@ -91,11 +101,13 @@ export const hospedajeSchema = z.object({
     .email("Email inválido")
     .optional()
     .or(z.literal("").transform(() => undefined)),
-  responsable_whatsapp: z
-    .string()
-    .regex(whatsappRegex, "Formato +5491155555555")
-    .optional()
-    .or(z.literal("").transform(() => undefined)),
+  responsable_whatsapp: z.preprocess(
+    (v) => (typeof v === "string" ? normalizeWhatsApp(v) : v),
+    z
+      .string()
+      .regex(whatsappRegex, "Ingresá un celular válido. Ej: 1155555555")
+      .optional()
+  ),
   responsable_validado: z.coerce.boolean().default(false),
 
   destacado: z.coerce.boolean().default(false),

@@ -65,7 +65,7 @@ export function evaluateChecklist(
     },
     {
       key: "whatsapp",
-      label: "WhatsApp en formato +5491155555555",
+      label: "WhatsApp del alojamiento",
       ok: !!h.whatsapp && WHATSAPP_RE.test(h.whatsapp),
     },
     {

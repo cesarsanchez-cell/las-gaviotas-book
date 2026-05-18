@@ -104,6 +104,11 @@ Bloque D — Validación end-to-end:
 - [ ] Mejorar copy del email de confirmación de signup (sigue siendo el default de Supabase)
 - [ ] UX: link "¿No tenés cuenta? Registrate" más visible o redirect inteligente cuando email no existe
 - [ ] Considerar trigger BEFORE UPDATE en hospedajes que valide transiciones de estado por rol (defensa en profundidad)
+- [ ] **Autogestión de password para admins de destino**: hoy el super admin tiene que pasarle una clave compleja y rezar para que no la pierda. Debe ser autónomo: flow de "olvidé mi password" funcionando + opción de cambiar password desde el perfil del admin. Aplica también a responsables. Sin esto, cada admin caído genera ticket al super admin.
+- [ ] **UI para gestionar localidades (zonas)** desde `/admin/localidades`: alta de zonas por destino ("Frente al mar", "Centro", "Bosque", etc.) la debe hacer el admin local del destino — conoce las zonas mejor que el super admin. Hoy se cargan por SQL directo. RLS ya existe (admin scoped por destino), solo falta el page + form + listado. ~2-3 hs, calcado del CRUD de destinos.
+
+### Pendientes de diseño (requieren pensar antes de codear)
+- [ ] **Disponibilidad multi-dimensional por capacidad de unidad**: el modelo actual bloquea el hospedaje entero por día, pero un hospedaje real tiene varias unidades de distintos tamaños (cabaña 2 pax / depto 4 pax / casa 6 pax). No es lo mismo tener libre una unidad para 2 que recibir una consulta de familia de 6. Requiere: (1) tabla `unidades` por hospedaje con capacidad declarada, (2) disponibilidad atada a `unidad_id` no a `hospedaje_id`, (3) form de consulta sugiriendo unidades que entren para la cantidad de pasajeros pedida, (4) badge en consultas que diga "Disponible para 4 pax (unidad X libre)" en vez de solo "Disponible". Diseñar antes de Etapa 4 — afecta el schema de reservas. Memoria: [[project-disponibilidad-multi-unidad]].
 
 ### Etapa 2 — Leads y consultas ✅ cerrada (2026-05-16)
 
