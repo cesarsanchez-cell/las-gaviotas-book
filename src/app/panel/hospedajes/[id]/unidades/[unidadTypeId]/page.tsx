@@ -5,6 +5,7 @@ import { requireResponsable } from "@/features/panel/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getUnidadType } from "@/features/unidades/lib/queries";
 import { UnidadTypeForm } from "@/features/unidades/components/UnidadTypeForm";
+import { UnidadTypeFotosManager } from "@/features/unidades/components/UnidadTypeFotosManager";
 import { UnidadInstancesManager } from "@/features/unidades/components/UnidadInstancesManager";
 import { updateUnidadTypeAction } from "@/features/unidades/lib/actions";
 
@@ -54,6 +55,11 @@ export default async function EditUnidadTypePage({ params }: PageProps) {
         hospedajeId={id}
         submitLabel="Guardar cambios"
         action={updateAction}
+      />
+
+      <UnidadTypeFotosManager
+        unidadTypeId={unidadType.id}
+        fotos={unidadType.fotos}
       />
 
       <UnidadInstancesManager
