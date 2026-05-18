@@ -6,30 +6,40 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentResponsable } from "@/features/panel/lib/auth";
 import type { ActionResult } from "@/features/admin/lib/hospedaje-actions";
 
-interface AccessContext {
-  userId: string;
-}
-
 /**
- * Verifica que el usuario sea responsable del hospedaje.
+ * Verifica que el usuario actual sea el responsable dueño del hospedaje al
+ * que pertenece la unidad indicada.
  *
- * Por diseño, la disponibilidad la maneja SOLO el responsable. El admin
- * puede ver pero no editar — el responsable es el único que sabe qué
- * puede ofrecer y cualquier error en bloqueo/desbloqueo sale caro.
+ * Por diseño la disponibilidad la maneja SOLO el responsable. El admin puede
+ * leer pero NO escribir — el responsable es quien sabe qué puede ofrecer.
+ *
+ * Devuelve `hospedaje_id` denormalizado para que el caller pueda popularlo
+ * en la tabla `disponibilidad` (trigger garantiza consistencia con la unidad).
  */
-async function requireResponsableOwnsHospedaje(
-  hospedajeId: string
-): Promise<AccessContext> {
+async function requireResponsableOwnsUnidad(
+  unidadId: string
+): Promise<{ userId: string; unidadId: string; hospedajeId: string }> {
   const responsable = await getCurrentResponsable();
   if (!responsable || responsable.perfil.rol !== "responsable") {
     throw new Error(
       "Solo el responsable del hospedaje puede modificar la disponibilidad."
     );
   }
-  if (!(responsable.perfil.hospedajes_ids ?? []).includes(hospedajeId)) {
+  const sb = createAdminClient();
+  const { data } = await sb
+    .from("unidades")
+    .select("hospedaje_id")
+    .eq("id", unidadId)
+    .maybeSingle<{ hospedaje_id: string }>();
+  if (!data) throw new Error("Unidad inexistente.");
+  if (!(responsable.perfil.hospedajes_ids ?? []).includes(data.hospedaje_id)) {
     throw new Error("Sin permisos sobre este hospedaje.");
   }
-  return { userId: responsable.id };
+  return {
+    userId: responsable.id,
+    unidadId,
+    hospedajeId: data.hospedaje_id,
+  };
 }
 
 const isoDate = z
@@ -38,7 +48,7 @@ const isoDate = z
 
 const blockRangeSchema = z
   .object({
-    hospedajeId: z.string().uuid(),
+    unidadId: z.string().uuid(),
     desde: isoDate,
     hasta: isoDate,
     notas: z
@@ -53,12 +63,12 @@ const blockRangeSchema = z
   });
 
 /**
- * Bloquea todas las fechas en [desde, hasta] (ambos inclusivos) del
- * hospedaje. Idempotente: si una fecha ya está bloqueada, se ignora vía
- * ON CONFLICT.
+ * Bloquea todas las fechas en [desde, hasta] (ambos inclusivos) de la UNIDAD
+ * indicada. Idempotente: las ya bloqueadas se ignoran vía ON CONFLICT en
+ * (unidad_id, fecha).
  */
 export async function bloquearRangoAction(input: {
-  hospedajeId: string;
+  unidadId: string;
   desde: string;
   hasta: string;
   notas?: string;
@@ -73,16 +83,15 @@ export async function bloquearRangoAction(input: {
     return { error: "Datos inválidos.", fieldErrors };
   }
 
-  let ctx: AccessContext;
+  let ctx;
   try {
-    ctx = await requireResponsableOwnsHospedaje(parsed.data.hospedajeId);
+    ctx = await requireResponsableOwnsUnidad(parsed.data.unidadId);
   } catch (e) {
     return { error: (e as Error).message };
   }
 
   const sb = createAdminClient();
 
-  // Generar lista de fechas entre desde y hasta inclusive.
   const fechas: string[] = [];
   const start = new Date(parsed.data.desde + "T00:00:00Z");
   const end = new Date(parsed.data.hasta + "T00:00:00Z");
@@ -94,7 +103,8 @@ export async function bloquearRangoAction(input: {
   }
 
   const rows = fechas.map((fecha) => ({
-    hospedaje_id: parsed.data.hospedajeId,
+    unidad_id: ctx.unidadId,
+    hospedaje_id: ctx.hospedajeId,
     fecha,
     tipo: "manual" as const,
     notas: parsed.data.notas ?? null,
@@ -103,34 +113,34 @@ export async function bloquearRangoAction(input: {
 
   const { error } = await sb
     .from("disponibilidad")
-    .upsert(rows as never, { onConflict: "hospedaje_id,fecha", ignoreDuplicates: true });
+    .upsert(rows as never, {
+      onConflict: "unidad_id,fecha",
+      ignoreDuplicates: true,
+    });
   if (error) return { error: error.message };
 
-  revalidatePath(`/panel/hospedajes/${parsed.data.hospedajeId}/disponibilidad`);
-  revalidatePath(`/admin/hospedajes/${parsed.data.hospedajeId}/disponibilidad`);
-  // El badge de disponibilidad en las consultas se calcula contra esta tabla,
-  // así que invalidamos las dos bandejas.
-  revalidatePath("/admin/consultas");
-  revalidatePath("/panel/leads");
+  revalidate(ctx.hospedajeId);
   return { ok: true };
 }
 
 const unblockRangeSchema = blockRangeSchema;
 
 /**
- * Desbloquea (elimina filas) todas las fechas manualmente bloqueadas en
- * [desde, hasta]. NO toca filas tipo='reserva' (esas las gestiona Etapa 4).
+ * Desbloquea (elimina filas) todas las fechas manualmente bloqueadas de la
+ * UNIDAD en [desde, hasta]. NO toca filas tipo='reserva' (esas las gestiona
+ * Etapa 4 — reservas online).
  */
 export async function desbloquearRangoAction(input: {
-  hospedajeId: string;
+  unidadId: string;
   desde: string;
   hasta: string;
 }): Promise<ActionResult> {
   const parsed = unblockRangeSchema.safeParse(input);
   if (!parsed.success) return { error: "Datos inválidos." };
 
+  let ctx;
   try {
-    await requireResponsableOwnsHospedaje(parsed.data.hospedajeId);
+    ctx = await requireResponsableOwnsUnidad(parsed.data.unidadId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -139,41 +149,37 @@ export async function desbloquearRangoAction(input: {
   const { error } = await sb
     .from("disponibilidad")
     .delete()
-    .eq("hospedaje_id", parsed.data.hospedajeId)
+    .eq("unidad_id", parsed.data.unidadId)
     .eq("tipo", "manual")
     .gte("fecha", parsed.data.desde)
     .lte("fecha", parsed.data.hasta);
   if (error) return { error: error.message };
 
-  revalidatePath(`/panel/hospedajes/${parsed.data.hospedajeId}/disponibilidad`);
-  revalidatePath(`/admin/hospedajes/${parsed.data.hospedajeId}/disponibilidad`);
-  // El badge de disponibilidad en las consultas se calcula contra esta tabla,
-  // así que invalidamos las dos bandejas.
-  revalidatePath("/admin/consultas");
-  revalidatePath("/panel/leads");
+  revalidate(ctx.hospedajeId);
   return { ok: true };
 }
 
 const toggleSchema = z.object({
-  hospedajeId: z.string().uuid(),
+  unidadId: z.string().uuid(),
   fecha: isoDate,
 });
 
 /**
- * Toggle de una fecha individual: si está bloqueada (manual) la libera,
- * sino la bloquea. Pensado para el click directo sobre el calendario.
+ * Toggle de una fecha individual sobre UNA unidad: si está bloqueada (manual)
+ * la libera, si no la bloquea. Pensado para el click directo sobre el
+ * calendario.
  * Filas tipo='reserva' se ignoran (no se pueden togglear manualmente).
  */
 export async function toggleFechaAction(input: {
-  hospedajeId: string;
+  unidadId: string;
   fecha: string;
 }): Promise<ActionResult> {
   const parsed = toggleSchema.safeParse(input);
   if (!parsed.success) return { error: "Datos inválidos." };
 
-  let ctx: AccessContext;
+  let ctx;
   try {
-    ctx = await requireResponsableOwnsHospedaje(parsed.data.hospedajeId);
+    ctx = await requireResponsableOwnsUnidad(parsed.data.unidadId);
   } catch (e) {
     return { error: (e as Error).message };
   }
@@ -182,7 +188,7 @@ export async function toggleFechaAction(input: {
   const { data: existente } = await sb
     .from("disponibilidad")
     .select("id, tipo")
-    .eq("hospedaje_id", parsed.data.hospedajeId)
+    .eq("unidad_id", parsed.data.unidadId)
     .eq("fecha", parsed.data.fecha)
     .maybeSingle<{ id: string; tipo: string }>();
 
@@ -200,7 +206,8 @@ export async function toggleFechaAction(input: {
     if (error) return { error: error.message };
   } else {
     const { error } = await sb.from("disponibilidad").insert({
-      hospedaje_id: parsed.data.hospedajeId,
+      unidad_id: parsed.data.unidadId,
+      hospedaje_id: ctx.hospedajeId,
       fecha: parsed.data.fecha,
       tipo: "manual",
       created_by: ctx.userId,
@@ -208,11 +215,16 @@ export async function toggleFechaAction(input: {
     if (error) return { error: error.message };
   }
 
-  revalidatePath(`/panel/hospedajes/${parsed.data.hospedajeId}/disponibilidad`);
-  revalidatePath(`/admin/hospedajes/${parsed.data.hospedajeId}/disponibilidad`);
-  // El badge de disponibilidad en las consultas se calcula contra esta tabla,
-  // así que invalidamos las dos bandejas.
+  revalidate(ctx.hospedajeId);
+  return { ok: true };
+}
+
+function revalidate(hospedajeId: string) {
+  revalidatePath(`/panel/hospedajes/${hospedajeId}/disponibilidad`);
+  revalidatePath(`/admin/hospedajes/${hospedajeId}/disponibilidad`);
+  revalidatePath(`/panel/hospedajes/${hospedajeId}/unidades`);
+  revalidatePath(`/admin/hospedajes/${hospedajeId}/unidades`);
+  // Badge de disponibilidad en consultas se calcula desde esta tabla.
   revalidatePath("/admin/consultas");
   revalidatePath("/panel/leads");
-  return { ok: true };
 }
