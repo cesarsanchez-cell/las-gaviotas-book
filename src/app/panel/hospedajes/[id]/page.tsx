@@ -87,6 +87,12 @@ export default async function EditMyHospedajePage({ params }: PageProps) {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Link
+            href={`/panel/hospedajes/${hospedaje.id}/unidades`}
+            className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium transition hover:bg-secondary"
+          >
+            Unidades
+          </Link>
+          <Link
             href={`/panel/hospedajes/${hospedaje.id}/disponibilidad`}
             className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium transition hover:bg-secondary"
           >

@@ -72,6 +72,8 @@ function formatZodError(err: z.ZodError): ActionResult {
     const key = issue.path.join(".");
     fieldErrors[key] ??= issue.message;
   }
+  // Log server-side para diagnóstico durante 2.B — sacar después.
+  console.error("[unidades] zod error:", JSON.stringify(err.issues, null, 2));
   return { error: "Hay errores en el formulario.", fieldErrors };
 }
 
@@ -93,6 +95,18 @@ function revalidateUnidades(hospedajeId: string) {
 export async function createUnidadTypeAction(
   formData: FormData
 ): Promise<ActionResult> {
+  // Atajo opcional: si el responsable marcó "crear también la primera unidad
+  // ahora" en el alta, leemos y removemos esos campos del FormData antes de
+  // parsear el schema del tipo (que no los conoce).
+  const crearUnidad =
+    formData.get("crear_unidad") === "on" ||
+    formData.get("crear_unidad") === "true";
+  const primeraUnidadNombre = String(
+    formData.get("primera_unidad_nombre") ?? ""
+  ).trim();
+  formData.delete("crear_unidad");
+  formData.delete("primera_unidad_nombre");
+
   let input: UnidadTypeInput;
   try {
     input = parseFormDataToUnidadType(formData);
@@ -105,6 +119,25 @@ export async function createUnidadTypeAction(
     await requireResponsableOwnsHospedaje(input.hospedaje_id);
   } catch (e) {
     return { error: (e as Error).message };
+  }
+
+  // Validación del atajo: si pidió crear unidad, el nombre es obligatorio.
+  if (crearUnidad && primeraUnidadNombre.length === 0) {
+    return {
+      error: "Hay errores en el formulario.",
+      fieldErrors: {
+        primera_unidad_nombre:
+          "Poné un nombre para la primera unidad o destildá el atajo.",
+      },
+    };
+  }
+  if (crearUnidad && primeraUnidadNombre.length > 60) {
+    return {
+      error: "Hay errores en el formulario.",
+      fieldErrors: {
+        primera_unidad_nombre: "Máximo 60 caracteres.",
+      },
+    };
   }
 
   const sb = createAdminClient();
@@ -125,6 +158,22 @@ export async function createUnidadTypeAction(
     .single<{ id: string }>();
 
   if (error || !data) return { error: error?.message ?? "No se pudo crear." };
+
+  // Atajo: crear la primera unidad física en la misma operación.
+  // Si esto falla, el tipo igual queda creado — el responsable la podrá crear
+  // manualmente desde la página de edición. Lo logueamos para diagnóstico.
+  if (crearUnidad) {
+    const { error: errUnidad } = await sb.from("unidades").insert({
+      unidad_type_id: data.id,
+      hospedaje_id: input.hospedaje_id,
+      nombre: primeraUnidadNombre,
+      activa: true,
+      orden: 1,
+    } as never);
+    if (errUnidad) {
+      console.error("[unidades] error creando primera unidad:", errUnidad);
+    }
+  }
 
   revalidateUnidades(input.hospedaje_id);
   return {

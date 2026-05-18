@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { AMENITY_KEYS } from "@/config/amenities";
+import { UNIDAD_AMENITY_KEYS } from "@/config/amenities-unidad";
 
-const amenityEnum = z.enum(AMENITY_KEYS as [string, ...string[]]);
+const amenityEnum = z.enum(UNIDAD_AMENITY_KEYS as [string, ...string[]]);
 
 /**
  * Schema para alta y edición de un `unidad_type` (categoría comercial).
