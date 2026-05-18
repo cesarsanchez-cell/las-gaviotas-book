@@ -4,7 +4,10 @@ import { useEffect, useRef, useState, useTransition, type FormEvent } from "reac
 import {
   UNIDAD_AMENITIES,
   UNIDAD_AMENITY_GROUPS,
+  CALEFACCION_TIPO_LABEL,
+  CALEFACCION_TIPO_KEYS,
   type UnidadAmenityKey,
+  type CalefaccionTipo,
 } from "@/config/amenities-unidad";
 import type { UnidadTypeRow } from "@/types/database";
 import type { ActionResult } from "@/features/admin/lib/hospedaje-actions";
@@ -261,6 +264,68 @@ export function UnidadTypeForm({ initial, hospedajeId, submitLabel, action }: Pr
         {fe("camas_descripcion") && (
           <p className="mt-1 text-xs text-rose-600">{fe("camas_descripcion")}</p>
         )}
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-6">
+        <h2 className="font-display text-lg tracking-tight">Vista y calefacción</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Datos que el huésped valora pero no encajan como flag (vista es libre,
+          calefacción tiene varios tipos).
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="text-sm font-medium" htmlFor="vista">
+              Vista
+            </label>
+            <input
+              id="vista"
+              name="vista"
+              type="text"
+              defaultValue={initial?.vista ?? ""}
+              placeholder="Vista al mar desde balcón · Vista al bosque"
+              maxLength={200}
+              className={cls("vista")}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Opcional. Texto libre.
+            </p>
+            {fe("vista") && (
+              <p className="mt-1 text-xs text-rose-600">{fe("vista")}</p>
+            )}
+          </div>
+          <div>
+            <label className="text-sm font-medium" htmlFor="calefaccion_tipo">
+              Calefacción
+            </label>
+            <select
+              id="calefaccion_tipo"
+              name="calefaccion_tipo"
+              defaultValue={
+                initial?.calefaccion_tipo &&
+                CALEFACCION_TIPO_KEYS.includes(
+                  initial.calefaccion_tipo as CalefaccionTipo
+                )
+                  ? initial.calefaccion_tipo
+                  : ""
+              }
+              className={cls("calefaccion_tipo")}
+            >
+              <option value="">Sin especificar</option>
+              {CALEFACCION_TIPO_KEYS.map((k) => (
+                <option key={k} value={k}>
+                  {CALEFACCION_TIPO_LABEL[k]}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Tipo único. Si tu unidad tiene varios sistemas, elegí
+              &quot;Varios (combinados)&quot;.
+            </p>
+            {fe("calefaccion_tipo") && (
+              <p className="mt-1 text-xs text-rose-600">{fe("calefaccion_tipo")}</p>
+            )}
+          </div>
+        </div>
       </section>
 
       <section className="rounded-xl border border-border bg-card p-6">

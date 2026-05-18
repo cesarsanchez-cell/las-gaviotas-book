@@ -9,7 +9,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AMENITIES, AMENITY_KEYS, type AmenityKey } from "@/config/amenities";
+import {
+  AMENITIES,
+  AMENITY_KEYS,
+  AMENITY_GROUPS,
+  type AmenityKey,
+} from "@/config/amenities";
+import {
+  OPERATIONAL_AMENITIES,
+  OPERATIONAL_AMENITY_GROUPS,
+  type OperationalAmenityKey,
+} from "@/config/amenities-operational";
 import { TIPO_HOSPEDAJE_LABEL } from "@/features/hospedajes/types";
 import { TIPOS_VALIDOS } from "@/features/busqueda/lib/filters";
 import { slugify } from "@/lib/utils";
@@ -72,9 +82,19 @@ export function HospedajeForm({
   const [nombre, setNombre] = React.useState(initial?.nombre ?? "");
   const [slug, setSlug] = React.useState(initial?.slug ?? "");
   const [slugTouched, setSlugTouched] = React.useState(Boolean(initial?.slug));
-  const [amenities, setAmenities] = React.useState<Set<string>>(
-    new Set(initial?.amenities ?? [])
-  );
+  const [amenities, setAmenities] = React.useState<Set<string>>(() => {
+    // Filtrar keys que ya no existen en el catálogo (data zombie defense).
+    const raw = (initial?.amenities ?? []) as string[];
+    return new Set(raw.filter((k) => k in AMENITIES));
+  });
+  const [amenitiesOperational, setAmenitiesOperational] = React.useState<
+    Set<OperationalAmenityKey>
+  >(() => {
+    const raw = (initial?.amenities_operational ?? []) as string[];
+    return new Set(
+      raw.filter((k): k is OperationalAmenityKey => k in OPERATIONAL_AMENITIES)
+    );
+  });
 
   // Slug auto-generado al tipear el nombre, salvo que el user ya lo tocó
   React.useEffect(() => {
@@ -96,6 +116,15 @@ export function HospedajeForm({
     });
   }
 
+  function toggleOperationalAmenity(key: OperationalAmenityKey) {
+    setAmenitiesOperational((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     // preventDefault evita el reset automático de React 19 al usar <form action>.
     // Así los inputs preservan sus valores cuando hay error de validación.
@@ -105,6 +134,10 @@ export function HospedajeForm({
     // Inyectar amenities seleccionadas (estado controlado en React)
     formData.delete("amenities");
     amenities.forEach((a) => formData.append("amenities", a));
+    formData.delete("amenities_operational");
+    amenitiesOperational.forEach((a) =>
+      formData.append("amenities_operational", a)
+    );
 
     startTransition(async () => {
       const res = await action(formData);
@@ -379,28 +412,84 @@ export function HospedajeForm({
         </div>
       </FormSection>
 
-      {/* Sección: Amenities */}
+      {/* Sección: Amenities del complejo */}
       <FormSection
-        title="Amenities"
-        description="Servicios y comodidades. Aparecen como filtros en el listado."
+        title="Amenities del complejo"
+        description="Servicios y comodidades compartidas del hospedaje (no de cada unidad). Si una amenity es propia de la unidad, va en Unidades."
       >
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-          {AMENITY_KEYS.map((key) => {
-            const a = AMENITIES[key];
-            const Icon = a.icon;
-            const checked = amenities.has(key);
+        <div className="space-y-4">
+          {AMENITY_GROUPS.map((group) => {
+            const items = AMENITY_KEYS.filter(
+              (k) => AMENITIES[k].group === group.key
+            );
+            if (items.length === 0) return null;
             return (
-              <label
-                key={key}
-                className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 py-2 transition hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-primary/5"
-              >
-                <Checkbox
-                  checked={checked}
-                  onChange={() => toggleAmenity(key)}
-                />
-                <Icon className="h-4 w-4 text-primary" aria-hidden />
-                <span className="text-sm">{a.label}</span>
-              </label>
+              <div key={group.key}>
+                <p className="text-xs font-medium text-muted-foreground">
+                  {group.label}
+                </p>
+                <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                  {items.map((key) => {
+                    const a = AMENITIES[key];
+                    const Icon = a.icon;
+                    const checked = amenities.has(key);
+                    return (
+                      <label
+                        key={key}
+                        className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 py-2 transition hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onChange={() => toggleAmenity(key)}
+                        />
+                        <Icon className="h-4 w-4 text-primary" aria-hidden />
+                        <span className="text-sm">{a.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </FormSection>
+
+      {/* Sección: Operativas / políticas */}
+      <FormSection
+        title="Características operativas"
+        description="Cómo opera el hospedaje (políticas, modos de check-in, canales de atención). Aplican a todo el hospedaje, no a una unidad puntual."
+      >
+        <div className="space-y-4">
+          {OPERATIONAL_AMENITY_GROUPS.map((group) => {
+            const items = Object.values(OPERATIONAL_AMENITIES).filter(
+              (a) => a.group === group.key
+            );
+            if (items.length === 0) return null;
+            return (
+              <div key={group.key}>
+                <p className="text-xs font-medium text-muted-foreground">
+                  {group.label}
+                </p>
+                <div className="mt-1.5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+                  {items.map((a) => {
+                    const Icon = a.icon;
+                    const checked = amenitiesOperational.has(a.key);
+                    return (
+                      <label
+                        key={a.key}
+                        className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 py-2 transition hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onChange={() => toggleOperationalAmenity(a.key)}
+                        />
+                        <Icon className="h-4 w-4 text-primary" aria-hidden />
+                        <span className="text-sm">{a.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </div>

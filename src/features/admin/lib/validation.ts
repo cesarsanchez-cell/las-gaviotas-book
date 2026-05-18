@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AMENITY_KEYS } from "@/config/amenities";
+import { OPERATIONAL_AMENITY_KEYS } from "@/config/amenities-operational";
 import { normalizeWhatsApp } from "@/features/consultas/lib/validation";
 
 const tipoEnum = z.enum([
@@ -21,6 +22,9 @@ const estadoEnum = z.enum([
 ]);
 
 const amenityEnum = z.enum(AMENITY_KEYS as [string, ...string[]]);
+const operationalAmenityEnum = z.enum(
+  OPERATIONAL_AMENITY_KEYS as [string, ...string[]]
+);
 
 const slugRegex = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const whatsappRegex = /^\+\d{10,15}$/;
@@ -88,6 +92,7 @@ export const hospedajeSchema = z.object({
     .or(z.literal("").transform(() => undefined)),
 
   amenities: z.array(amenityEnum).default([]),
+  amenities_operational: z.array(operationalAmenityEnum).default([]),
 
   meta_title: z.string().max(70).optional().or(z.literal("").transform(() => undefined)),
   meta_description: z.string().max(180).optional().or(z.literal("").transform(() => undefined)),
@@ -122,6 +127,9 @@ export function parseFormDataToHospedaje(formData: FormData): HospedajeInput {
     if (k === "amenities") {
       raw.amenities ??= [];
       (raw.amenities as string[]).push(String(v));
+    } else if (k === "amenities_operational") {
+      raw.amenities_operational ??= [];
+      (raw.amenities_operational as string[]).push(String(v));
     } else if (k === "destacado" || k === "responsable_validado") {
       // Checkboxes presentes en el FormData solo cuando están marcados.
       raw[k] = v === "on" || v === "true";
@@ -133,6 +141,7 @@ export function parseFormDataToHospedaje(formData: FormData): HospedajeInput {
     }
   }
   raw.amenities ??= [];
+  raw.amenities_operational ??= [];
   // Booleans no marcados no vienen en FormData — setear false explícito.
   if (raw.destacado === undefined) raw.destacado = false;
   if (raw.responsable_validado === undefined) raw.responsable_validado = false;

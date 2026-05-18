@@ -3,68 +3,87 @@ import {
   Wifi,
   Waves,
   Car,
-  Tv,
-  Utensils,
-  Wind,
-  Snowflake,
-  Flame,
   Dog,
-  Baby,
-  Bath,
-  Coffee,
-  WashingMachine,
-  ParkingCircle,
   TreePine,
-  Sun,
+  Trees,
+  Flame,
+  Utensils,
+  PartyPopper,
+  ToyBrick,
+  Sailboat,
+  Snowflake,
+  Bell,
+  Antenna,
+  Zap,
 } from "lucide-react";
 
+/**
+ * Amenities de PROPERTY — comodidades del complejo / hospedaje compartido.
+ *
+ * Coexiste con `UNIDAD_AMENITY_KEYS` (cosas dentro de la unidad) y
+ * `OPERATIONAL_AMENITY_KEYS` (políticas/modos de operación a nivel hospedaje).
+ *
+ * Cerrado con el operador 2026-05-18. Ver memoria
+ * `project-amenities-3-scopes`.
+ */
 export type AmenityKey =
-  | "wifi"
-  | "playa_cerca"
+  | "piscina"
+  | "piscina_climatizada"
+  | "parque"
+  | "jardin"
+  | "parrillas_compartidas"
+  | "quincho"
+  | "wifi_areas_comunes"
   | "estacionamiento"
-  | "aire_acondicionado"
-  | "calefaccion"
-  | "tv"
-  | "cocina"
-  | "parrilla"
-  | "ventilador"
+  | "cerca_del_mar"
+  | "servicio_de_playa"
+  | "juegos_para_ninos"
+  | "sum"
   | "pet_friendly"
-  | "apto_ninos"
-  | "banera"
-  | "desayuno"
-  | "lavarropas"
-  | "cochera_techada"
-  | "patio"
-  | "deck_solarium";
+  | "recepcion"
+  | "grupo_electrogeno"
+  | "starlink";
 
 export interface Amenity {
   key: AmenityKey;
   label: string;
   icon: LucideIcon;
-  group: "esenciales" | "comodidad" | "familia" | "exterior";
+  group: "exterior" | "servicios" | "conectividad" | "familia";
 }
 
 export const AMENITIES: Record<AmenityKey, Amenity> = {
-  wifi:                { key: "wifi",                label: "WiFi",              icon: Wifi,            group: "esenciales" },
-  playa_cerca:         { key: "playa_cerca",         label: "Playa cerca",       icon: Waves,           group: "esenciales" },
-  estacionamiento:     { key: "estacionamiento",     label: "Estacionamiento",   icon: Car,             group: "esenciales" },
-  aire_acondicionado:  { key: "aire_acondicionado",  label: "Aire acondicionado",icon: Snowflake,       group: "comodidad"  },
-  calefaccion:         { key: "calefaccion",         label: "Calefacción",       icon: Flame,           group: "comodidad"  },
-  tv:                  { key: "tv",                  label: "TV",                icon: Tv,              group: "comodidad"  },
-  cocina:              { key: "cocina",              label: "Cocina equipada",   icon: Utensils,        group: "comodidad"  },
-  parrilla:            { key: "parrilla",            label: "Parrilla",          icon: Flame,           group: "exterior"   },
-  ventilador:          { key: "ventilador",          label: "Ventilador",        icon: Wind,            group: "comodidad"  },
-  pet_friendly:        { key: "pet_friendly",        label: "Pet friendly",      icon: Dog,             group: "familia"    },
-  apto_ninos:          { key: "apto_ninos",          label: "Apto niños",        icon: Baby,            group: "familia"    },
-  banera:              { key: "banera",              label: "Bañera",            icon: Bath,            group: "comodidad"  },
-  desayuno:            { key: "desayuno",            label: "Desayuno",          icon: Coffee,          group: "comodidad"  },
-  lavarropas:          { key: "lavarropas",          label: "Lavarropas",        icon: WashingMachine,  group: "comodidad"  },
-  cochera_techada:     { key: "cochera_techada",     label: "Cochera techada",   icon: ParkingCircle,   group: "esenciales" },
-  patio:               { key: "patio",               label: "Patio",             icon: TreePine,        group: "exterior"   },
-  deck_solarium:       { key: "deck_solarium",       label: "Deck / Solarium",   icon: Sun,             group: "exterior"   },
+  piscina:              { key: "piscina",              label: "Piscina",              icon: Waves,        group: "exterior" },
+  piscina_climatizada:  { key: "piscina_climatizada",  label: "Piscina climatizada",  icon: Snowflake,    group: "exterior" },
+  parque:               { key: "parque",               label: "Parque",               icon: Trees,        group: "exterior" },
+  jardin:               { key: "jardin",               label: "Jardín",               icon: TreePine,     group: "exterior" },
+  parrillas_compartidas:{ key: "parrillas_compartidas",label: "Parrillas compartidas",icon: Flame,        group: "exterior" },
+  quincho:              { key: "quincho",              label: "Quincho",              icon: Utensils,     group: "exterior" },
+  cerca_del_mar:        { key: "cerca_del_mar",        label: "Cerca del mar",        icon: Sailboat,     group: "exterior" },
+  servicio_de_playa:    { key: "servicio_de_playa",    label: "Servicio de playa",    icon: Sailboat,     group: "exterior" },
+
+  estacionamiento:      { key: "estacionamiento",      label: "Estacionamiento",      icon: Car,          group: "servicios" },
+  recepcion:            { key: "recepcion",            label: "Recepción",            icon: Bell,         group: "servicios" },
+  grupo_electrogeno:    { key: "grupo_electrogeno",    label: "Grupo electrógeno",    icon: Zap,          group: "servicios" },
+
+  wifi_areas_comunes:   { key: "wifi_areas_comunes",   label: "WiFi en áreas comunes",icon: Wifi,         group: "conectividad" },
+  starlink:             { key: "starlink",             label: "Starlink",             icon: Antenna,      group: "conectividad" },
+
+  juegos_para_ninos:    { key: "juegos_para_ninos",    label: "Juegos para niños",    icon: ToyBrick,     group: "familia" },
+  sum:                  { key: "sum",                  label: "SUM",                  icon: PartyPopper,  group: "familia" },
+  pet_friendly:         { key: "pet_friendly",         label: "Pet friendly",         icon: Dog,          group: "familia" },
 };
 
 export const AMENITY_KEYS = Object.keys(AMENITIES) as AmenityKey[];
+
+export const AMENITY_GROUPS: Array<{
+  key: Amenity["group"];
+  label: string;
+}> = [
+  { key: "exterior",      label: "Exterior y áreas comunes" },
+  { key: "servicios",     label: "Servicios del complejo" },
+  { key: "conectividad",  label: "Conectividad" },
+  { key: "familia",       label: "Familia" },
+];
 
 export function getAmenity(key: string): Amenity | undefined {
   return AMENITIES[key as AmenityKey];

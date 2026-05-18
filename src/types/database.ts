@@ -86,6 +86,8 @@ export interface HospedajeRow {
   instagram: string | null;
   website: string | null;
   amenities: string[];
+  /** Políticas / modos a nivel hospedaje (self_check_in, atencion_24hs, etc). */
+  amenities_operational: string[];
   meta_title: string | null;
   meta_description: string | null;
   estado: EstadoHospedaje;
@@ -154,6 +156,10 @@ export interface UnidadTypeRow {
   capacidad_ninos: number;
   camas_descripcion: string | null;
   amenities: string[];
+  /** Texto libre. Ej: "Vista al mar desde balcón". NULL = sin info. */
+  vista: string | null;
+  /** Enum con CHECK constraint en BD. NULL = sin info. */
+  calefaccion_tipo: string | null;
   activo: boolean;
   orden: number;
   created_at: string;

@@ -151,6 +151,8 @@ export async function createUnidadTypeAction(
       capacidad_ninos: input.capacidad_ninos,
       camas_descripcion: input.camas_descripcion ?? null,
       amenities: input.amenities,
+      vista: input.vista ?? null,
+      calefaccion_tipo: input.calefaccion_tipo ?? null,
       activo: input.activo,
       orden: input.orden,
     } as never)
@@ -217,6 +219,8 @@ export async function updateUnidadTypeAction(
       capacidad_ninos: input.capacidad_ninos,
       camas_descripcion: input.camas_descripcion ?? null,
       amenities: input.amenities,
+      vista: input.vista ?? null,
+      calefaccion_tipo: input.calefaccion_tipo ?? null,
       activo: input.activo,
       orden: input.orden,
     } as never)

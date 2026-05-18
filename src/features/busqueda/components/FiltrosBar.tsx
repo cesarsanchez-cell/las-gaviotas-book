@@ -15,14 +15,14 @@ interface FiltrosBarProps {
 }
 
 const AMENITIES_FILTRABLES: AmenityKey[] = [
-  "wifi",
-  "playa_cerca",
+  "wifi_areas_comunes",
+  "cerca_del_mar",
   "estacionamiento",
-  "parrilla",
-  "aire_acondicionado",
+  "piscina",
+  "parrillas_compartidas",
   "pet_friendly",
-  "apto_ninos",
-  "patio",
+  "juegos_para_ninos",
+  "parque",
 ];
 
 export function FiltrosBar({ className }: FiltrosBarProps) {

@@ -1,7 +1,13 @@
 import { z } from "zod";
-import { UNIDAD_AMENITY_KEYS } from "@/config/amenities-unidad";
+import {
+  UNIDAD_AMENITY_KEYS,
+  CALEFACCION_TIPO_KEYS,
+} from "@/config/amenities-unidad";
 
 const amenityEnum = z.enum(UNIDAD_AMENITY_KEYS as [string, ...string[]]);
+const calefaccionEnum = z.enum(
+  CALEFACCION_TIPO_KEYS as [string, ...string[]]
+);
 
 /**
  * Schema para alta y edición de un `unidad_type` (categoría comercial).
@@ -46,6 +52,17 @@ export const unidadTypeSchema = z.object({
     .optional()
     .or(z.literal("").transform(() => undefined)),
   amenities: z.array(amenityEnum).default([]),
+  /** Texto libre. "Vista al mar desde balcón", "Vista al bosque", etc. */
+  vista: z
+    .string()
+    .trim()
+    .max(200, "Máximo 200 caracteres")
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  /** Tipo único de calefacción. Enum con CHECK constraint en BD. */
+  calefaccion_tipo: calefaccionEnum
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
   activo: z.coerce.boolean().default(true),
   orden: z.coerce
     .number()

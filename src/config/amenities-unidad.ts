@@ -1,85 +1,80 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Wifi,
-  Car,
-  Snowflake,
-  Flame,
-  Tv,
   Utensils,
   Refrigerator,
-  Baby,
-  Milk,
-  Bath,
-  WashingMachine,
-  ParkingCircle,
-  TreePine,
+  Microwave,
+  Snowflake,
+  Tv,
+  Lock,
   Sun,
+  Flame,
+  KeyRound,
+  Bug,
+  Sofa,
+  Bed,
+  WashingMachine,
 } from "lucide-react";
 
 /**
  * Amenities de UNIDAD — específicas de lo que se ofrece DENTRO del depto/casa.
  *
- * NO confundir con `AMENITY_KEYS` (catálogo de hospedaje), que cubre cosas
- * compartidas del complejo (playa cerca, pet friendly, etc.). Estos son los
- * servicios y comodidades que el huésped tiene en su unidad puntual.
+ * Coexiste con `AMENITY_KEYS` (property — complejo) y `OPERATIONAL_AMENITY_KEYS`
+ * (políticas/modos a nivel hospedaje).
  *
- * Si el hospedaje tiene una pileta común del complejo, NO va acá — va en la
- * descripción del hospedaje.
- *
- * Listado consensuado con el operador 2026-05-18.
+ * IMPORTANTE: `vista` y `calefaccion_tipo` NO son amenities — son columnas
+ * propias de `unidad_types` con shape estructurado (texto libre y enum
+ * respectivamente). Ver `unidadTypeSchema` y memoria
+ * `project-amenities-3-scopes`.
  */
 export type UnidadAmenityKey =
   | "wifi"
-  | "estacionamiento"
-  | "aire_living"
-  | "aire_dormitorio"
-  | "calefaccion"
-  | "tv_living"
-  | "tv_dormitorio"
-  | "cocina_equipada"
-  | "parrilla"
-  | "heladera"
+  | "cocina_completa"
   | "heladera_freezer"
-  | "apto_ninos"
-  | "kit_bebes"
-  | "banera"
-  | "lavarropas"
-  | "cochera_techada"
-  | "patio_parrilla"
-  | "deck_terraza";
+  | "microondas"
+  | "aire_acondicionado_living"
+  | "aire_acondicionado_dormitorio"
+  | "smart_tv"
+  | "caja_seguridad"
+  | "balcon_terraza"
+  | "parrilla_privada"
+  | "cerradura_digital"
+  | "mosquiteros"
+  | "sofa_cama"
+  | "cama_catre"
+  | "vajilla_completa"
+  | "lavarropas";
 
 export interface UnidadAmenity {
   key: UnidadAmenityKey;
   label: string;
   icon: LucideIcon;
-  /** Agrupación visual para el form. */
-  group: "conectividad" | "climatizacion" | "cocina" | "familia" | "exterior" | "servicios";
+  group: "conectividad" | "climatizacion" | "cocina" | "comodidad" | "seguridad" | "exterior" | "servicios";
 }
 
 export const UNIDAD_AMENITIES: Record<UnidadAmenityKey, UnidadAmenity> = {
-  wifi:               { key: "wifi",              label: "WiFi",                    icon: Wifi,           group: "conectividad" },
-  tv_living:          { key: "tv_living",         label: "Smart TV en living",      icon: Tv,             group: "conectividad" },
-  tv_dormitorio:      { key: "tv_dormitorio",     label: "Smart TV en dormitorio",  icon: Tv,             group: "conectividad" },
+  wifi:                          { key: "wifi",                          label: "WiFi",                  icon: Wifi,           group: "conectividad" },
+  smart_tv:                      { key: "smart_tv",                      label: "Smart TV",              icon: Tv,             group: "conectividad" },
 
-  aire_living:        { key: "aire_living",       label: "Aire acond. en living",   icon: Snowflake,      group: "climatizacion" },
-  aire_dormitorio:    { key: "aire_dormitorio",   label: "Aire acond. en dormitorio", icon: Snowflake,    group: "climatizacion" },
-  calefaccion:        { key: "calefaccion",       label: "Calefacción",             icon: Flame,          group: "climatizacion" },
+  aire_acondicionado_living:     { key: "aire_acondicionado_living",     label: "Aire acond. en living",     icon: Snowflake,  group: "climatizacion" },
+  aire_acondicionado_dormitorio: { key: "aire_acondicionado_dormitorio", label: "Aire acond. en dormitorio", icon: Snowflake,  group: "climatizacion" },
 
-  cocina_equipada:    { key: "cocina_equipada",   label: "Cocina equipada",         icon: Utensils,       group: "cocina" },
-  heladera:           { key: "heladera",          label: "Heladera",                icon: Refrigerator,   group: "cocina" },
-  heladera_freezer:   { key: "heladera_freezer",  label: "Heladera con freezer",    icon: Refrigerator,   group: "cocina" },
+  cocina_completa:               { key: "cocina_completa",               label: "Cocina completa",       icon: Utensils,       group: "cocina" },
+  heladera_freezer:              { key: "heladera_freezer",              label: "Heladera con freezer",  icon: Refrigerator,   group: "cocina" },
+  microondas:                    { key: "microondas",                    label: "Microondas",            icon: Microwave,      group: "cocina" },
+  vajilla_completa:              { key: "vajilla_completa",              label: "Vajilla completa",      icon: Utensils,       group: "cocina" },
 
-  apto_ninos:         { key: "apto_ninos",        label: "Apto niños",              icon: Baby,           group: "familia" },
-  kit_bebes:          { key: "kit_bebes",         label: "Kit bebés",               icon: Milk,           group: "familia" },
+  sofa_cama:                     { key: "sofa_cama",                     label: "Sofá cama",             icon: Sofa,           group: "comodidad" },
+  cama_catre:                    { key: "cama_catre",                    label: "Cama catre disponible", icon: Bed,            group: "comodidad" },
+  mosquiteros:                   { key: "mosquiteros",                   label: "Mosquiteros",           icon: Bug,            group: "comodidad" },
 
-  banera:             { key: "banera",            label: "Bañera",                  icon: Bath,           group: "servicios" },
-  lavarropas:         { key: "lavarropas",        label: "Lavarropas",              icon: WashingMachine, group: "servicios" },
+  caja_seguridad:                { key: "caja_seguridad",                label: "Caja de seguridad",     icon: Lock,           group: "seguridad" },
+  cerradura_digital:             { key: "cerradura_digital",             label: "Cerradura digital",     icon: KeyRound,       group: "seguridad" },
 
-  estacionamiento:    { key: "estacionamiento",   label: "Estacionamiento",         icon: Car,            group: "exterior" },
-  cochera_techada:    { key: "cochera_techada",   label: "Cochera techada",         icon: ParkingCircle,  group: "exterior" },
-  parrilla:           { key: "parrilla",          label: "Parrilla",                icon: Flame,          group: "exterior" },
-  patio_parrilla:     { key: "patio_parrilla",    label: "Patio con parrilla",      icon: TreePine,       group: "exterior" },
-  deck_terraza:       { key: "deck_terraza",      label: "Deck / Terraza",          icon: Sun,            group: "exterior" },
+  balcon_terraza:                { key: "balcon_terraza",                label: "Balcón / terraza",      icon: Sun,            group: "exterior" },
+  parrilla_privada:              { key: "parrilla_privada",              label: "Parrilla privada",      icon: Flame,          group: "exterior" },
+
+  lavarropas:                    { key: "lavarropas",                    label: "Lavarropas",            icon: WashingMachine, group: "servicios" },
 };
 
 export const UNIDAD_AMENITY_KEYS = Object.keys(
@@ -93,11 +88,43 @@ export const UNIDAD_AMENITY_GROUPS: Array<{
   { key: "conectividad",   label: "Conectividad y entretenimiento" },
   { key: "climatizacion",  label: "Climatización" },
   { key: "cocina",         label: "Cocina" },
-  { key: "familia",        label: "Familia" },
+  { key: "comodidad",      label: "Comodidad" },
+  { key: "seguridad",      label: "Seguridad" },
+  { key: "exterior",       label: "Exterior privado" },
   { key: "servicios",      label: "Servicios" },
-  { key: "exterior",       label: "Exterior" },
 ];
 
 export function getUnidadAmenity(key: string): UnidadAmenity | undefined {
   return UNIDAD_AMENITIES[key as UnidadAmenityKey];
 }
+
+// =============================================================================
+// Enum estructurado: tipo de calefacción
+// =============================================================================
+// No es flag — son opciones excluyentes. Vive en columna propia
+// `unidad_types.calefaccion_tipo` con CHECK constraint en BD.
+
+export type CalefaccionTipo =
+  | "salamandra"
+  | "hogar_lena"
+  | "tiro_balanceado"
+  | "radiadores"
+  | "aire_frio_calor"
+  | "losa_radiante"
+  | "multiple"
+  | "ninguna";
+
+export const CALEFACCION_TIPO_LABEL: Record<CalefaccionTipo, string> = {
+  salamandra:        "Salamandra",
+  hogar_lena:        "Hogar a leña",
+  tiro_balanceado:   "Tiro balanceado",
+  radiadores:        "Radiadores",
+  aire_frio_calor:   "Aire frío/calor",
+  losa_radiante:     "Losa radiante",
+  multiple:          "Varios (combinados)",
+  ninguna:           "Sin calefacción",
+};
+
+export const CALEFACCION_TIPO_KEYS = Object.keys(
+  CALEFACCION_TIPO_LABEL
+) as CalefaccionTipo[];

@@ -11,9 +11,9 @@ Estado consolidado del proyecto. Visión y reglas detalladas en [CLAUDE.md](CLAU
 
 | Item              | Valor                                                                            |
 |-------------------|----------------------------------------------------------------------------------|
-| Etapa vigente     | **Etapa 3 cerrada — Disponibilidad operativa + UI admin completa**  —  siguiente: pendientes menores o Etapa 4 |
-| Último commit     | `802c023` — Fix disponibilidad: revalidar bandejas + router.refresh en calendar  |
-| Fecha             | 2026-05-16                                                                       |
+| Etapa vigente     | **Rediseño multi-unidad: Etapas 1, 2, 3 cerradas y en prod** — siguiente: Etapa 4 (página pública con sección Unidades) |
+| Último commit     | `ec37d88` — Etapa 3.B calendario por unidad con tabs (panel + admin)             |
+| Fecha             | 2026-05-18                                                                       |
 | Entorno local     | PM2 → `las-gaviotas-book` en `http://localhost:3005`                             |
 | **Deploy producción** | ✅ https://www.misescapadas.com.ar (canónico) + redirects desde apex y vercel.app |
 | Repo remoto       | https://github.com/cesarsanchez-cell/las-gaviotas-book (privado)                 |
@@ -182,13 +182,50 @@ Ajustes finales (`457cc4f` + `802c023`):
 - [x] Fix cache: `revalidatePath` de `/admin/consultas` + `/panel/leads` en cada action de disponibilidad. `router.refresh()` en el calendar para que el UI se actualice sin reload.
 - [x] Copy del rango aclara explícitamente "desde y hasta inclusive" (ambos extremos quedan bloqueados).
 
-### Etapa 4 — Reservas online (planeada)
+### Rediseño multi-unidad (2026-05-18) — Etapas 1, 2, 3 cerradas y en prod
+
+Reescritura mayor del modelo: la disponibilidad pasa de estar atada al `hospedaje` a la `unidad` física. Contexto y decisiones de diseño en memoria `project-rediseno-unidades`.
+
+**Etapa 1 Foundation** ✅ (`468b2e5`)
+- [x] Migración `20260518000000_unidades_arquitectura.sql`: 6 tablas (`unidad_types`, `unidad_type_fotos`, `unidades`, `disponibilidad` refactorizada, `tarifas`, `restricciones`) + RLS + triggers de consistencia + wipe de datos test
+- [x] Bug detectado y documentado: `TRUNCATE destinos CASCADE` arrastró `perfiles` (memoria `feedback-truncate-cascade`). Recovery manual aplicado
+
+**Etapa 2 Unidades** ✅ (`7bb321a` + `8716098` + `7b22e7b` + `0ac3acc`)
+- [x] **2.A** Backend: queries + actions + Zod en `src/features/unidades/lib/`
+- [x] **2.B** UI panel responsable: pages `/panel/hospedajes/[id]/unidades/{listado,nuevo,[id]}`, `UnidadTypeForm`, `UnidadInstancesManager` (alta single + batch + acciones inline), atajo "crear primera unidad ahora" en alta. Vista admin read-only
+- [x] **2.C** Fotos del unidad_type: upload + galería + principal + alt editable
+- [x] Catálogo separado `amenities-unidad.ts` (18 items de unidad vs catálogo global de hospedaje)
+
+**Etapa 3 Disponibilidad por unidad** ✅ (`00f04db` + `ec37d88`)
+- [x] **3.A** Backend: actions usan `unidadId`, `DiaBloqueado` extendido, helper `requireResponsableOwnsUnidad`
+- [x] **3.B** UI: `DisponibilidadCalendar` con tabs por unidad (cada tab con contador de días ocupados), pages panel + admin sin el guard "Calendario en migración"
+
+**Limitación conocida**: el badge en consultas (`disponible/parcial/ocupado`) sigue siendo "tonto" — no diferencia por capacidad ni por unidad puntual. Se arregla en Etapa 5 de este rediseño.
+
+### Etapa 4 rediseño — Página pública con unidades (planeada, siguiente)
+- [ ] Refactor `DisponibilidadPublica` para mini-cal por unidad
+- [ ] Sección "Unidades" en `/[destino]/hospedajes/[slug]` con cards por tipo (foto principal, capacidad, amenities, camas, mini-cal)
+- [ ] Capacidad agregada en cards del listado de hospedajes (`getCapacidadTotalHospedaje` ya existe)
+
+### Etapa 5 rediseño — Consultas integradas (planeada)
+- [ ] Badge fino "Disponible para N pax (X unidades libres)" que mira capacidad
+- [ ] Form de consulta sugiere unidades compatibles con cantidad de pax pedidos
+
+### Etapa 6 rediseño — Motor de tarifas (planeada)
+- [ ] UI alta de tarifa por unidad_type + temporada
+- [ ] Display de precio en página pública
+
+### Etapa 7 rediseño — Restricciones (planeada)
+- [ ] UI alta de restricciones opt-in por temporada (estadía mínima, días fijos de ingreso/egreso)
+- [ ] Validación en form de consulta
+
+### Etapa post-rediseño — Reservas online (planeada)
 - [ ] Motor de reservas con bloqueo de fechas
 - [ ] Confirmación por email al huésped + responsable
 - [ ] Estados: solicitada / confirmada / cancelada / completada
 - [ ] Panel responsable para gestionar reservas
 
-### Etapa 5 — Pagos y comisiones (planeada)
+### Etapa post-reservas — Pagos y comisiones (planeada)
 - [ ] Integración MercadoPago (señas / pago total)
 - [ ] Comisiones de la plataforma
 - [ ] Reportes de facturación al responsable
