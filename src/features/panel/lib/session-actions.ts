@@ -183,12 +183,20 @@ const forgotSchema = z.object({
 });
 
 /**
- * Envía el email de recupero en español vía Resend. Para no usar el template
- * default de Supabase (en inglés), generamos el link con `admin.generateLink`
- * y lo enviamos nosotros con el HTML de `passwordRecoveryTemplate`.
+ * Envía email de recupero con `resetPasswordForEmail` (flow nativo de Supabase
+ * compatible con PKCE). El link va al callback que canjea el code y redirige
+ * a /reset-password con la sesión seteada.
  *
- * Anti-enumeration: si el email no existe siempre devolvemos ok=true; no
- * revelamos al usuario si hay cuenta o no.
+ * Por qué NO usar `admin.generateLink`: server-side genera el code_verifier
+ * pero el exchange necesita uno client-side → la sesión queda incompleta y
+ * `updateUser` falla con "Invalid login credentials" sin razón aparente.
+ *
+ * El template del mail (en español) se configura en Supabase Dashboard →
+ * Authentication → Email Templates → Reset Password. La infraestructura SMTP
+ * ya está apuntando a Resend.
+ *
+ * Anti-enumeration: si el email no existe Supabase no manda nada y nosotros
+ * devolvemos ok igual — no revelamos al usuario si hay cuenta o no.
  */
 export async function forgotPasswordAction(
   formData: FormData
@@ -200,47 +208,25 @@ export async function forgotPasswordAction(
     return { error: parsed.error.issues[0]?.message ?? "Email inválido." };
   }
 
+  const supabase = await createClient();
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.misescapadas.com.ar";
-  const admin = createAdminClient();
 
-  const { data, error } = await admin.auth.admin.generateLink({
-    type: "recovery",
-    email: parsed.data.email,
-    options: {
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    parsed.data.email,
+    {
       redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
-    },
-  });
+    }
+  );
 
-  // Si el usuario no existe, Supabase devuelve un error tipo "User not found".
-  // Mantenemos el contrato anti-enumeration y devolvemos ok=true igual.
   if (error) {
-    const isNotFound =
-      /not found|no user/i.test(error.message) ||
-      error.status === 404 ||
-      error.status === 422;
-    if (isNotFound) return { ok: true };
+    if (/rate limit|once every/i.test(error.message)) {
+      return {
+        error:
+          "Tenés que esperar unos segundos antes de pedir otro mail de recupero.",
+      };
+    }
     return { error: error.message };
-  }
-
-  const actionLink = data?.properties?.action_link;
-  if (!actionLink) {
-    console.error("[forgotPasswordAction] generateLink sin action_link");
-    return { ok: true };
-  }
-
-  const { passwordRecoveryTemplate } = await import("@/lib/email/templates");
-  const { sendEmail } = await import("@/lib/email/resend");
-  const tpl = passwordRecoveryTemplate({ actionLink });
-  const sent = await sendEmail({
-    to: parsed.data.email,
-    subject: tpl.subject,
-    html: tpl.html,
-  });
-
-  if (!sent.ok) {
-    console.error("[forgotPasswordAction] Resend falló:", sent.error);
-    // Devolvemos ok igual — el usuario no debería ver el detalle del mailer.
   }
 
   return { ok: true };
