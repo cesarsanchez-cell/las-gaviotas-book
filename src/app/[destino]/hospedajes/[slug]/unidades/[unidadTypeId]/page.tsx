@@ -40,6 +40,7 @@ import {
   OPERATIONAL_AMENITY_GROUPS,
 } from "@/config/amenities-operational";
 import { resolvePrecioPorRango } from "@/features/tarifas/lib/queries";
+import { todayISO, tomorrowISO, addDaysISO as addDays } from "@/lib/date";
 
 interface PageProps {
   params: Promise<{ destino: string; slug: string; unidadTypeId: string }>;
@@ -65,22 +66,6 @@ function parseIntInRange(
 
 function isValidISO(s: string | undefined): boolean {
   return !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
-}
-
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function tomorrowISO(): string {
-  const t = new Date();
-  t.setDate(t.getDate() + 1);
-  return t.toISOString().slice(0, 10);
-}
-
-function addDays(iso: string, days: number): string {
-  const d = new Date(iso);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
 }
 
 export async function generateMetadata({

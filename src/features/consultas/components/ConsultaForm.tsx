@@ -14,6 +14,7 @@ import { createConsultaAction } from "@/features/consultas/lib/consulta-actions"
 import type { UnidadSugerida } from "@/features/consultas/lib/types";
 import { UnidadAmenitiesList } from "@/features/unidades/components/UnidadAmenitiesList";
 import { DateField } from "@/components/ui/DateField";
+import { todayISO, tomorrowISO, addDaysISO } from "@/lib/date";
 import { getFotoUrl } from "@/lib/storage";
 
 interface Props {
@@ -22,26 +23,6 @@ interface Props {
   capacidadMax?: number | null;
 }
 
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function tomorrowISO(): string {
-  const t = new Date();
-  t.setDate(t.getDate() + 1);
-  return t.toISOString().slice(0, 10);
-}
-
-function addDaysISO(iso: string, days: number): string {
-  if (!iso) return "";
-  const [y, m, d] = iso.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  date.setDate(date.getDate() + days);
-  const yy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
-  return `${yy}-${mm}-${dd}`;
-}
 
 // Orden en que buscamos el primer campo con error para mover el foco.
 const FIELD_ORDER = [
@@ -324,12 +305,7 @@ export function ConsultaForm({
               setCheckIn(iso);
               // Si el checkOut quedó <= checkIn, ajustamos al día siguiente.
               if (iso && checkOut && iso >= checkOut) {
-                const d = new Date(iso);
-                d.setDate(d.getDate() + 1);
-                const y = d.getFullYear();
-                const m = String(d.getMonth() + 1).padStart(2, "0");
-                const da = String(d.getDate()).padStart(2, "0");
-                setCheckOut(`${y}-${m}-${da}`);
+                setCheckOut(addDaysISO(iso, 1));
               }
             }}
           />
