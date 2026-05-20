@@ -1,30 +1,36 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Trash2, Building2, Pencil, X, Check } from "lucide-react";
+import { Trash2, Building2, UtensilsCrossed, Pencil, X, Check } from "lucide-react";
 import {
   deleteResponsableAction,
   updateResponsableAction,
   type ResponsableListRow,
-  type HospedajeOption,
+  type EntidadAsignable,
 } from "@/features/admin/lib/responsable-management";
 
 interface Props {
   responsables: ResponsableListRow[];
-  hospedajesDisponibles: HospedajeOption[];
+  /** Entidades libres (sin responsable asignado) que el admin puede asignar al editar. */
+  entidadesDisponibles: EntidadAsignable[];
 }
 
-export function ResponsablesList({ responsables, hospedajesDisponibles }: Props) {
+type EntidadKey = `${EntidadAsignable["tipo"]}:${string}`;
+function keyOf(e: { tipo: EntidadAsignable["tipo"]; id: string }): EntidadKey {
+  return `${e.tipo}:${e.id}`;
+}
+
+export function ResponsablesList({ responsables, entidadesDisponibles }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editNombre, setEditNombre] = useState<string>("");
-  const [editSelected, setEditSelected] = useState<string[]>([]);
+  const [editSelected, setEditSelected] = useState<Set<EntidadKey>>(new Set());
 
   function handleDelete(row: ResponsableListRow) {
     const ok = window.confirm(
-      `¿Borrar al responsable ${row.nombre ?? row.email}? Sus hospedajes asignados quedan sin responsable (volvés a recibir las consultas vos como admin).`
+      `¿Borrar al responsable ${row.nombre ?? row.email}? Sus entidades asignadas quedan libres (las consultas las recibís vos como admin hasta que asignes a otro).`
     );
     if (!ok) return;
     setError(null);
@@ -37,25 +43,34 @@ export function ResponsablesList({ responsables, hospedajesDisponibles }: Props)
   function startEdit(row: ResponsableListRow) {
     setEditingId(row.id);
     setEditNombre(row.nombre ?? "");
-    setEditSelected(row.hospedajes.map((h) => h.id));
+    setEditSelected(new Set(row.entidades.map((e) => keyOf(e))));
     setError(null);
     setFieldErrors({});
   }
 
-  function toggleEdit(id: string) {
-    setEditSelected((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+  function toggleEdit(e: { tipo: EntidadAsignable["tipo"]; id: string }) {
+    setEditSelected((prev) => {
+      const next = new Set(prev);
+      const k = keyOf(e);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
   }
 
   function saveEdit(row: ResponsableListRow) {
     setError(null);
     setFieldErrors({});
+    const seleccionadas: Array<{ tipo: EntidadAsignable["tipo"]; id: string }> = [];
+    for (const k of editSelected) {
+      const [tipo, id] = k.split(":") as [EntidadAsignable["tipo"], string];
+      seleccionadas.push({ tipo, id });
+    }
     startTransition(async () => {
       const res = await updateResponsableAction({
         responsableId: row.id,
         nombre: editNombre.trim(),
-        hospedajeIds: editSelected,
+        entidades: seleccionadas,
       });
       if (res.error) {
         setError(res.error);
@@ -83,6 +98,28 @@ export function ResponsablesList({ responsables, hospedajesDisponibles }: Props)
       )}
       {responsables.map((r) => {
         const isEditing = editingId === r.id;
+        // Para el edit: las entidades disponibles + las del responsable actual
+        // (aunque "ocupadas" por él mismo).
+        const opcionesEdit: EntidadAsignable[] = isEditing
+          ? [
+              ...entidadesDisponibles,
+              ...r.entidades
+                .filter(
+                  (e) =>
+                    !entidadesDisponibles.some(
+                      (d) => d.tipo === e.tipo && d.id === e.id
+                    )
+                )
+                .map<EntidadAsignable>((e) => ({
+                  tipo: e.tipo,
+                  id: e.id,
+                  nombre: e.nombre,
+                  destinoId: e.destinoId,
+                  destinoNombre: "",
+                })),
+            ]
+          : [];
+
         return (
           <article
             key={r.id}
@@ -142,27 +179,23 @@ export function ResponsablesList({ responsables, hospedajesDisponibles }: Props)
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Tildá los hospedajes que querés que este responsable gestione.
+                  Tildá las entidades que querés que gestione. Las ya asignadas
+                  a otro responsable no aparecen — desvinculalas primero.
                 </p>
-                <div className="max-h-56 space-y-1 overflow-y-auto rounded-md border border-input bg-background p-3">
-                  {hospedajesDisponibles.map((h) => (
-                    <label
-                      key={h.id}
-                      className="flex items-center gap-2 rounded-md px-2 py-1 text-sm transition hover:bg-muted/40"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={editSelected.includes(h.id)}
-                        onChange={() => toggleEdit(h.id)}
-                        className="h-4 w-4 rounded border-input"
-                      />
-                      <span className="flex-1">{h.nombre}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {h.destinoNombre}
-                      </span>
-                    </label>
-                  ))}
-                </div>
+                <EditEntidadSection
+                  icon={<Building2 className="h-3.5 w-3.5" />}
+                  label="Hospedajes"
+                  items={opcionesEdit.filter((e) => e.tipo === "hospedaje")}
+                  selected={editSelected}
+                  onToggle={toggleEdit}
+                />
+                <EditEntidadSection
+                  icon={<UtensilsCrossed className="h-3.5 w-3.5" />}
+                  label="Gastronómicos"
+                  items={opcionesEdit.filter((e) => e.tipo === "gastronomico")}
+                  selected={editSelected}
+                  onToggle={toggleEdit}
+                />
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -186,18 +219,24 @@ export function ResponsablesList({ responsables, hospedajesDisponibles }: Props)
               </div>
             ) : (
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                {r.hospedajes.length === 0 ? (
-                  <span className="text-muted-foreground">
-                    Sin hospedajes asignados
+                {r.entidades.length === 0 ? (
+                  <span className="text-muted-foreground italic">
+                    Sin entidades asignadas — editá para vincularle hospedajes
+                    o gastronómicos.
                   </span>
                 ) : (
-                  r.hospedajes.map((h) => (
+                  r.entidades.map((e) => (
                     <span
-                      key={h.id}
-                      className="rounded-full bg-muted px-2 py-0.5"
+                      key={`${e.tipo}:${e.id}`}
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${e.tipo === "hospedaje" ? "bg-sky-100 text-sky-900" : "bg-amber-100 text-amber-900"}`}
+                      title={e.tipo === "hospedaje" ? "Hospedaje" : "Gastronómico"}
                     >
-                      {h.nombre}
+                      {e.tipo === "hospedaje" ? (
+                        <Building2 className="h-3 w-3" />
+                      ) : (
+                        <UtensilsCrossed className="h-3 w-3" />
+                      )}
+                      {e.nombre}
                     </span>
                   ))
                 )}
@@ -206,6 +245,61 @@ export function ResponsablesList({ responsables, hospedajesDisponibles }: Props)
           </article>
         );
       })}
+    </div>
+  );
+}
+
+interface EditEntidadSectionProps {
+  icon: React.ReactNode;
+  label: string;
+  items: EntidadAsignable[];
+  selected: Set<EntidadKey>;
+  onToggle: (e: { tipo: EntidadAsignable["tipo"]; id: string }) => void;
+}
+
+function EditEntidadSection({
+  icon,
+  label,
+  items,
+  selected,
+  onToggle,
+}: EditEntidadSectionProps) {
+  return (
+    <div className="rounded-md border border-input bg-background">
+      <div className="flex items-center gap-2 border-b border-border px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        {icon}
+        {label}
+        <span className="ml-auto text-[10px] font-normal normal-case">
+          {items.length} disponible{items.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      <div className="max-h-40 overflow-y-auto p-2">
+        {items.length === 0 ? (
+          <p className="px-2 py-1 text-xs text-muted-foreground">
+            Ninguno disponible.
+          </p>
+        ) : (
+          items.map((it) => (
+            <label
+              key={it.id}
+              className="flex items-center gap-2 rounded-md px-2 py-1 text-sm transition hover:bg-muted/40"
+            >
+              <input
+                type="checkbox"
+                checked={selected.has(keyOf(it))}
+                onChange={() => onToggle(it)}
+                className="h-4 w-4 rounded border-input"
+              />
+              <span className="flex-1">{it.nombre}</span>
+              {it.destinoNombre && (
+                <span className="text-xs text-muted-foreground">
+                  {it.destinoNombre}
+                </span>
+              )}
+            </label>
+          ))
+        )}
+      </div>
     </div>
   );
 }

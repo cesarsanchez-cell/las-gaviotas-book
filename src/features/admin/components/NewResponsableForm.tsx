@@ -1,29 +1,39 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2, Mail } from "lucide-react";
+import { CheckCircle2, Mail, Building2, UtensilsCrossed } from "lucide-react";
 import {
   createResponsableAction,
-  type HospedajeOption,
+  type EntidadAsignable,
 } from "@/features/admin/lib/responsable-management";
 
 interface Props {
-  hospedajes: HospedajeOption[];
-  /** Si true, agrupa el dropdown por destino (útil para super admin). */
+  entidades: EntidadAsignable[];
+  /** Si true, agrupa los dropdowns por destino (útil para super admin). */
   showDestino: boolean;
 }
 
-export function NewResponsableForm({ hospedajes, showDestino }: Props) {
+type EntidadKey = `${EntidadAsignable["tipo"]}:${string}`;
+
+function keyOf(e: { tipo: EntidadAsignable["tipo"]; id: string }): EntidadKey {
+  return `${e.tipo}:${e.id}`;
+}
+
+export function NewResponsableForm({ entidades, showDestino }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [invitedEmail, setInvitedEmail] = useState<string | null>(null);
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<Set<EntidadKey>>(new Set());
 
-  function toggleHospedaje(id: string) {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+  function toggle(e: EntidadAsignable) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const k = keyOf(e);
+      if (next.has(k)) next.delete(k);
+      else next.add(k);
+      return next;
+    });
   }
 
   function handleSubmit(formData: FormData) {
@@ -31,10 +41,13 @@ export function NewResponsableForm({ hospedajes, showDestino }: Props) {
     setFieldErrors({});
     setInvitedEmail(null);
 
+    const seleccionadas: Array<{ tipo: EntidadAsignable["tipo"]; id: string }> =
+      entidades.filter((e) => selected.has(keyOf(e))).map((e) => ({ tipo: e.tipo, id: e.id }));
+
     const input = {
       email: String(formData.get("email") ?? "").trim(),
       nombre: String(formData.get("nombre") ?? "").trim(),
-      hospedajeIds: selected,
+      entidades: seleccionadas,
     };
 
     startTransition(async () => {
@@ -46,7 +59,7 @@ export function NewResponsableForm({ hospedajes, showDestino }: Props) {
       }
       if (res.ok && res.email) {
         setInvitedEmail(res.email);
-        setSelected([]);
+        setSelected(new Set());
       }
     });
   }
@@ -79,14 +92,8 @@ export function NewResponsableForm({ hospedajes, showDestino }: Props) {
     );
   }
 
-  // Agrupar hospedajes por destino si showDestino
-  const grouped = new Map<string, HospedajeOption[]>();
-  for (const h of hospedajes) {
-    const key = showDestino ? h.destinoNombre : "all";
-    const arr = grouped.get(key) ?? [];
-    arr.push(h);
-    grouped.set(key, arr);
-  }
+  const hospedajes = entidades.filter((e) => e.tipo === "hospedaje");
+  const gastros = entidades.filter((e) => e.tipo === "gastronomico");
 
   return (
     <form action={handleSubmit} className="space-y-4">
@@ -131,55 +138,125 @@ export function NewResponsableForm({ hospedajes, showDestino }: Props) {
         </div>
       </div>
 
-      <div>
-        <p className="text-sm font-medium">
-          Hospedajes a asignar{" "}
-          <span className="font-normal text-muted-foreground">
-            ({selected.length} seleccionado{selected.length === 1 ? "" : "s"})
-          </span>
-        </p>
-        <div className="mt-2 max-h-56 space-y-3 overflow-y-auto rounded-md border border-input bg-background p-3">
-          {Array.from(grouped.entries()).map(([destino, list]) => (
-            <div key={destino}>
-              {showDestino && (
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  {destino}
-                </p>
-              )}
-              <div className="space-y-1">
-                {list.map((h) => (
-                  <label
-                    key={h.id}
-                    className="flex items-center gap-2 rounded-md px-2 py-1 text-sm transition hover:bg-muted/40"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(h.id)}
-                      onChange={() => toggleHospedaje(h.id)}
-                      className="h-4 w-4 rounded border-input"
-                    />
-                    <span className="flex-1">{h.nombre}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-        {fieldErrors.hospedajeIds && (
-          <p className="mt-1 text-xs text-rose-600">
-            {fieldErrors.hospedajeIds}
+      <div className="space-y-3">
+        <div className="flex items-baseline justify-between">
+          <p className="text-sm font-medium">
+            Entidades a asignar{" "}
+            <span className="font-normal text-muted-foreground">
+              ({selected.size} seleccionada{selected.size === 1 ? "" : "s"})
+            </span>
           </p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Solo aparecen las entidades sin responsable asignado. Si la entidad
+          todavía no está cargada, podés invitar al responsable sin asignar
+          nada y vincularlo después.
+        </p>
+
+        <EntidadSection
+          icon={<Building2 className="h-3.5 w-3.5" />}
+          label="Hospedajes"
+          items={hospedajes}
+          selected={selected}
+          onToggle={toggle}
+          showDestino={showDestino}
+        />
+        <EntidadSection
+          icon={<UtensilsCrossed className="h-3.5 w-3.5" />}
+          label="Gastronómicos"
+          items={gastros}
+          selected={selected}
+          onToggle={toggle}
+          showDestino={showDestino}
+        />
+
+        {fieldErrors.entidades && (
+          <p className="mt-1 text-xs text-rose-600">{fieldErrors.entidades}</p>
         )}
       </div>
 
       <button
         type="submit"
-        disabled={pending || selected.length === 0}
+        disabled={pending}
         className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
       >
         <Mail className="h-4 w-4" />
-        {pending ? "Enviando invitación…" : "Enviar invitación"}
+        {pending
+          ? "Enviando invitación…"
+          : selected.size === 0
+            ? "Invitar sin asignar entidades"
+            : "Enviar invitación"}
       </button>
     </form>
+  );
+}
+
+interface EntidadSectionProps {
+  icon: React.ReactNode;
+  label: string;
+  items: EntidadAsignable[];
+  selected: Set<EntidadKey>;
+  onToggle: (e: EntidadAsignable) => void;
+  showDestino: boolean;
+}
+
+function EntidadSection({
+  icon,
+  label,
+  items,
+  selected,
+  onToggle,
+  showDestino,
+}: EntidadSectionProps) {
+  // Agrupar por destino si corresponde
+  const grouped = new Map<string, EntidadAsignable[]>();
+  for (const it of items) {
+    const key = showDestino ? it.destinoNombre : "all";
+    const arr = grouped.get(key) ?? [];
+    arr.push(it);
+    grouped.set(key, arr);
+  }
+
+  return (
+    <div className="rounded-md border border-input bg-background">
+      <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        {icon}
+        {label}
+        <span className="ml-auto text-[10px] font-normal normal-case">
+          {items.length} disponible{items.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      <div className="max-h-44 overflow-y-auto p-2">
+        {items.length === 0 ? (
+          <p className="px-2 py-1 text-xs text-muted-foreground">
+            Ninguno disponible.
+          </p>
+        ) : (
+          Array.from(grouped.entries()).map(([destino, list]) => (
+            <div key={destino} className="space-y-0.5">
+              {showDestino && (
+                <p className="mt-1 px-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                  {destino}
+                </p>
+              )}
+              {list.map((it) => (
+                <label
+                  key={it.id}
+                  className="flex items-center gap-2 rounded-md px-2 py-1 text-sm transition hover:bg-muted/40"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.has(keyOf(it))}
+                    onChange={() => onToggle(it)}
+                    className="h-4 w-4 rounded border-input"
+                  />
+                  <span className="flex-1">{it.nombre}</span>
+                </label>
+              ))}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
   );
 }
