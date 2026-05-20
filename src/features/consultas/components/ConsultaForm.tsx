@@ -8,8 +8,13 @@ import {
   useEffect,
   type FormEvent,
 } from "react";
-import { CheckCircle2 } from "lucide-react";
+import Image from "next/image";
+import { CheckCircle2, Users, Bed } from "lucide-react";
 import { createConsultaAction } from "@/features/consultas/lib/consulta-actions";
+import type { UnidadSugerida } from "@/features/consultas/lib/types";
+import { UnidadAmenitiesList } from "@/features/unidades/components/UnidadAmenitiesList";
+import { DateField } from "@/components/ui/DateField";
+import { getFotoUrl } from "@/lib/storage";
 
 interface Props {
   hospedajeId: string;
@@ -51,17 +56,21 @@ export function ConsultaForm({
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
+  const [sugeridas, setSugeridas] = useState<UnidadSugerida[]>([]);
 
   const refs: Record<FieldKey, React.RefObject<HTMLElement | null>> = {
     nombre: useRef<HTMLInputElement | null>(null),
     email: useRef<HTMLInputElement | null>(null),
     whatsapp: useRef<HTMLInputElement | null>(null),
-    checkIn: useRef<HTMLInputElement | null>(null),
-    checkOut: useRef<HTMLInputElement | null>(null),
+    checkIn: useRef<HTMLDivElement | null>(null),
+    checkOut: useRef<HTMLDivElement | null>(null),
     cantidadHuespedes: useRef<HTMLInputElement | null>(null),
     mensaje: useRef<HTMLTextAreaElement | null>(null),
     consentimiento: useRef<HTMLInputElement | null>(null),
   };
+
+  const [checkIn, setCheckIn] = useState<string>(todayISO());
+  const [checkOut, setCheckOut] = useState<string>(tomorrowISO());
 
   // Cuando llegan field errors, mover el foco al primer campo con error
   // (en el orden visual del form). NO se limpian los valores cargados —
@@ -103,21 +112,100 @@ export function ConsultaForm({
         setFieldErrors(res.fieldErrors ?? {});
         return;
       }
+      setSugeridas(res.unidadesSugeridas ?? []);
       setSuccess(true);
     });
   }
 
   if (success) {
     return (
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center">
-        <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" aria-hidden />
-        <h3 className="mt-3 font-display text-xl tracking-tight text-emerald-900">
-          Consulta enviada
-        </h3>
-        <p className="mt-2 text-sm text-emerald-800">
-          Le avisamos al responsable de <strong>{hospedajeNombre}</strong>. Te
-          van a contestar al email o WhatsApp que dejaste.
-        </p>
+      <div className="space-y-5">
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center">
+          <CheckCircle2
+            className="mx-auto h-10 w-10 text-emerald-600"
+            aria-hidden
+          />
+          <h3 className="mt-3 font-display text-xl tracking-tight text-emerald-900">
+            Consulta enviada
+          </h3>
+          <p className="mt-2 text-sm text-emerald-800">
+            Le avisamos al responsable de <strong>{hospedajeNombre}</strong>.
+            Te van a contestar al email o WhatsApp que dejaste.
+          </p>
+        </div>
+
+        {sugeridas.length > 0 ? (
+          <div>
+            <h4 className="font-display text-lg tracking-tight">
+              {sugeridas.length === 1
+                ? "Esta unidad se ajusta a lo que pediste"
+                : `${sugeridas.length} unidades se ajustan a lo que pediste`}
+            </h4>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Capacidad mínima cumplida y libres en las fechas indicadas. El
+              responsable te confirma la opción final.
+            </p>
+            <ul className="mt-4 space-y-3">
+              {sugeridas.map((u) => {
+                const fotoUrl = u.foto_storage_path
+                  ? getFotoUrl(u.foto_storage_path)
+                  : getFotoUrl("placeholders/apart-1.jpg");
+                return (
+                  <li
+                    key={u.unidad_type_id}
+                    className="flex gap-3 rounded-lg border border-border bg-card p-3"
+                  >
+                    <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-md bg-muted">
+                      <Image
+                        src={fotoUrl}
+                        alt={u.foto_alt ?? u.nombre}
+                        fill
+                        sizes="112px"
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="font-medium leading-tight">{u.nombre}</p>
+                        {u.unidades_totales > 1 && (
+                          <span className="shrink-0 text-xs text-muted-foreground">
+                            {u.unidades_libres} de {u.unidades_totales} libres
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <Users className="h-3.5 w-3.5" aria-hidden />
+                          {u.capacidad_total}{" "}
+                          {u.capacidad_total === 1 ? "persona" : "personas"}
+                        </span>
+                        {u.camas_descripcion && (
+                          <span className="inline-flex items-center gap-1">
+                            <Bed className="h-3.5 w-3.5" aria-hidden />
+                            {u.camas_descripcion}
+                          </span>
+                        )}
+                      </div>
+                      {u.amenities.length > 0 && (
+                        <UnidadAmenitiesList
+                          amenities={u.amenities}
+                          max={4}
+                          className="mt-1.5"
+                        />
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-dashed border-border bg-card p-4 text-center text-sm text-muted-foreground">
+            En las fechas que pediste no encontramos unidades libres con esa
+            capacidad. El responsable puede ofrecerte alternativas — esperá su
+            respuesta.
+          </div>
+        )}
       </div>
     );
   }
@@ -210,37 +298,46 @@ export function ConsultaForm({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <div>
+        <div ref={refs.checkIn as React.RefObject<HTMLDivElement>}>
           <label className="text-sm font-medium" htmlFor={`${formId}-checkIn`}>
             Check-in
           </label>
-          <input
+          <DateField
             id={`${formId}-checkIn`}
             name="checkIn"
-            type="date"
-            required
+            value={checkIn}
             min={todayISO()}
-            defaultValue={todayISO()}
-            ref={refs.checkIn as React.RefObject<HTMLInputElement>}
-            className={cls("checkIn")}
+            required
+            hasError={!!fe("checkIn")}
+            onChange={(iso) => {
+              setCheckIn(iso);
+              // Si el checkOut quedó <= checkIn, ajustamos al día siguiente.
+              if (iso && checkOut && iso >= checkOut) {
+                const d = new Date(iso);
+                d.setDate(d.getDate() + 1);
+                const y = d.getFullYear();
+                const m = String(d.getMonth() + 1).padStart(2, "0");
+                const da = String(d.getDate()).padStart(2, "0");
+                setCheckOut(`${y}-${m}-${da}`);
+              }
+            }}
           />
           {fe("checkIn") && (
             <p className="mt-1 text-xs text-rose-600">{fe("checkIn")}</p>
           )}
         </div>
-        <div>
+        <div ref={refs.checkOut as React.RefObject<HTMLDivElement>}>
           <label className="text-sm font-medium" htmlFor={`${formId}-checkOut`}>
             Check-out
           </label>
-          <input
+          <DateField
             id={`${formId}-checkOut`}
             name="checkOut"
-            type="date"
+            value={checkOut}
+            min={checkIn || tomorrowISO()}
             required
-            min={tomorrowISO()}
-            defaultValue={tomorrowISO()}
-            ref={refs.checkOut as React.RefObject<HTMLInputElement>}
-            className={cls("checkOut")}
+            hasError={!!fe("checkOut")}
+            onChange={(iso) => setCheckOut(iso)}
           />
           {fe("checkOut") && (
             <p className="mt-1 text-xs text-rose-600">{fe("checkOut")}</p>

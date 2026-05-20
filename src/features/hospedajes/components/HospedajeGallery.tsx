@@ -16,13 +16,14 @@ interface GalleryFoto {
 
 interface HospedajeGalleryProps {
   fotos: GalleryFoto[];
-  hospedajeNombre: string;
+  /** Nombre de la entidad — usado para alt fallback y aria-label del lightbox. */
+  entityName: string;
   className?: string;
 }
 
 export function HospedajeGallery({
   fotos,
-  hospedajeNombre,
+  entityName,
   className,
 }: HospedajeGalleryProps) {
   const [open, setOpen] = React.useState(false);
@@ -78,7 +79,7 @@ export function HospedajeGallery({
             >
               <Image
                 src={getFotoUrl(foto.storage_path)}
-                alt={foto.alt ?? hospedajeNombre}
+                alt={foto.alt ?? entityName}
                 fill
                 sizes="85vw"
                 priority={i === 0}
@@ -98,7 +99,7 @@ export function HospedajeGallery({
           >
             <Image
               src={getFotoUrl(fotos[0].storage_path)}
-              alt={fotos[0].alt ?? hospedajeNombre}
+              alt={fotos[0].alt ?? entityName}
               fill
               sizes="50vw"
               priority
@@ -123,7 +124,7 @@ export function HospedajeGallery({
               >
                 <Image
                   src={getFotoUrl(foto.storage_path)}
-                  alt={foto.alt ?? hospedajeNombre}
+                  alt={foto.alt ?? entityName}
                   fill
                   sizes="25vw"
                   className="object-cover transition-transform hover:scale-105"
@@ -145,7 +146,7 @@ export function HospedajeGallery({
           className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90 p-4"
           role="dialog"
           aria-modal="true"
-          aria-label={`Galería de ${hospedajeNombre}`}
+          aria-label={`Galería de ${entityName}`}
         >
           <button
             type="button"
@@ -180,7 +181,7 @@ export function HospedajeGallery({
           <div className="relative h-[80vh] w-[90vw] max-w-5xl">
             <Image
               src={getFotoUrl(fotos[index].storage_path)}
-              alt={fotos[index].alt ?? hospedajeNombre}
+              alt={fotos[index].alt ?? entityName}
               fill
               sizes="90vw"
               className="object-contain"

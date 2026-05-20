@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { MapPin, Users, Building2, ExternalLink } from "lucide-react";
+import { MapPin, ExternalLink } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -11,8 +11,12 @@ import { HospedajeGallery } from "@/features/hospedajes/components/HospedajeGall
 import { WhatsAppButton } from "@/features/hospedajes/components/WhatsAppButton";
 import { ValidationBadge } from "@/features/hospedajes/components/ValidationBadge";
 import { ConsultaForm } from "@/features/consultas/components/ConsultaForm";
-import { DisponibilidadPublica } from "@/features/disponibilidad/components/DisponibilidadPublica";
-import { listDiasBloqueados } from "@/features/disponibilidad/lib/queries";
+import { UnidadCard } from "@/features/unidades/components/UnidadCard";
+import { listUnidadTypesPorHospedaje } from "@/features/unidades/lib/queries";
+import {
+  OPERATIONAL_AMENITIES,
+  OPERATIONAL_AMENITY_GROUPS,
+} from "@/config/amenities-operational";
 import { JsonLd } from "@/components/seo/JsonLd";
 import {
   getDestinoBySlug,
@@ -67,15 +71,13 @@ export default async function HospedajeDetailPage({ params }: PageProps) {
 
   const url = `${siteConfig.url}/${destinoSlug}/hospedajes/${slug}`;
 
-  // Disponibilidad pública: próximos 3 meses desde hoy.
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const end = new Date(today);
-  end.setMonth(end.getMonth() + 3);
-  const diasBloqueados = await listDiasBloqueados(
-    hospedaje.id,
-    today.toISOString().slice(0, 10),
-    end.toISOString().slice(0, 10)
+  const tipos = await listUnidadTypesPorHospedaje(hospedaje.id);
+  const tiposPublicables = tipos.filter(
+    (t) => t.activo && t.unidades.some((u) => u.activa)
+  );
+
+  const operationalAmenities = (hospedaje.amenities_operational ?? []).filter(
+    (k) => k in OPERATIONAL_AMENITIES
   );
 
   return (
@@ -159,7 +161,7 @@ export default async function HospedajeDetailPage({ params }: PageProps) {
           {/* Galería */}
           <HospedajeGallery
             fotos={hospedaje.hospedaje_fotos}
-            hospedajeNombre={hospedaje.nombre}
+            entityName={hospedaje.nombre}
           />
 
           {/* Contenido + sidebar */}
@@ -178,7 +180,7 @@ export default async function HospedajeDetailPage({ params }: PageProps) {
 
               <section>
                 <h2 className="font-display text-2xl tracking-tight">
-                  Servicios y comodidades
+                  Servicios del complejo
                 </h2>
                 <AmenitiesList
                   amenities={hospedaje.amenities}
@@ -187,40 +189,68 @@ export default async function HospedajeDetailPage({ params }: PageProps) {
                 />
               </section>
 
-              <section>
-                <h2 className="font-display text-2xl tracking-tight">
-                  Capacidad y detalles
-                </h2>
-                <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                  {hospedaje.capacidad_max && (
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-primary" aria-hidden />
-                      <div>
-                        <dt className="text-muted-foreground">Capacidad</dt>
-                        <dd className="font-medium">
-                          {hospedaje.capacidad_min ?? 1} a{" "}
-                          {hospedaje.capacidad_max} personas
-                        </dd>
-                      </div>
-                    </div>
-                  )}
-                  {hospedaje.cantidad_unidades &&
-                    hospedaje.cantidad_unidades > 1 && (
-                      <div className="flex items-center gap-2">
-                        <Building2
-                          className="h-4 w-4 text-primary"
-                          aria-hidden
-                        />
-                        <div>
-                          <dt className="text-muted-foreground">Unidades</dt>
-                          <dd className="font-medium">
-                            {hospedaje.cantidad_unidades}
-                          </dd>
+              {operationalAmenities.length > 0 && (
+                <section>
+                  <h2 className="font-display text-2xl tracking-tight">
+                    Cómo opera el hospedaje
+                  </h2>
+                  <div className="mt-6 space-y-4">
+                    {OPERATIONAL_AMENITY_GROUPS.map((group) => {
+                      const items = operationalAmenities
+                        .map((k) => OPERATIONAL_AMENITIES[k as keyof typeof OPERATIONAL_AMENITIES])
+                        .filter((a) => a && a.group === group.key);
+                      if (items.length === 0) return null;
+                      return (
+                        <div key={group.key}>
+                          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                            {group.label}
+                          </p>
+                          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            {items.map((a) => {
+                              const Icon = a.icon;
+                              return (
+                                <li
+                                  key={a.key}
+                                  className="flex items-center gap-2 text-sm"
+                                >
+                                  <Icon
+                                    className="h-4 w-4 text-primary"
+                                    aria-hidden
+                                  />
+                                  <span>{a.label}</span>
+                                </li>
+                              );
+                            })}
+                          </ul>
                         </div>
-                      </div>
-                    )}
-                </dl>
-              </section>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {tiposPublicables.length > 0 && (
+                <section id="unidades">
+                  <h2 className="font-display text-2xl tracking-tight">
+                    Unidades
+                  </h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {tiposPublicables.length === 1
+                      ? "Tipo de unidad disponible. El calendario muestra los próximos días con disponibilidad."
+                      : `${tiposPublicables.length} tipos de unidad. Cada uno con su capacidad, amenities y disponibilidad.`}
+                  </p>
+                  <div className="mt-6 grid gap-6 sm:grid-cols-2">
+                    {tiposPublicables.map((tipo) => (
+                      <UnidadCard
+                        key={tipo.id}
+                        tipo={tipo}
+                        destinoSlug={destinoSlug}
+                        hospedajeSlug={slug}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
 
               {hospedaje.google_maps_url && (
                 <section>
@@ -241,18 +271,6 @@ export default async function HospedajeDetailPage({ params }: PageProps) {
                   </a>
                 </section>
               )}
-
-              <section id="disponibilidad">
-                <h2 className="font-display text-2xl tracking-tight">
-                  Disponibilidad
-                </h2>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Próximos 3 meses. Los días en rojo ya están ocupados.
-                </p>
-                <div className="mt-5 rounded-xl border border-border bg-card p-5 sm:p-6">
-                  <DisponibilidadPublica diasBloqueados={diasBloqueados} />
-                </div>
-              </section>
 
               <section id="consultar">
                 <h2 className="font-display text-2xl tracking-tight">

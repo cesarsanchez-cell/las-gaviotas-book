@@ -13,6 +13,8 @@ import {
   UserCog,
   MapPinned,
   Inbox,
+  Utensils,
+  Camera,
 } from "lucide-react";
 import { signOutAction } from "@/features/admin/lib/session-actions";
 import { siteConfig } from "@/config/site";
@@ -31,6 +33,8 @@ const NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/admin/validaciones", label: "Cola de validación", icon: ShieldCheck },
   { href: "/admin/hospedajes", label: "Hospedajes", icon: Building2 },
+  { href: "/admin/gastronomia", label: "Gastronomía", icon: Utensils },
+  { href: "/admin/atractivos", label: "Atractivos", icon: Camera },
   { href: "/admin/consultas", label: "Consultas", icon: Inbox },
   { href: "/admin/responsables", label: "Responsables", icon: UserCog },
   { href: "/admin/destinos", label: "Destinos", icon: MapPinned },

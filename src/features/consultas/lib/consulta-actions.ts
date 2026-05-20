@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { consultaInputSchema } from "@/features/consultas/lib/validation";
 import { checkRateLimit } from "@/features/consultas/lib/rate-limit";
 import { notifyConsultaNueva } from "@/features/consultas/lib/notifications";
+import { getUnidadesSugeridasParaConsulta } from "@/features/disponibilidad/lib/queries";
 import type { CreateConsultaResult } from "@/features/consultas/lib/types";
 
 async function getClientIp(): Promise<string | null> {
@@ -100,5 +101,20 @@ export async function createConsultaAction(
   // 5) Notificación al responsable (fire-and-await, max ~500ms)
   await notifyConsultaNueva(data.id);
 
-  return { ok: true };
+  // 6) Unidades sugeridas: cumplen capacidad y están libres en el rango.
+  // Si falla, devolvemos ok igual — la consulta ya quedó guardada y
+  // notificada, las sugerencias son cosmético.
+  let unidadesSugeridas: CreateConsultaResult["unidadesSugeridas"];
+  try {
+    unidadesSugeridas = await getUnidadesSugeridasParaConsulta(
+      input.hospedajeId,
+      input.checkIn,
+      input.checkOut,
+      input.cantidadHuespedes
+    );
+  } catch (err) {
+    console.error("[createConsulta] sugeridas error:", err);
+  }
+
+  return { ok: true, unidadesSugeridas };
 }

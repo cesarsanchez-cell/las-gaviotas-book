@@ -16,8 +16,6 @@ La plataforma debe priorizar:
 * velocidad,
 * diseño mobile-first.
 
----
-
 # Objetivos de la Etapa 1
 
 ## Funcionalidades incluidas

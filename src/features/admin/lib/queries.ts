@@ -14,6 +14,14 @@ export interface AdminDashboardStats {
   totalDestinos: number;
 }
 
+export interface AdminVerticalStats {
+  publicados: number;
+  pendientes: number;
+  borradores: number;
+  pausados: number;
+  rechazados: number;
+}
+
 /**
  * Stats del dashboard admin.
  *

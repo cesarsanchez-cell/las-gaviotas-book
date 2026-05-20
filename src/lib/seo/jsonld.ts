@@ -112,6 +112,108 @@ export function buildDestinoJsonLd(d: Pick<DestinoRow, "nombre" | "region" | "pr
   };
 }
 
+// =============================================================================
+// Lugares (gastronomía + atractivos)
+// =============================================================================
+
+interface LugarForJsonLd {
+  tipo: "gastronomico" | "atractivo";
+  categoria: string;
+  nombre: string;
+  descripcion_corta: string;
+  descripcion_larga?: string | null;
+  direccion?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  whatsapp?: string | null;
+  telefono?: string | null;
+  email?: string | null;
+  website?: string | null;
+  horarios?: Partial<Record<"lun" | "mar" | "mie" | "jue" | "vie" | "sab" | "dom", string | null | undefined>> | null;
+  destino: { nombre: string; region?: string | null; provincia?: string | null; pais?: string | null };
+  fotos: { storage_path: string; alt?: string | null }[];
+}
+
+const DIA_TO_SCHEMA: Record<string, string> = {
+  lun: "Mo",
+  mar: "Tu",
+  mie: "We",
+  jue: "Th",
+  vie: "Fr",
+  sab: "Sa",
+  dom: "Su",
+};
+
+function buildOpeningHoursSpec(
+  horarios:
+    | Partial<Record<"lun" | "mar" | "mie" | "jue" | "vie" | "sab" | "dom", string | null | undefined>>
+    | null
+    | undefined
+) {
+  if (!horarios) return undefined;
+  const specs: { "@type": "OpeningHoursSpecification"; dayOfWeek: string; opens: string; closes: string }[] = [];
+  for (const [dia, value] of Object.entries(horarios)) {
+    if (!value) continue;
+    const schemaDay = DIA_TO_SCHEMA[dia];
+    if (!schemaDay) continue;
+    const rangos = value.split(",").map((r) => r.trim()).filter(Boolean);
+    for (const rango of rangos) {
+      const m = rango.match(/^(\d{1,2}:\d{2})\s*[-–]\s*(\d{1,2}:\d{2})$/);
+      if (!m) continue;
+      specs.push({
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: `https://schema.org/${schemaDay === "Mo" ? "Monday" : schemaDay === "Tu" ? "Tuesday" : schemaDay === "We" ? "Wednesday" : schemaDay === "Th" ? "Thursday" : schemaDay === "Fr" ? "Friday" : schemaDay === "Sa" ? "Saturday" : "Sunday"}`,
+        opens: m[1],
+        closes: m[2],
+      });
+    }
+  }
+  return specs.length > 0 ? specs : undefined;
+}
+
+export function buildLugarJsonLd(l: LugarForJsonLd, url: string) {
+  const type = l.tipo === "gastronomico" ? "Restaurant" : "TouristAttraction";
+
+  const base: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": type,
+    name: l.nombre,
+    description: l.descripcion_larga || l.descripcion_corta,
+    url,
+    image: l.fotos.slice(0, 6).map((f) => getFotoUrl(f.storage_path)),
+  };
+
+  if (l.direccion) {
+    base.address = {
+      "@type": "PostalAddress",
+      streetAddress: l.direccion,
+      addressLocality: l.destino.nombre,
+      addressRegion: l.destino.region ?? l.destino.provincia ?? undefined,
+      addressCountry: l.destino.pais ?? "AR",
+    };
+  }
+
+  if (l.lat && l.lng) {
+    base.geo = {
+      "@type": "GeoCoordinates",
+      latitude: l.lat,
+      longitude: l.lng,
+    };
+  }
+
+  if (l.whatsapp || l.telefono) base.telephone = l.whatsapp ?? l.telefono;
+  if (l.email) base.email = l.email;
+  if (l.website) base.sameAs = [l.website];
+
+  if (l.tipo === "gastronomico") {
+    const spec = buildOpeningHoursSpec(l.horarios);
+    if (spec) base.openingHoursSpecification = spec;
+    base.servesCuisine = l.categoria;
+  }
+
+  return base;
+}
+
 export function buildBreadcrumbJsonLd(items: { name: string; url: string }[]) {
   return {
     "@context": "https://schema.org",

@@ -35,6 +35,14 @@ export default async function LoginPage({ searchParams }: PageProps) {
           <div className="mt-8 rounded-xl border border-border bg-card p-8 shadow-sm">
             <OtherSessionWarning />
             <LoginFormResponsable next={next} />
+            <p className="mt-4 text-center text-sm">
+              <Link
+                href="/forgot-password"
+                className="text-muted-foreground hover:text-primary hover:underline"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </p>
           </div>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">

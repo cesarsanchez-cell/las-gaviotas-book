@@ -8,6 +8,7 @@ import {
   Inbox,
   LogOut,
   ExternalLink,
+  Utensils,
 } from "lucide-react";
 import { signOutPanelAction } from "@/features/panel/lib/session-actions";
 import { siteConfig } from "@/config/site";
@@ -16,6 +17,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/panel", label: "Mi panel", icon: LayoutDashboard, exact: true },
   { href: "/panel/hospedajes", label: "Mis hospedajes", icon: Building2 },
+  { href: "/panel/lugares", label: "Mis gastronómicos", icon: Utensils },
   { href: "/panel/leads", label: "Consultas", icon: Inbox },
 ];
 

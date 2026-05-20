@@ -20,6 +20,22 @@ export interface SubjectAndHtml {
   html: string;
 }
 
+export function passwordRecoveryTemplate(args: {
+  actionLink: string;
+}): SubjectAndHtml {
+  return {
+    subject: "Recuperá tu contraseña — Mis Escapadas",
+    html: wrap(
+      `<h2 style="font-size:22px;margin:0 0 16px;">Recuperar contraseña</h2>` +
+        `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">Recibimos un pedido para restablecer la contraseña de tu cuenta en <strong>Mis Escapadas</strong>.</p>` +
+        `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">Tocá el botón de abajo para definir una nueva contraseña. El link es válido por una hora.</p>` +
+        button(args.actionLink, "Definir nueva contraseña") +
+        `<p style="color:#64748b;font-size:13px;line-height:1.5;margin:16px 0 0;">Si no fuiste vos quien pidió este cambio, ignorá este mensaje. Tu contraseña seguirá siendo la misma.</p>` +
+        `<p style="color:#94a3b8;font-size:12px;line-height:1.5;margin:24px 0 0;word-break:break-all;">Si el botón no funciona, copiá y pegá este link en tu navegador:<br>${args.actionLink}</p>`
+    ),
+  };
+}
+
 export function hospedajeAprobadoTemplate(args: {
   responsableNombre: string | null;
   hospedajeNombre: string;
@@ -140,6 +156,57 @@ export function consultaNuevaSinResponsableTemplate(args: {
         `</table>` +
         `<div style="background:#f8fafc;border-left:3px solid #0f172a;padding:12px 16px;margin:16px 0;color:#0f172a;font-size:14px;line-height:1.6;white-space:pre-line;">${args.mensaje.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>` +
         button(args.urlHospedajeAdmin, "Ver hospedaje en el admin")
+    ),
+  };
+}
+
+// =============================================================================
+// Lugares (gastronómicos): aprobación / rechazo
+// =============================================================================
+// El responsable de un gastronómico recibe estos mails al cambiar el estado.
+// Atractivos no tienen responsable — no se notifica nada.
+
+export function lugarPublicadoTemplate(args: {
+  responsableNombre: string | null;
+  lugarNombre: string;
+  destinoNombre: string;
+  urlPublica: string;
+  urlPanel: string;
+}): SubjectAndHtml {
+  const saludo = args.responsableNombre
+    ? `Hola ${args.responsableNombre},`
+    : "Hola,";
+  return {
+    subject: `Tu local fue publicado en Mis Escapadas a ${args.destinoNombre}`,
+    html: wrap(
+      `<h2 style="font-size:24px;margin-bottom:16px;">¡Tu local ya está publicado!</h2>` +
+        `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">${saludo} <strong>${args.lugarNombre}</strong> ya aparece en <strong>Mis Escapadas a ${args.destinoNombre}</strong> y puede ser descubierto por los viajeros que llegan al destino.</p>` +
+        button(args.urlPublica, "Ver mi local publicado") +
+        `<p style="color:#64748b;font-size:14px;line-height:1.5;margin:16px 0 0;">Desde tu <a href="${args.urlPanel}" style="color:#0f172a;text-decoration:underline;">panel</a> podés editar datos, sumar fotos o cambiar tus horarios.</p>` +
+        `<p style="color:#64748b;font-size:14px;line-height:1.5;">Gracias por sumarte a la comunidad gastronómica de ${args.destinoNombre}.</p>`
+    ),
+  };
+}
+
+export function lugarRechazadoTemplate(args: {
+  responsableNombre: string | null;
+  lugarNombre: string;
+  destinoNombre: string;
+  motivo: string;
+  urlPanel: string;
+}): SubjectAndHtml {
+  const saludo = args.responsableNombre
+    ? `Hola ${args.responsableNombre},`
+    : "Hola,";
+  return {
+    subject: `Revisamos tu local en Mis Escapadas a ${args.destinoNombre}`,
+    html: wrap(
+      `<h2 style="font-size:24px;margin-bottom:16px;">Revisamos tu local</h2>` +
+        `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">${saludo} revisamos <strong>${args.lugarNombre}</strong> y todavía no podemos publicarlo en Mis Escapadas a ${args.destinoNombre}. Te dejamos abajo el detalle:</p>` +
+        `<div style="background:#fef2f2;border-left:3px solid #ef4444;padding:12px 16px;margin:16px 0;color:#7f1d1d;font-size:14px;line-height:1.6;">${args.motivo.replace(/\n/g, "<br>")}</div>` +
+        `<p style="color:#334155;line-height:1.6;margin:16px 0;">Ajustá lo que haga falta desde tu panel y volvelo a enviar a revisión.</p>` +
+        button(args.urlPanel, "Editar mi local") +
+        `<p style="color:#64748b;font-size:14px;line-height:1.5;">Si tenés dudas sobre el motivo, respondé a este mail y te ayudamos.</p>`
     ),
   };
 }

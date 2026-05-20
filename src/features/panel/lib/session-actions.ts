@@ -178,6 +178,117 @@ export async function signOutPanelAction() {
   redirect("/login");
 }
 
+const forgotSchema = z.object({
+  email: z.string().email("Email inválido"),
+});
+
+/**
+ * Envía el email de recupero en español vía Resend. Para no usar el template
+ * default de Supabase (en inglés), generamos el link con `admin.generateLink`
+ * y lo enviamos nosotros con el HTML de `passwordRecoveryTemplate`.
+ *
+ * Anti-enumeration: si el email no existe siempre devolvemos ok=true; no
+ * revelamos al usuario si hay cuenta o no.
+ */
+export async function forgotPasswordAction(
+  formData: FormData
+): Promise<AuthResult> {
+  const parsed = forgotSchema.safeParse({
+    email: String(formData.get("email") ?? "").trim(),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Email inválido." };
+  }
+
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.misescapadas.com.ar";
+  const admin = createAdminClient();
+
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email: parsed.data.email,
+    options: {
+      redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
+    },
+  });
+
+  // Si el usuario no existe, Supabase devuelve un error tipo "User not found".
+  // Mantenemos el contrato anti-enumeration y devolvemos ok=true igual.
+  if (error) {
+    const isNotFound =
+      /not found|no user/i.test(error.message) ||
+      error.status === 404 ||
+      error.status === 422;
+    if (isNotFound) return { ok: true };
+    return { error: error.message };
+  }
+
+  const actionLink = data?.properties?.action_link;
+  if (!actionLink) {
+    console.error("[forgotPasswordAction] generateLink sin action_link");
+    return { ok: true };
+  }
+
+  const { passwordRecoveryTemplate } = await import("@/lib/email/templates");
+  const { sendEmail } = await import("@/lib/email/resend");
+  const tpl = passwordRecoveryTemplate({ actionLink });
+  const sent = await sendEmail({
+    to: parsed.data.email,
+    subject: tpl.subject,
+    html: tpl.html,
+  });
+
+  if (!sent.ok) {
+    console.error("[forgotPasswordAction] Resend falló:", sent.error);
+    // Devolvemos ok igual — el usuario no debería ver el detalle del mailer.
+  }
+
+  return { ok: true };
+}
+
+const resetPasswordSchema = z
+  .object({
+    password: z.string().min(8, "Mínimo 8 caracteres").max(72),
+    confirm: z.string().min(8).max(72),
+  })
+  .refine((d) => d.password === d.confirm, {
+    message: "Las contraseñas no coinciden.",
+    path: ["confirm"],
+  });
+
+/**
+ * Actualiza el password del usuario actualmente logueado (la sesión la setea
+ * /auth/callback al canjear el code del email de recovery). Requiere sesión
+ * activa — si no hay, devolvemos error.
+ */
+export async function resetPasswordAction(
+  formData: FormData
+): Promise<AuthResult> {
+  const parsed = resetPasswordSchema.safeParse({
+    password: String(formData.get("password") ?? ""),
+    confirm: String(formData.get("confirm") ?? ""),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
+  }
+
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) {
+    return {
+      error:
+        "El link de recupero expiró o no es válido. Pedí uno nuevo desde ¿Olvidaste tu contraseña?",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: parsed.data.password,
+  });
+  if (error) return { error: error.message };
+
+  return { ok: true };
+}
+
 export async function resendConfirmationAction(
   email: string
 ): Promise<AuthResult> {

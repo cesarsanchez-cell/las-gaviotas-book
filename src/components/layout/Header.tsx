@@ -40,12 +40,24 @@ export function Header({ destinoSlug, destinoNombre }: HeaderProps) {
             </Link>
           </div>
 
-          <nav className="flex items-center gap-2 text-sm">
+          <nav className="flex items-center gap-1 text-sm sm:gap-2">
             <Link
               href={`/${destinoSlug}/hospedajes`}
-              className="rounded-md px-3 py-2 text-foreground transition hover:bg-secondary"
+              className="rounded-md px-2 py-2 text-foreground transition hover:bg-secondary sm:px-3"
             >
               Hospedajes
+            </Link>
+            <Link
+              href={`/${destinoSlug}/gastronomia`}
+              className="rounded-md px-2 py-2 text-foreground transition hover:bg-secondary sm:px-3"
+            >
+              Gastronomía
+            </Link>
+            <Link
+              href={`/${destinoSlug}/atractivos`}
+              className="rounded-md px-2 py-2 text-foreground transition hover:bg-secondary sm:px-3"
+            >
+              Atractivos
             </Link>
           </nav>
         </div>

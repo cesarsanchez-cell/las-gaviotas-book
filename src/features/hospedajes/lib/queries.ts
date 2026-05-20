@@ -25,6 +25,18 @@ export type HospedajeWithFotos = HospedajeRow & {
   hospedaje_fotos: HospedajeFotoRow[];
 };
 
+interface UnidadAgregada {
+  activa: boolean;
+  unidad_type: {
+    capacidad_adultos: number;
+    capacidad_ninos: number;
+  } | null;
+}
+
+type HospedajeWithFotosYUnidades = HospedajeWithFotos & {
+  unidades: UnidadAgregada[];
+};
+
 export interface HospedajeCard {
   id: string;
   slug: string;
@@ -33,6 +45,7 @@ export interface HospedajeCard {
   descripcion_corta: string;
   direccion: string;
   capacidad_max: number | null;
+  cantidad_unidades: number | null;
   amenities: string[];
   destacado: boolean;
   foto_principal_path?: string;
@@ -40,10 +53,37 @@ export interface HospedajeCard {
   whatsapp: string;
 }
 
-function toCard(h: HospedajeWithFotos): HospedajeCard {
+/**
+ * Suma la capacidad de todas las unidades activas (adultos + niños del tipo).
+ * Si no hay unidades cargadas, fallback al `capacidad_max` del hospedaje
+ * (compatibilidad con datos legacy pre-rediseño).
+ */
+function computeCapacidadAgregada(h: HospedajeWithFotosYUnidades): {
+  capacidad_max: number | null;
+  cantidad_unidades: number | null;
+} {
+  const activas = (h.unidades ?? []).filter((u) => u.activa && u.unidad_type);
+  if (activas.length === 0) {
+    return {
+      capacidad_max: h.capacidad_max,
+      cantidad_unidades: h.cantidad_unidades,
+    };
+  }
+  let capacidad = 0;
+  for (const u of activas) {
+    if (!u.unidad_type) continue;
+    capacidad +=
+      (u.unidad_type.capacidad_adultos ?? 0) +
+      (u.unidad_type.capacidad_ninos ?? 0);
+  }
+  return { capacidad_max: capacidad, cantidad_unidades: activas.length };
+}
+
+function toCard(h: HospedajeWithFotosYUnidades): HospedajeCard {
   const principal =
     h.hospedaje_fotos.find((f) => f.es_principal) ??
     h.hospedaje_fotos[0];
+  const { capacidad_max, cantidad_unidades } = computeCapacidadAgregada(h);
   return {
     id: h.id,
     slug: h.slug,
@@ -51,7 +91,8 @@ function toCard(h: HospedajeWithFotos): HospedajeCard {
     tipo: h.tipo,
     descripcion_corta: h.descripcion_corta,
     direccion: h.direccion,
-    capacidad_max: h.capacidad_max,
+    capacidad_max,
+    cantidad_unidades,
     amenities: h.amenities,
     destacado: h.destacado,
     foto_principal_path: principal?.storage_path,
@@ -96,7 +137,16 @@ export async function listHospedajesByDestino(
 
   let q = supabase
     .from("hospedajes")
-    .select("*, hospedaje_fotos(*)")
+    .select(
+      `
+      *,
+      hospedaje_fotos(*),
+      unidades(
+        activa,
+        unidad_type:unidad_types(capacidad_adultos, capacidad_ninos)
+      )
+    `
+    )
     .eq("destino_id", destinoId)
     .eq("estado", "publicado")
     .order("destacado", { ascending: false })
@@ -121,7 +171,7 @@ export async function listHospedajesByDestino(
   if (limit) q = q.limit(limit);
 
   const { data } = await q;
-  return (data ?? []).map((h) => toCard(h as HospedajeWithFotos));
+  return (data ?? []).map((h) => toCard(h as HospedajeWithFotosYUnidades));
 }
 
 export async function getDestacadosByDestino(

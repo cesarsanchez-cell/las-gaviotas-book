@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { MapPin, Users } from "lucide-react";
+import { MapPin, Users, Building2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AmenitiesList } from "./AmenitiesList";
@@ -21,6 +21,7 @@ interface HospedajeCardProps {
     descripcion_corta: string;
     direccion: string;
     capacidad_max?: number | null;
+    cantidad_unidades?: number | null;
     amenities: AmenityKey[] | string[];
     destacado: boolean;
     foto_principal_path?: string;
@@ -95,6 +96,12 @@ export function HospedajeCard({
             <span className="inline-flex items-center gap-1">
               <Users className="h-3.5 w-3.5" aria-hidden />
               hasta {hospedaje.capacidad_max} personas
+            </span>
+          )}
+          {hospedaje.cantidad_unidades && hospedaje.cantidad_unidades > 1 && (
+            <span className="inline-flex items-center gap-1">
+              <Building2 className="h-3.5 w-3.5" aria-hidden />
+              {hospedaje.cantidad_unidades} unidades
             </span>
           )}
         </div>

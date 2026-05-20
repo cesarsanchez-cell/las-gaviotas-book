@@ -63,6 +63,14 @@ export default async function LoginPage({ searchParams }: PageProps) {
               </div>
             )}
             <LoginForm next={next} />
+            <p className="mt-4 text-center text-sm">
+              <Link
+                href="/forgot-password"
+                className="text-muted-foreground hover:text-primary hover:underline"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </p>
           </div>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">

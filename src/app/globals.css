@@ -47,3 +47,48 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+/* DateField — popup compacto. Override de los defaults de react-day-picker
+   para que el calendario entre en un popover ~280px sin overflow. */
+.datefield-picker.rdp-root {
+  --rdp-cell-size: 34px;
+  --rdp-day-font: 0.8125rem;
+  --rdp-weekday-font: 0.7rem;
+  --rdp-caption-font: 0.875rem;
+  --rdp-nav-button-height: 28px;
+  --rdp-nav-button-width: 28px;
+  --rdp-accent-color: hsl(var(--primary));
+  --rdp-accent-background-color: hsl(var(--primary));
+  font-size: 0.8125rem;
+}
+.datefield-picker .rdp-month_caption,
+.datefield-picker .rdp-caption_label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.datefield-picker .rdp-day,
+.datefield-picker .rdp-day_button {
+  width: 34px;
+  height: 34px;
+  font-size: 0.8125rem;
+  border-radius: 6px;
+}
+.datefield-picker .rdp-weekday {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+}
+.datefield-picker .rdp-months {
+  gap: 0;
+}
+.datefield-picker .rdp-dropdowns select {
+  font-size: 0.8125rem;
+}
+.datefield-picker .rdp-selected .rdp-day_button {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+.datefield-picker .rdp-today:not(.rdp-selected) .rdp-day_button {
+  color: hsl(var(--primary));
+  font-weight: 600;
+}

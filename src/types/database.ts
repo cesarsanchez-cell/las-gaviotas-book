@@ -230,6 +230,95 @@ export interface RestriccionRow {
   updated_at: string;
 }
 
+// =============================================================================
+// Verticales: lugares (gastronomía + atractivos) — migración 2026-05-20
+// =============================================================================
+
+export type TipoLugar = "gastronomico" | "atractivo";
+
+export type EstadoLugar =
+  | "borrador"
+  | "pendiente_validacion"
+  | "publicado"
+  | "pausado"
+  | "rechazado";
+
+/**
+ * Mapa libre de horarios por día de la semana. Solo aplica a tipo=gastronomico.
+ * Clave = código corto del día (lun/mar/mie/jue/vie/sab/dom). Valor = string
+ * de rangos o null para cerrado. Ej: { "lun": "12:00-15:00, 20:00-00:00" }.
+ */
+export interface HorariosLugar {
+  lun?: string | null;
+  mar?: string | null;
+  mie?: string | null;
+  jue?: string | null;
+  vie?: string | null;
+  sab?: string | null;
+  dom?: string | null;
+}
+
+export interface LugarRow {
+  id: string;
+  destino_id: string;
+  localidad_id: string | null;
+  tipo: TipoLugar;
+  slug: string;
+  nombre: string;
+  descripcion_corta: string;
+  descripcion_larga: string | null;
+  direccion: string | null;
+  lat: number | null;
+  lng: number | null;
+  google_maps_url: string | null;
+  whatsapp: string | null;
+  telefono: string | null;
+  email: string | null;
+  instagram: string | null;
+  website: string | null;
+  /** Taxonomía libre. Set válido depende de `tipo` (validado en aplicación). */
+  categoria: string;
+  /** Solo aplica a tipo=gastronomico. NULL si no se cargaron. */
+  horarios: HorariosLugar | null;
+  imperdible: boolean;
+  destacado: boolean;
+  estado: EstadoLugar;
+  validado_at: string | null;
+  validado_por: string | null;
+  meta_title: string | null;
+  meta_description: string | null;
+  orden_listado: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LugarFotoRow {
+  id: string;
+  lugar_id: string;
+  storage_path: string;
+  alt: string | null;
+  orden: number;
+  es_principal: boolean;
+  width: number;
+  height: number;
+  created_at: string;
+}
+
+/**
+ * Many-to-many entre perfiles (rol=responsable) y entidades que gestionan.
+ * Reemplaza el viejo `perfiles.hospedajes_ids[]` y permite responsables de
+ * cualquier vertical sin tocar el schema.
+ */
+export interface ResponsabilidadRow {
+  id: string;
+  perfil_id: string;
+  entidad_tipo: "hospedaje" | "lugar";
+  entidad_id: string;
+  created_at: string;
+}
+
+// =============================================================================
+
 export type EstadoConsulta = "nueva" | "leida" | "respondida" | "descartada";
 
 export interface ConsultaRow {
@@ -347,6 +436,30 @@ export type Database = {
         Update: Update<RestriccionRow>;
         Relationships: [];
       };
+      lugares: {
+        Row: LugarRow;
+        Insert: Insert<LugarRow>;
+        Update: Update<LugarRow>;
+        Relationships: [];
+      };
+      lugar_fotos: {
+        Row: LugarFotoRow;
+        Insert: Omit<LugarFotoRow, "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Update<LugarFotoRow>;
+        Relationships: [];
+      };
+      responsabilidades: {
+        Row: ResponsabilidadRow;
+        Insert: Omit<ResponsabilidadRow, "id" | "created_at"> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Update<ResponsabilidadRow>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -358,6 +471,8 @@ export type Database = {
       estado_consulta: EstadoConsulta;
       tipo_disponibilidad: TipoDisponibilidad;
       moneda: Moneda;
+      tipo_lugar: TipoLugar;
+      estado_lugar: EstadoLugar;
     };
     CompositeTypes: Record<string, never>;
   };
