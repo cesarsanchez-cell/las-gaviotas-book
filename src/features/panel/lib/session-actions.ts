@@ -275,6 +275,76 @@ export async function resetPasswordAction(
   return { ok: true };
 }
 
+const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Ingresá tu contraseña actual."),
+    newPassword: z
+      .string()
+      .min(8, "Mínimo 8 caracteres")
+      .max(72, "Máximo 72 caracteres"),
+    confirm: z.string().min(8).max(72),
+  })
+  .refine((d) => d.newPassword === d.confirm, {
+    message: "Las contraseñas nuevas no coinciden.",
+    path: ["confirm"],
+  })
+  .refine((d) => d.newPassword !== d.currentPassword, {
+    message: "La contraseña nueva tiene que ser distinta a la actual.",
+    path: ["newPassword"],
+  });
+
+/**
+ * Cambio de password para usuario logueado. Valida la contraseña actual
+ * intentando `signInWithPassword` server-side (Supabase no expone una API
+ * "reauthenticate" directa pero sí `signInWithPassword` que falla con
+ * "Invalid login credentials" si la actual no matchea). Si pasa, actualiza
+ * con `updateUser`.
+ *
+ * Requiere sesión activa. Se usa desde /panel/perfil y /admin/perfil.
+ */
+export async function changePasswordAction(
+  formData: FormData
+): Promise<AuthResult> {
+  const parsed = changePasswordSchema.safeParse({
+    currentPassword: String(formData.get("currentPassword") ?? ""),
+    newPassword: String(formData.get("newPassword") ?? ""),
+    confirm: String(formData.get("confirm") ?? ""),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
+  }
+
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user?.email) {
+    return { error: "Sesión expirada. Volvé a ingresar." };
+  }
+
+  // Verificar contraseña actual sin tocar la sesión SSR del usuario.
+  // Creamos un cliente Supabase descartable (anon key, sin persistencia) y
+  // intentamos signInWithPassword. Si falla, la actual no es correcta.
+  const { createClient: createPlainClient } = await import("@supabase/supabase-js");
+  const verifier = createPlainClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { persistSession: false, autoRefreshToken: false } }
+  );
+  const { error: signInError } = await verifier.auth.signInWithPassword({
+    email: userData.user.email,
+    password: parsed.data.currentPassword,
+  });
+  if (signInError) {
+    return { error: "La contraseña actual no es correcta." };
+  }
+
+  const { error: updateError } = await supabase.auth.updateUser({
+    password: parsed.data.newPassword,
+  });
+  if (updateError) return { error: updateError.message };
+
+  return { ok: true };
+}
+
 export async function resendConfirmationAction(
   email: string
 ): Promise<AuthResult> {

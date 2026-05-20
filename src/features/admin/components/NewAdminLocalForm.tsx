@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Copy } from "lucide-react";
+import { CheckCircle2, Mail } from "lucide-react";
 import { createAdminLocalAction } from "@/features/admin/lib/admin-management";
 import type { DestinoOption } from "@/features/admin/lib/queries";
 
@@ -9,23 +9,16 @@ interface Props {
   destinos: DestinoOption[];
 }
 
-interface SuccessState {
-  email: string;
-  tempPassword: string;
-}
-
 export function NewAdminLocalForm({ destinos }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [success, setSuccess] = useState<SuccessState | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [invitedEmail, setInvitedEmail] = useState<string | null>(null);
 
   function handleSubmit(formData: FormData) {
     setError(null);
     setFieldErrors({});
-    setSuccess(null);
-    setCopied(false);
+    setInvitedEmail(null);
 
     const input = {
       email: String(formData.get("email") ?? "").trim(),
@@ -40,51 +33,35 @@ export function NewAdminLocalForm({ destinos }: Props) {
         setFieldErrors(res.fieldErrors ?? {});
         return;
       }
-      if (res.ok && res.tempPassword && res.email) {
-        setSuccess({ email: res.email, tempPassword: res.tempPassword });
+      if (res.ok && res.email) {
+        setInvitedEmail(res.email);
       }
     });
   }
 
-  async function copyPassword() {
-    if (!success) return;
-    await navigator.clipboard.writeText(success.tempPassword);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
-  }
-
-  if (success) {
+  if (invitedEmail) {
     return (
       <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5">
-        <p className="font-medium text-emerald-900">Admin creado.</p>
-        <p className="mt-1 text-sm text-emerald-800">
-          Pasale estas credenciales a <strong>{success.email}</strong> por canal
-          privado. <strong>Este password se muestra una sola vez.</strong>
-        </p>
-        <div className="mt-4 flex items-center gap-2 rounded-md border border-emerald-300 bg-white px-3 py-2 font-mono text-sm">
-          <span className="flex-1 break-all">{success.tempPassword}</span>
-          <button
-            type="button"
-            onClick={copyPassword}
-            className="inline-flex items-center gap-1 rounded-md bg-emerald-700 px-2 py-1 text-xs font-medium text-white transition hover:bg-emerald-800"
-          >
-            {copied ? (
-              <>
-                <Check className="h-3 w-3" /> Copiado
-              </>
-            ) : (
-              <>
-                <Copy className="h-3 w-3" /> Copiar
-              </>
-            )}
-          </button>
+        <div className="flex items-start gap-3">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-700" aria-hidden />
+          <div>
+            <p className="font-medium text-emerald-900">Invitación enviada</p>
+            <p className="mt-1 text-sm text-emerald-800">
+              Le mandamos un mail a <strong>{invitedEmail}</strong> con el link
+              para activar su cuenta y definir su contraseña.
+            </p>
+            <p className="mt-2 text-xs text-emerald-700">
+              El link es válido por 24 horas. Si no le llega, revisá la carpeta
+              de spam o reintentá.
+            </p>
+          </div>
         </div>
         <button
           type="button"
-          onClick={() => setSuccess(null)}
+          onClick={() => setInvitedEmail(null)}
           className="mt-4 text-sm text-emerald-800 underline"
         >
-          Crear otro admin
+          Invitar a otro admin
         </button>
       </div>
     );
@@ -162,9 +139,10 @@ export function NewAdminLocalForm({ destinos }: Props) {
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
+        className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
       >
-        {pending ? "Creando…" : "Crear admin local"}
+        <Mail className="h-4 w-4" />
+        {pending ? "Enviando invitación…" : "Enviar invitación"}
       </button>
     </form>
   );

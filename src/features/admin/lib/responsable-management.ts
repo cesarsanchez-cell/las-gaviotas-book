@@ -1,6 +1,5 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/features/admin/lib/auth";
@@ -132,19 +131,18 @@ const createResponsableSchema = z.object({
 });
 
 export interface CreateResponsableResult extends ActionResult {
-  /** Password temporal. Mostrar UNA SOLA VEZ al admin. */
-  tempPassword?: string;
+  /** Email al que se envió la invitación. */
   email?: string;
 }
 
 /**
- * Crea un responsable nuevo + lo vincula a uno o más hospedajes.
+ * Crea un responsable nuevo + lo vincula a uno o más hospedajes y le manda
+ * invitación por email para activar su cuenta.
  *
  * Scope: admin local solo puede asignar hospedajes de su destino. Super
  * admin puede asignar de cualquier destino.
  *
- * Genera password temporal aleatorio que devolvemos al admin para que se
- * lo pase al responsable por canal privado.
+ * No genera password — el invitado define el suyo desde el link del mail.
  */
 export async function createResponsableAction(
   input: z.infer<typeof createResponsableSchema>
@@ -179,32 +177,45 @@ export async function createResponsableAction(
     }
   }
 
-  const tempPassword = randomBytes(12).toString("base64").replace(/[+/=]/g, "");
-  const { data: created, error: createErr } = await sb.auth.admin.createUser({
-    email,
-    password: tempPassword,
-    email_confirm: true,
-    user_metadata: { nombre },
-  });
-  if (createErr || !created.user) {
-    return { error: createErr?.message ?? "No se pudo crear el usuario." };
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.misescapadas.com.ar";
+
+  const { data: invited, error: inviteErr } =
+    await sb.auth.admin.inviteUserByEmail(email, {
+      data: { nombre },
+      redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
+    });
+  if (inviteErr || !invited.user) {
+    return {
+      error: inviteErr?.message ?? "No se pudo enviar la invitación.",
+    };
   }
 
   const { error: perfilErr } = await sb.from("perfiles").insert({
-    id: created.user.id,
+    id: invited.user.id,
     nombre,
     rol: "responsable",
     hospedajes_ids: hospedajeIds,
   } as never);
   if (perfilErr) {
-    await sb.auth.admin.deleteUser(created.user.id);
+    await sb.auth.admin.deleteUser(invited.user.id);
     return {
-      error: `Usuario creado pero falló el perfil: ${perfilErr.message}`,
+      error: `Invitación enviada pero falló el perfil: ${perfilErr.message}`,
     };
   }
 
+  // También poblar responsabilidades (fuente nueva de verdad).
+  if (hospedajeIds.length > 0) {
+    const rows = hospedajeIds.map((id) => ({
+      perfil_id: invited.user!.id,
+      entidad_tipo: "hospedaje" as const,
+      entidad_id: id,
+    }));
+    await sb.from("responsabilidades").insert(rows as never);
+  }
+
   revalidatePath("/admin/responsables");
-  return { ok: true, tempPassword, email };
+  return { ok: true, email };
 }
 
 const updateResponsableSchema = z.object({

@@ -33,11 +33,11 @@ export default async function ResponsablesPage() {
 
       <section className="rounded-xl border border-border bg-card p-6">
         <h2 className="font-display text-xl tracking-tight">
-          Crear responsable
+          Invitar responsable
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Le da acceso al panel de los hospedajes que le asignes. Generamos una
-          contraseña temporal — copiala y pasásela por canal privado.
+          Le da acceso al panel de los hospedajes que le asignes. Recibe un mail
+          con un link para activar su cuenta y definir su propia contraseña.
         </p>
         <div className="mt-5">
           {hospedajesDisponibles.length === 0 ? (

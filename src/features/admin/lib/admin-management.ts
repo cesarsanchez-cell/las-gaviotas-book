@@ -1,6 +1,5 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/features/admin/lib/auth";
@@ -66,18 +65,16 @@ const createAdminLocalSchema = z.object({
 });
 
 export interface CreateAdminLocalResult extends ActionResult {
-  /** Password temporal generado. Mostrar UNA SOLA VEZ al super admin. */
-  tempPassword?: string;
+  /** Email al que se mandó la invitación. */
   email?: string;
 }
 
 /**
- * Crea un admin local nuevo asignado a un destino.
+ * Crea un admin local nuevo asignado a un destino y le manda invitación por
+ * email para que defina su propia contraseña.
  *
- * Solo super admin puede invocarlo. Genera password aleatorio fuerte y lo
- * devuelve UNA vez para que el super admin se lo pase al admin local por
- * canal privado. El admin local podrá cambiarlo después vía "olvidé
- * contraseña".
+ * Solo super admin puede invocarlo. No genera password — el invitado activa
+ * su cuenta vía el link del mail (que va al callback PKCE → /reset-password).
  */
 export async function createAdminLocalAction(
   input: z.infer<typeof createAdminLocalSchema>
@@ -107,22 +104,22 @@ export async function createAdminLocalAction(
     .maybeSingle<{ id: string }>();
   if (!destino) return { error: "El destino no existe." };
 
-  const tempPassword = randomBytes(12).toString("base64").replace(/[+/=]/g, "");
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.misescapadas.com.ar";
 
-  const { data: created, error: createErr } = await sb.auth.admin.createUser({
-    email,
-    password: tempPassword,
-    email_confirm: true,
-    user_metadata: { nombre },
-  });
-  if (createErr || !created.user) {
+  const { data: invited, error: inviteErr } =
+    await sb.auth.admin.inviteUserByEmail(email, {
+      data: { nombre },
+      redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
+    });
+  if (inviteErr || !invited.user) {
     return {
-      error: createErr?.message ?? "No se pudo crear el usuario.",
+      error: inviteErr?.message ?? "No se pudo enviar la invitación.",
     };
   }
 
   const { error: perfilErr } = await sb.from("perfiles").insert({
-    id: created.user.id,
+    id: invited.user.id,
     nombre,
     rol: "admin",
     destino_id: destinoId,
@@ -130,15 +127,15 @@ export async function createAdminLocalAction(
   } as never);
 
   if (perfilErr) {
-    // Rollback: borrar el user creado para evitar quedar inconsistente.
-    await sb.auth.admin.deleteUser(created.user.id);
+    // Rollback: borrar el user invitado si el perfil falló.
+    await sb.auth.admin.deleteUser(invited.user.id);
     return {
-      error: `Usuario creado pero falló el perfil: ${perfilErr.message}`,
+      error: `Invitación enviada pero falló el perfil: ${perfilErr.message}`,
     };
   }
 
   revalidatePath("/admin/admins");
-  return { ok: true, tempPassword, email };
+  return { ok: true, email };
 }
 
 /**

@@ -15,6 +15,7 @@ import {
   Inbox,
   Utensils,
   Camera,
+  UserCircle,
 } from "lucide-react";
 import { signOutAction } from "@/features/admin/lib/session-actions";
 import { siteConfig } from "@/config/site";
@@ -39,6 +40,7 @@ const NAV: NavItem[] = [
   { href: "/admin/responsables", label: "Responsables", icon: UserCog },
   { href: "/admin/destinos", label: "Destinos", icon: MapPinned },
   { href: "/admin/admins", label: "Administradores", icon: Users, superOnly: true },
+  { href: "/admin/perfil", label: "Mi perfil", icon: UserCircle },
   { href: "/admin/fotos", label: "Fotos", icon: ImageIcon, soon: true },
 ];
 

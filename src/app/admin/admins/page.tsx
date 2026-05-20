@@ -25,11 +25,11 @@ export default async function AdminsPage() {
       </header>
 
       <section className="rounded-xl border border-border bg-card p-6">
-        <h2 className="font-display text-xl tracking-tight">Crear admin local</h2>
+        <h2 className="font-display text-xl tracking-tight">Invitar admin local</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Le da acceso a validar y publicar hospedajes solo del destino que le
-          asignes. Generamos una contraseña temporal — copiala y pasásela al
-          admin por canal privado.
+          asignes. Recibe un mail con un link para activar su cuenta y definir
+          su propia contraseña.
         </p>
         <div className="mt-5">
           <NewAdminLocalForm destinos={destinos} />
