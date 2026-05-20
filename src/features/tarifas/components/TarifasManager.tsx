@@ -51,6 +51,28 @@ export function TarifasManager({
     setError(null);
   }
 
+  function buildError(
+    error: string | undefined,
+    fieldErrors: Record<string, string> | undefined
+  ): string {
+    // Si hay fieldErrors, mostramos el más específico. Si no, el error genérico.
+    if (fieldErrors && Object.keys(fieldErrors).length > 0) {
+      const labels: Record<string, string> = {
+        nombre: "Nombre",
+        desde: "Desde",
+        hasta: "Hasta",
+        precioNoche: "Precio",
+        moneda: "Moneda",
+        notas: "Notas",
+      };
+      const first = Object.entries(fieldErrors)[0];
+      const [field, msg] = first;
+      const label = labels[field] ?? field;
+      return `${label}: ${msg}`;
+    }
+    return error ?? "Error desconocido.";
+  }
+
   async function handleCreate(formData: FormData) {
     setError(null);
     const input = {
@@ -64,8 +86,8 @@ export function TarifasManager({
     };
     startTransition(async () => {
       const r = await createTarifaAction(input);
-      if (r?.error) {
-        setError(r.error);
+      if (r?.error || r?.fieldErrors) {
+        setError(buildError(r.error, r.fieldErrors));
         return;
       }
       reset();
@@ -87,8 +109,8 @@ export function TarifasManager({
     };
     startTransition(async () => {
       const r = await updateTarifaAction(input);
-      if (r?.error) {
-        setError(r.error);
+      if (r?.error || r?.fieldErrors) {
+        setError(buildError(r.error, r.fieldErrors));
         return;
       }
       reset();
