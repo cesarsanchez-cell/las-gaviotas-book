@@ -10,7 +10,15 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function ForgotPasswordPage() {
+interface PageProps {
+  searchParams: Promise<{ for?: string }>;
+}
+
+export default async function ForgotPasswordPage({ searchParams }: PageProps) {
+  const { for: forParam } = await searchParams;
+  const isAdminContext = forParam === "admin";
+  const backToLoginHref = isAdminContext ? "/admin/login" : "/login";
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/30">
       <Container size="sm">
@@ -26,12 +34,12 @@ export default function ForgotPasswordPage() {
           </p>
 
           <div className="mt-8 rounded-xl border border-border bg-card p-8 shadow-sm">
-            <ForgotPasswordForm />
+            <ForgotPasswordForm context={isAdminContext ? "admin" : "responsable"} />
           </div>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             <Link
-              href="/login"
+              href={backToLoginHref}
               className="font-medium text-primary hover:underline"
             >
               ← Volver al login

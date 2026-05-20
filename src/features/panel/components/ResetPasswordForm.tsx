@@ -37,8 +37,8 @@ export function ResetPasswordForm({ next = "/panel" }: ResetPasswordFormProps) {
       return;
     }
     setStatus("ok");
-    setMessage("Contraseña actualizada. Redirigiendo...");
-    setTimeout(() => router.push(next), 1200);
+    setMessage("Contraseña actualizada. Te llevamos al login para que ingreses con la nueva...");
+    setTimeout(() => router.push(next), 1500);
   }
 
   return (

@@ -14,11 +14,11 @@ export const metadata: Metadata = {
 };
 
 interface PageProps {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; reset?: string }>;
 }
 
 export default async function LoginPage({ searchParams }: PageProps) {
-  const { next } = await searchParams;
+  const { next, reset } = await searchParams;
 
   // Si ya es admin, llevarlo al panel admin
   const admin = await getCurrentAdmin();
@@ -44,6 +44,12 @@ export default async function LoginPage({ searchParams }: PageProps) {
             Acceso solo para administradores
           </p>
 
+          {reset === "ok" && (
+            <div className="mt-6 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+              Tu contraseña fue actualizada. Ingresá con la nueva.
+            </div>
+          )}
+
           <div className="mt-8 rounded-xl border border-border bg-card p-8 shadow-sm">
             {otherUserLoggedIn && (
               <div className="mb-5 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
@@ -65,7 +71,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
             <LoginForm next={next} />
             <p className="mt-4 text-center text-sm">
               <Link
-                href="/forgot-password"
+                href="/forgot-password?for=admin"
                 className="text-muted-foreground hover:text-primary hover:underline"
               >
                 ¿Olvidaste tu contraseña?

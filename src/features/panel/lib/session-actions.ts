@@ -180,6 +180,7 @@ export async function signOutPanelAction() {
 
 const forgotSchema = z.object({
   email: z.string().email("Email inválido"),
+  context: z.enum(["admin", "responsable"]).optional(),
 });
 
 /**
@@ -201,8 +202,10 @@ const forgotSchema = z.object({
 export async function forgotPasswordAction(
   formData: FormData
 ): Promise<AuthResult> {
+  const ctxRaw = String(formData.get("context") ?? "").trim();
   const parsed = forgotSchema.safeParse({
     email: String(formData.get("email") ?? "").trim(),
+    context: ctxRaw === "admin" || ctxRaw === "responsable" ? ctxRaw : undefined,
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Email inválido." };
@@ -212,10 +215,18 @@ export async function forgotPasswordAction(
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.misescapadas.com.ar";
 
+  // Pasamos el contexto (admin|responsable) al /reset-password para que
+  // sepa a qué login devolver al usuario tras el reset. Lo metemos como
+  // query string del `next` URL-encoded.
+  const resetPath = parsed.data.context
+    ? `/reset-password?for=${parsed.data.context}`
+    : "/reset-password";
+  const nextEncoded = encodeURIComponent(resetPath);
+
   const { error } = await supabase.auth.resetPasswordForEmail(
     parsed.data.email,
     {
-      redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
+      redirectTo: `${siteUrl}/auth/callback?next=${nextEncoded}`,
     }
   );
 
@@ -271,6 +282,11 @@ export async function resetPasswordAction(
     password: parsed.data.password,
   });
   if (error) return { error: error.message };
+
+  // Después de updateUser la sesión puede quedar en estado raro (Supabase
+  // rota refresh tokens). Cerramos para forzar un login limpio con la nueva
+  // contraseña. El cliente redirige a la login page correcta según rol.
+  await supabase.auth.signOut();
 
   return { ok: true };
 }

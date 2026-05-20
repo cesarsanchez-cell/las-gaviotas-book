@@ -13,7 +13,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function ResetPasswordPage() {
+interface PageProps {
+  searchParams: Promise<{ for?: string }>;
+}
+
+export default async function ResetPasswordPage({ searchParams }: PageProps) {
   // El link de recovery deja la sesión seteada vía /auth/callback. Si llegó acá
   // sin sesión, el link expiró o nunca lo abrió. Lo mandamos a pedir uno nuevo.
   const supabase = await createClient();
@@ -23,15 +27,31 @@ export default async function ResetPasswordPage() {
     redirect("/forgot-password?error=expired");
   }
 
-  // Decidir destino post-reset según el rol del usuario.
-  const admin = createAdminClient();
-  const { data: perfil } = await admin
-    .from("perfiles")
-    .select("rol")
-    .eq("id", data.user.id)
-    .maybeSingle<{ rol: string }>();
+  const sp = await searchParams;
+  const hintFromUrl: "admin" | "responsable" | null =
+    sp.for === "admin"
+      ? "admin"
+      : sp.for === "responsable"
+        ? "responsable"
+        : null;
 
-  const next = perfil?.rol === "admin" ? "/admin" : "/panel";
+  // Si el query string trae el contexto, lo usamos directo. Sino caemos al
+  // perfil del usuario en BD. Este fallback cubre el caso patológico de un
+  // admin sin perfil cargado en `perfiles` (creado manual en Supabase Studio).
+  let role: "admin" | "responsable" = "responsable";
+  if (hintFromUrl) {
+    role = hintFromUrl;
+  } else {
+    const admin = createAdminClient();
+    const { data: perfil } = await admin
+      .from("perfiles")
+      .select("rol")
+      .eq("id", data.user.id)
+      .maybeSingle<{ rol: string }>();
+    if (perfil?.rol === "admin") role = "admin";
+  }
+
+  const next = role === "admin" ? "/admin/login?reset=ok" : "/login?reset=ok";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/30">

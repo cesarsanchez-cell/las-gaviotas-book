@@ -16,7 +16,14 @@ function SubmitButton() {
   );
 }
 
-export function ForgotPasswordForm() {
+interface ForgotPasswordFormProps {
+  /** Define a qué login redirigir al usuario después del reset. */
+  context?: "admin" | "responsable";
+}
+
+export function ForgotPasswordForm({
+  context = "responsable",
+}: ForgotPasswordFormProps = {}) {
   const [status, setStatus] = React.useState<"idle" | "ok" | "error">("idle");
   const [message, setMessage] = React.useState<string | null>(null);
 
@@ -45,6 +52,7 @@ export function ForgotPasswordForm() {
 
   return (
     <form action={handleSubmit} className="space-y-5">
+      <input type="hidden" name="context" value={context} />
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input

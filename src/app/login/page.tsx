@@ -12,11 +12,11 @@ export const metadata: Metadata = {
 };
 
 interface PageProps {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; reset?: string }>;
 }
 
 export default async function LoginPage({ searchParams }: PageProps) {
-  const { next } = await searchParams;
+  const { next, reset } = await searchParams;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/30">
@@ -31,6 +31,12 @@ export default async function LoginPage({ searchParams }: PageProps) {
           <p className="mt-1 text-center text-sm text-muted-foreground">
             Panel de responsables
           </p>
+
+          {reset === "ok" && (
+            <div className="mt-6 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+              Tu contraseña fue actualizada. Ingresá con la nueva.
+            </div>
+          )}
 
           <div className="mt-8 rounded-xl border border-border bg-card p-8 shadow-sm">
             <OtherSessionWarning />
