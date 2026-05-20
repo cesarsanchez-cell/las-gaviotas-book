@@ -162,6 +162,10 @@ export function DateField({
             <DayPicker
               mode="single"
               selected={selected}
+              // Si no hay valor seleccionado pero hay `min` (ej: "Hasta" en un
+              // par Desde/Hasta), abrimos el calendario en el mes del mínimo
+              // para que no haya que navegar de hoy hasta la fecha relevante.
+              defaultMonth={selected ?? minDate ?? new Date()}
               onSelect={(d) => {
                 if (!isControlled) setInternal(d);
                 if (d) {
@@ -174,7 +178,11 @@ export function DateField({
               weekStartsOn={1}
               showOutsideDays
               captionLayout="dropdown"
-              startMonth={new Date(new Date().getFullYear(), 0)}
+              startMonth={
+                minDate && minDate.getFullYear() < new Date().getFullYear()
+                  ? new Date(minDate.getFullYear(), 0)
+                  : new Date(new Date().getFullYear(), 0)
+              }
               endMonth={new Date(new Date().getFullYear() + 2, 11)}
               className="datefield-picker"
             />

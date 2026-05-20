@@ -266,6 +266,17 @@ interface TarifaFormProps {
   onCancel: () => void;
 }
 
+function addDaysISO(iso: string, days: number): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() + days);
+  const yy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
 function TarifaForm({
   initial,
   submitLabel,
@@ -273,6 +284,20 @@ function TarifaForm({
   onSubmit,
   onCancel,
 }: TarifaFormProps) {
+  const [desde, setDesde] = React.useState<string>(initial?.desde ?? "");
+  const [hasta, setHasta] = React.useState<string>(initial?.hasta ?? "");
+
+  const hastaMin = desde ? addDaysISO(desde, 1) : undefined;
+
+  function handleDesdeChange(iso: string) {
+    setDesde(iso);
+    // Si la fecha "hasta" cae antes (o igual) que la nueva "desde", la
+    // empujamos a desde+1 para mantener el rango coherente.
+    if (iso && hasta && hasta <= iso) {
+      setHasta(addDaysISO(iso, 1));
+    }
+  }
+
   return (
     <form
       action={onSubmit}
@@ -297,7 +322,8 @@ function TarifaForm({
             id="desde"
             name="desde"
             required
-            defaultValue={initial?.desde}
+            value={desde}
+            onChange={handleDesdeChange}
           />
         </div>
         <div>
@@ -306,7 +332,9 @@ function TarifaForm({
             id="hasta"
             name="hasta"
             required
-            defaultValue={initial?.hasta}
+            value={hasta}
+            min={hastaMin}
+            onChange={setHasta}
           />
         </div>
       </div>

@@ -32,6 +32,17 @@ function tomorrowISO(): string {
   return t.toISOString().slice(0, 10);
 }
 
+function addDaysISO(iso: string, days: number): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() + days);
+  const yy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
 // Orden en que buscamos el primer campo con error para mover el foco.
 const FIELD_ORDER = [
   "nombre",
@@ -334,7 +345,7 @@ export function ConsultaForm({
             id={`${formId}-checkOut`}
             name="checkOut"
             value={checkOut}
-            min={checkIn || tomorrowISO()}
+            min={checkIn ? addDaysISO(checkIn, 1) : tomorrowISO()}
             required
             hasError={!!fe("checkOut")}
             onChange={(iso) => setCheckOut(iso)}

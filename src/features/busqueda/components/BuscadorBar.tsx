@@ -164,7 +164,7 @@ export function BuscadorBar({
             id={`${baseId}-co`}
             name="check_out"
             value={checkOut}
-            min={checkIn || tomorrowISO()}
+            min={checkIn ? addDays(checkIn, 1) : tomorrowISO()}
             onChange={(iso) => setCheckOut(iso)}
           />
         </div>
