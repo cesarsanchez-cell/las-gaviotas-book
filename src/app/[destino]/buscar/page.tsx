@@ -8,6 +8,7 @@ import { BuscadorBar } from "@/features/busqueda/components/BuscadorBar";
 import { UnidadResultCard } from "@/features/busqueda/components/UnidadResultCard";
 import { getDestinoBySlug } from "@/features/hospedajes/lib/queries";
 import { searchUnidadesPorDestino } from "@/features/busqueda/lib/queries";
+import { resolvePreciosBatch } from "@/features/tarifas/lib/queries";
 
 interface PageProps {
   params: Promise<{ destino: string }>;
@@ -100,6 +101,15 @@ export default async function BuscarPage({ params, searchParams }: PageProps) {
         adultos + ninos
       )
     : [];
+
+  // Resolver precios en batch para todos los resultados.
+  const preciosMap = tieneBusqueda
+    ? await resolvePreciosBatch(
+        resultados.map((r) => r.unidad_type_id),
+        checkIn,
+        checkOut
+      )
+    : new Map();
 
   const noches = Math.max(
     1,
@@ -203,6 +213,7 @@ export default async function BuscarPage({ params, searchParams }: PageProps) {
                         key={r.unidad_type_id}
                         destinoSlug={slug}
                         resultado={r}
+                        precio={preciosMap.get(r.unidad_type_id) ?? null}
                         queryString={queryString}
                         priority={i === 0}
                       />

@@ -321,6 +321,8 @@ export interface ResponsabilidadRow {
 
 export type EstadoConsulta = "nueva" | "leida" | "respondida" | "descartada";
 
+export type CanalPreferido = "mail" | "whatsapp";
+
 export interface ConsultaRow {
   id: string;
   hospedaje_id: string;
@@ -338,6 +340,14 @@ export interface ConsultaRow {
   origen: string;
   ip: string | null;
   user_agent: string | null;
+  /** Tipo de unidad consultada. NULL para consultas genéricas al hospedaje. */
+  unidad_type_id: string | null;
+  /** Canal preferido elegido por el usuario. NULL si vino del form genérico. */
+  canal_preferido: CanalPreferido | null;
+  /** Desglose de pax (suma ≈ cantidad_huespedes legacy). NULL para consultas viejas. */
+  adultos: number | null;
+  ninos: number | null;
+  bebes: number | null;
   created_at: string;
   updated_at: string;
 }

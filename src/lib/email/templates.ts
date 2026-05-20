@@ -71,6 +71,43 @@ function disponibilidadBanner(d: DisponibilidadFlag): string {
   return `<div style="background:#fffbeb;border-left:3px solid #f59e0b;padding:10px 14px;margin:0 0 16px;color:#78350f;font-size:13px;line-height:1.5;"><strong>⚠ Parcialmente ocupado</strong> según tu calendario. Algunos días del rango están bloqueados.</div>`;
 }
 
+/**
+ * Arma una línea de "Huéspedes" rica si hay desglose, o cae al total simple.
+ * Ej: "4 — 2 adultos, 1 niño, 1 bebé" o "4" si no hay desglose.
+ */
+function huespedesLine(args: {
+  cantidadHuespedes: number;
+  adultos?: number | null;
+  ninos?: number | null;
+  bebes?: number | null;
+}): string {
+  const total = args.cantidadHuespedes;
+  if (args.adultos == null && args.ninos == null && args.bebes == null) {
+    return String(total);
+  }
+  const parts: string[] = [];
+  const a = args.adultos ?? 0;
+  const n = args.ninos ?? 0;
+  const b = args.bebes ?? 0;
+  if (a > 0) parts.push(`${a} ${a === 1 ? "adulto" : "adultos"}`);
+  if (n > 0) parts.push(`${n} ${n === 1 ? "niño" : "niños"}`);
+  if (b > 0) parts.push(`${b} ${b === 1 ? "bebé" : "bebés"}`);
+  return parts.length > 0 ? `${total} — ${parts.join(", ")}` : String(total);
+}
+
+function canalLine(canal: "mail" | "whatsapp" | null | undefined): string {
+  if (!canal) return "";
+  const label =
+    canal === "whatsapp" ? "WhatsApp" : "Email";
+  const icon = canal === "whatsapp" ? "💬" : "✉️";
+  return `<tr><td style="padding:4px 0;color:#64748b;">Responder por:</td><td style="padding:4px 0;color:#0f172a;"><strong>${icon} ${label}</strong></td></tr>`;
+}
+
+function unidadLine(unidadNombre: string | null | undefined): string {
+  if (!unidadNombre) return "";
+  return `<tr><td style="padding:4px 0;color:#64748b;">Unidad consultada:</td><td style="padding:4px 0;color:#0f172a;"><strong>${unidadNombre}</strong></td></tr>`;
+}
+
 export function consultaNuevaTemplate(args: {
   responsableNombre: string | null;
   hospedajeNombre: string;
@@ -83,6 +120,14 @@ export function consultaNuevaTemplate(args: {
   checkInFmt: string;
   checkOutFmt: string;
   cantidadHuespedes: number;
+  /** Desglose pax — opcional, si la consulta vino del form por unidad. */
+  adultos?: number | null;
+  ninos?: number | null;
+  bebes?: number | null;
+  /** Nombre del unidad_type — opcional, si la consulta es contextualizada. */
+  unidadNombre?: string | null;
+  /** Canal preferido elegido por el usuario — opcional. */
+  canalPreferido?: "mail" | "whatsapp" | null;
   mensaje: string;
   urlPanelLeads: string;
   /** Estado de disponibilidad del hospedaje para el rango. NULL = sin info. */
@@ -94,19 +139,25 @@ export function consultaNuevaTemplate(args: {
   const whatsappLine = args.huespedWhatsapp
     ? `<tr><td style="padding:4px 0;color:#64748b;">WhatsApp:</td><td style="padding:4px 0;color:#0f172a;"><a href="https://wa.me/${args.huespedWhatsapp.replace(/[^0-9]/g, "")}" style="color:#0f172a;text-decoration:underline;">${args.huespedWhatsapp}</a></td></tr>`
     : "";
+  const huespedes = huespedesLine(args);
+  const subjectUnidad = args.unidadNombre
+    ? `Nueva consulta — ${args.hospedajeNombre} · ${args.unidadNombre} (${args.checkInFmt} → ${args.checkOutFmt})`
+    : `Nueva consulta para ${args.hospedajeNombre} (${args.checkInFmt} → ${args.checkOutFmt})`;
   return {
-    subject: `Nueva consulta para ${args.hospedajeNombre} (${args.checkInFmt} → ${args.checkOutFmt})`,
+    subject: subjectUnidad,
     html: wrap(
       `<h2 style="font-size:22px;margin-bottom:8px;">Nueva consulta recibida</h2>` +
-        `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">${saludo} alguien pregunta por <strong>${args.hospedajeNombre}</strong> en Mis Escapadas a ${args.destinoNombre}.</p>` +
+        `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">${saludo} alguien pregunta por <strong>${args.hospedajeNombre}</strong>${args.unidadNombre ? ` — <strong>${args.unidadNombre}</strong>` : ""} en Mis Escapadas a ${args.destinoNombre}.</p>` +
         disponibilidadBanner(args.disponibilidad ?? null) +
         `<table style="width:100%;font-size:14px;border-collapse:collapse;margin:16px 0;">` +
-        `<tr><td style="padding:4px 0;color:#64748b;width:120px;">Nombre:</td><td style="padding:4px 0;color:#0f172a;"><strong>${args.huespedNombre}</strong></td></tr>` +
+        unidadLine(args.unidadNombre) +
+        `<tr><td style="padding:4px 0;color:#64748b;width:140px;">Nombre:</td><td style="padding:4px 0;color:#0f172a;"><strong>${args.huespedNombre}</strong></td></tr>` +
         `<tr><td style="padding:4px 0;color:#64748b;">Email:</td><td style="padding:4px 0;color:#0f172a;"><a href="mailto:${args.huespedEmail}" style="color:#0f172a;text-decoration:underline;">${args.huespedEmail}</a></td></tr>` +
         whatsappLine +
+        canalLine(args.canalPreferido) +
         `<tr><td style="padding:4px 0;color:#64748b;">Check-in:</td><td style="padding:4px 0;color:#0f172a;">${args.checkInFmt}</td></tr>` +
         `<tr><td style="padding:4px 0;color:#64748b;">Check-out:</td><td style="padding:4px 0;color:#0f172a;">${args.checkOutFmt}</td></tr>` +
-        `<tr><td style="padding:4px 0;color:#64748b;">Huéspedes:</td><td style="padding:4px 0;color:#0f172a;">${args.cantidadHuespedes}</td></tr>` +
+        `<tr><td style="padding:4px 0;color:#64748b;">Huéspedes:</td><td style="padding:4px 0;color:#0f172a;">${huespedes}</td></tr>` +
         `</table>` +
         `<div style="background:#f8fafc;border-left:3px solid #0f172a;padding:12px 16px;margin:16px 0;color:#0f172a;font-size:14px;line-height:1.6;white-space:pre-line;">${args.mensaje.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>` +
         `<p style="color:#334155;line-height:1.6;margin:16px 0;">Respondé directo al huésped por mail o WhatsApp. Desde tu bandeja podés marcarla como respondida.</p>` +
@@ -131,6 +182,11 @@ export function consultaNuevaSinResponsableTemplate(args: {
   checkInFmt: string;
   checkOutFmt: string;
   cantidadHuespedes: number;
+  adultos?: number | null;
+  ninos?: number | null;
+  bebes?: number | null;
+  unidadNombre?: string | null;
+  canalPreferido?: "mail" | "whatsapp" | null;
   mensaje: string;
   urlHospedajeAdmin: string;
   disponibilidad?: DisponibilidadFlag;
@@ -139,20 +195,23 @@ export function consultaNuevaSinResponsableTemplate(args: {
   const whatsappLine = args.huespedWhatsapp
     ? `<tr><td style="padding:4px 0;color:#64748b;">WhatsApp:</td><td style="padding:4px 0;color:#0f172a;"><a href="https://wa.me/${args.huespedWhatsapp.replace(/[^0-9]/g, "")}" style="color:#0f172a;text-decoration:underline;">${args.huespedWhatsapp}</a></td></tr>`
     : "";
+  const huespedes = huespedesLine(args);
   return {
     subject: `[Sin responsable] Nueva consulta para ${args.hospedajeNombre} (${args.checkInFmt} → ${args.checkOutFmt})`,
     html: wrap(
       `<h2 style="font-size:22px;margin-bottom:8px;">Consulta sin responsable asignado</h2>` +
-        `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">${saludo} llegó una consulta para <strong>${args.hospedajeNombre}</strong> en Mis Escapadas a ${args.destinoNombre}, pero este hospedaje todavía no tiene responsable asignado, así que te avisamos a vos.</p>` +
+        `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">${saludo} llegó una consulta para <strong>${args.hospedajeNombre}</strong>${args.unidadNombre ? ` — <strong>${args.unidadNombre}</strong>` : ""} en Mis Escapadas a ${args.destinoNombre}, pero este hospedaje todavía no tiene responsable asignado, así que te avisamos a vos.</p>` +
         `<div style="background:#fef3c7;border-left:3px solid #f59e0b;padding:12px 16px;margin:16px 0;color:#78350f;font-size:14px;line-height:1.5;">Acción sugerida: contactá al huésped directo y asigná un responsable al hospedaje para que las próximas consultas le lleguen automáticamente.</div>` +
         disponibilidadBanner(args.disponibilidad ?? null) +
         `<table style="width:100%;font-size:14px;border-collapse:collapse;margin:16px 0;">` +
-        `<tr><td style="padding:4px 0;color:#64748b;width:120px;">Nombre:</td><td style="padding:4px 0;color:#0f172a;"><strong>${args.huespedNombre}</strong></td></tr>` +
+        unidadLine(args.unidadNombre) +
+        `<tr><td style="padding:4px 0;color:#64748b;width:140px;">Nombre:</td><td style="padding:4px 0;color:#0f172a;"><strong>${args.huespedNombre}</strong></td></tr>` +
         `<tr><td style="padding:4px 0;color:#64748b;">Email:</td><td style="padding:4px 0;color:#0f172a;"><a href="mailto:${args.huespedEmail}" style="color:#0f172a;text-decoration:underline;">${args.huespedEmail}</a></td></tr>` +
         whatsappLine +
+        canalLine(args.canalPreferido) +
         `<tr><td style="padding:4px 0;color:#64748b;">Check-in:</td><td style="padding:4px 0;color:#0f172a;">${args.checkInFmt}</td></tr>` +
         `<tr><td style="padding:4px 0;color:#64748b;">Check-out:</td><td style="padding:4px 0;color:#0f172a;">${args.checkOutFmt}</td></tr>` +
-        `<tr><td style="padding:4px 0;color:#64748b;">Huéspedes:</td><td style="padding:4px 0;color:#0f172a;">${args.cantidadHuespedes}</td></tr>` +
+        `<tr><td style="padding:4px 0;color:#64748b;">Huéspedes:</td><td style="padding:4px 0;color:#0f172a;">${huespedes}</td></tr>` +
         `</table>` +
         `<div style="background:#f8fafc;border-left:3px solid #0f172a;padding:12px 16px;margin:16px 0;color:#0f172a;font-size:14px;line-height:1.6;white-space:pre-line;">${args.mensaje.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</div>` +
         button(args.urlHospedajeAdmin, "Ver hospedaje en el admin")

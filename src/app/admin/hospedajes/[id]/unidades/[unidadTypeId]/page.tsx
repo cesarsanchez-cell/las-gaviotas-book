@@ -13,6 +13,8 @@ import { requireAdmin } from "@/features/admin/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assertAdminCanAccessHospedaje } from "@/features/admin/lib/scope";
 import { getUnidadType } from "@/features/unidades/lib/queries";
+import { TarifasManager } from "@/features/tarifas/components/TarifasManager";
+import { listTarifasByUnidadType } from "@/features/tarifas/lib/queries";
 import { getFotoUrl } from "@/lib/storage";
 import {
   UNIDAD_AMENITIES,
@@ -44,6 +46,8 @@ export default async function AdminUnidadTypeDetailPage({ params }: PageProps) {
 
   const unidadType = await getUnidadType(unidadTypeId);
   if (!unidadType || unidadType.hospedaje_id !== id) notFound();
+
+  const tarifas = await listTarifasByUnidadType(unidadTypeId);
 
   // Filtrar amenities que existen en el catálogo actual (defensa contra data
   // zombie por cambios de catálogo). Igual que el form del responsable.
@@ -247,6 +251,13 @@ export default async function AdminUnidadTypeDetailPage({ params }: PageProps) {
           </ul>
         )}
       </section>
+
+      {/* Tarifas (read-only) */}
+      <TarifasManager
+        unidadTypeId={unidadType.id}
+        tarifas={tarifas}
+        readOnly
+      />
     </div>
   );
 }

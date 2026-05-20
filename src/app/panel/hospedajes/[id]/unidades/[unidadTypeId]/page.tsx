@@ -8,6 +8,8 @@ import { UnidadTypeForm } from "@/features/unidades/components/UnidadTypeForm";
 import { UnidadTypeFotosManager } from "@/features/unidades/components/UnidadTypeFotosManager";
 import { UnidadInstancesManager } from "@/features/unidades/components/UnidadInstancesManager";
 import { updateUnidadTypeAction } from "@/features/unidades/lib/actions";
+import { TarifasManager } from "@/features/tarifas/components/TarifasManager";
+import { listTarifasByUnidadType } from "@/features/tarifas/lib/queries";
 
 interface PageProps {
   params: Promise<{ id: string; unidadTypeId: string }>;
@@ -29,6 +31,8 @@ export default async function EditUnidadTypePage({ params }: PageProps) {
 
   const unidadType = await getUnidadType(unidadTypeId);
   if (!unidadType || unidadType.hospedaje_id !== id) notFound();
+
+  const tarifas = await listTarifasByUnidadType(unidadTypeId);
 
   const updateAction = updateUnidadTypeAction.bind(null, unidadTypeId);
 
@@ -66,6 +70,11 @@ export default async function EditUnidadTypePage({ params }: PageProps) {
         unidadTypeId={unidadType.id}
         unidadTypeNombre={unidadType.nombre}
         unidades={unidadType.unidades}
+      />
+
+      <TarifasManager
+        unidadTypeId={unidadType.id}
+        tarifas={tarifas}
       />
     </div>
   );

@@ -53,12 +53,13 @@ export async function notifyConsultaNueva(consultaId: string): Promise<void> {
     const { data: consulta } = await sb
       .from("consultas")
       .select(
-        "id, hospedaje_id, nombre, email, whatsapp, mensaje, check_in, check_out, cantidad_huespedes"
+        "id, hospedaje_id, unidad_type_id, nombre, email, whatsapp, mensaje, check_in, check_out, cantidad_huespedes, adultos, ninos, bebes, canal_preferido"
       )
       .eq("id", consultaId)
       .maybeSingle<{
         id: string;
         hospedaje_id: string;
+        unidad_type_id: string | null;
         nombre: string;
         email: string;
         whatsapp: string | null;
@@ -66,6 +67,10 @@ export async function notifyConsultaNueva(consultaId: string): Promise<void> {
         check_in: string;
         check_out: string;
         cantidad_huespedes: number;
+        adultos: number | null;
+        ninos: number | null;
+        bebes: number | null;
+        canal_preferido: "mail" | "whatsapp" | null;
       }>();
     if (!consulta) {
       console.warn("[notifyConsulta] No se encontró la consulta", consultaId);
@@ -78,6 +83,17 @@ export async function notifyConsultaNueva(consultaId: string): Promise<void> {
       .eq("id", consulta.hospedaje_id)
       .maybeSingle<{ id: string; nombre: string; destino_id: string }>();
     if (!h) return;
+
+    // Si la consulta es contextualizada por unidad, traemos el nombre.
+    let unidadNombre: string | null = null;
+    if (consulta.unidad_type_id) {
+      const { data: tipo } = await sb
+        .from("unidad_types")
+        .select("nombre")
+        .eq("id", consulta.unidad_type_id)
+        .maybeSingle<{ nombre: string }>();
+      unidadNombre = tipo?.nombre ?? null;
+    }
 
     const { data: d } = await sb
       .from("destinos")
@@ -108,6 +124,11 @@ export async function notifyConsultaNueva(consultaId: string): Promise<void> {
       checkInFmt: formatDateISO(consulta.check_in),
       checkOutFmt: formatDateISO(consulta.check_out),
       cantidadHuespedes: consulta.cantidad_huespedes,
+      adultos: consulta.adultos,
+      ninos: consulta.ninos,
+      bebes: consulta.bebes,
+      unidadNombre,
+      canalPreferido: consulta.canal_preferido,
       mensaje: consulta.mensaje,
       disponibilidad,
     };

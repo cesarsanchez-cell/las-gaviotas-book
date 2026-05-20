@@ -12,18 +12,30 @@ import {
 } from "@/config/amenities-unidad";
 import { getFotoUrl } from "@/lib/storage";
 import type { UnidadResultado } from "../lib/types";
+import type { PrecioPorRango } from "@/features/tarifas/lib/queries";
 
 interface Props {
   destinoSlug: string;
   resultado: UnidadResultado;
+  /** Precio resuelto para el rango buscado. NULL si no hay tarifa cargada. */
+  precio?: PrecioPorRango | null;
   /** Query string para pasar fechas/pax al detalle (preserva contexto). */
   queryString?: string;
   priority?: boolean;
 }
 
+function formatMoneda(n: number, moneda: string): string {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: moneda,
+    maximumFractionDigits: 0,
+  }).format(n);
+}
+
 export function UnidadResultCard({
   destinoSlug,
   resultado: r,
+  precio,
   queryString,
   priority = false,
 }: Props) {
@@ -116,9 +128,24 @@ export function UnidadResultCard({
         )}
 
         <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-2">
-          <p className="text-xs text-muted-foreground">
-            Precio a consultar — el responsable te confirma según las fechas.
-          </p>
+          {precio && precio.total !== null && precio.moneda ? (
+            <div>
+              <p className="font-display text-xl tracking-tight">
+                {formatMoneda(precio.total, precio.moneda)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {precio.noches}{" "}
+                {precio.noches === 1 ? "noche" : "noches"} ·{" "}
+                {formatMoneda(precio.total / precio.noches, precio.moneda)} / noche
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {precio && !precio.coberturaCompleta && precio.desglose.length > 0
+                ? "Tarifa parcial — consultá al responsable por el total."
+                : "Precio a consultar — el responsable te confirma según las fechas."}
+            </p>
+          )}
           <Link href={detalleHref} className="ml-auto">
             <Button size="sm">Ver detalle</Button>
           </Link>

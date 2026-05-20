@@ -39,6 +39,7 @@ import {
   OPERATIONAL_AMENITIES,
   OPERATIONAL_AMENITY_GROUPS,
 } from "@/config/amenities-operational";
+import { resolvePrecioPorRango } from "@/features/tarifas/lib/queries";
 
 interface PageProps {
   params: Promise<{ destino: string; slug: string; unidadTypeId: string }>;
@@ -170,6 +171,14 @@ export default async function UnidadDetallePage({
   const calefaccionLabel = tipo.calefaccion_tipo
     ? CALEFACCION_TIPO_LABEL[tipo.calefaccion_tipo as CalefaccionTipo]
     : null;
+
+  const precio = await resolvePrecioPorRango(tipo.id, checkIn, checkOut);
+  const formatPrecio = (n: number, m: string) =>
+    new Intl.NumberFormat("es-AR", {
+      style: "currency",
+      currency: m,
+      maximumFractionDigits: 0,
+    }).format(n);
 
   const operationalAmenities = (hospedaje.amenities_operational ?? []).filter(
     (k) => k in OPERATIONAL_AMENITIES
@@ -450,10 +459,32 @@ export default async function UnidadDetallePage({
                   </div>
                 )}
 
-                <p className="mt-5 text-xs text-muted-foreground">
-                  Precio a consultar — el responsable te confirma según las
-                  fechas y la cantidad de huéspedes.
-                </p>
+                {precio.total !== null && precio.moneda ? (
+                  <div className="mt-5 border-t border-border pt-4">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <p className="font-display text-2xl tracking-tight">
+                        {formatPrecio(precio.total, precio.moneda)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {precio.noches}{" "}
+                        {precio.noches === 1 ? "noche" : "noches"}
+                      </p>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formatPrecio(
+                        precio.total / precio.noches,
+                        precio.moneda
+                      )}{" "}
+                      / noche · valor por la unidad entera
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-5 text-xs text-muted-foreground">
+                    {precio.desglose.length > 0 && !precio.coberturaCompleta
+                      ? "Algunas noches del rango no tienen tarifa cargada — consultá al responsable por el total."
+                      : "Precio a consultar — el responsable te confirma según las fechas y la cantidad de huéspedes."}
+                  </p>
+                )}
               </div>
 
               <div className="mt-4 rounded-xl border border-border bg-card p-6 shadow-sm">
