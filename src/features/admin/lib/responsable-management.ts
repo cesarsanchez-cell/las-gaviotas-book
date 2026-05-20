@@ -346,6 +346,10 @@ export async function createResponsableAction(
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.misescapadas.com.ar";
 
+  // inviteUserByEmail es idempotente: si el email ya existe en auth.users,
+  // Supabase devuelve el user existente (no error) y reenvía el link. Por
+  // eso después tenemos que chequear si ya había perfil para ese id, y
+  // según el rol decidir qué hacer.
   const { data: invited, error: inviteErr } =
     await sb.auth.admin.inviteUserByEmail(email, {
       data: { nombre },
@@ -357,34 +361,78 @@ export async function createResponsableAction(
     };
   }
 
-  const { error: perfilErr } = await sb.from("perfiles").insert({
-    id: invited.user.id,
-    nombre,
-    rol: "responsable",
-    hospedajes_ids: hospedajeIds,
-  } as never);
-  if (perfilErr) {
-    await sb.auth.admin.deleteUser(invited.user.id);
-    return {
-      error: `Invitación enviada pero falló el perfil: ${perfilErr.message}`,
-    };
+  const userId = invited.user.id;
+
+  // ¿Ya tenía perfil este user?
+  const { data: existing } = await sb
+    .from("perfiles")
+    .select("id, rol")
+    .eq("id", userId)
+    .maybeSingle<{ id: string; rol: string }>();
+
+  if (existing) {
+    if (existing.rol === "admin") {
+      return {
+        error:
+          "Ese email pertenece a un administrador. No podés convertirlo en responsable.",
+      };
+    }
+    if (existing.rol === "responsable") {
+      return {
+        error:
+          "Ese email ya tiene cuenta como responsable. Editalo desde la lista de abajo para asignarle más entidades.",
+      };
+    }
+    // Otro rol (huésped futuro, etc.): convertir a responsable.
+    const { error: updErr } = await sb
+      .from("perfiles")
+      .update({
+        nombre,
+        rol: "responsable",
+        hospedajes_ids: hospedajeIds,
+      } as never)
+      .eq("id", userId);
+    if (updErr) {
+      return { error: `Falló actualizar el perfil: ${updErr.message}` };
+    }
+  } else {
+    const { error: perfilErr } = await sb.from("perfiles").insert({
+      id: userId,
+      nombre,
+      rol: "responsable",
+      hospedajes_ids: hospedajeIds,
+    } as never);
+    if (perfilErr) {
+      // No borramos el auth.user: pudo haber sido pre-existente y borrarlo
+      // sería destructivo. El admin puede reintentar el invite (reenvía link).
+      return {
+        error: `Invitación enviada pero falló el perfil: ${perfilErr.message}`,
+      };
+    }
   }
 
   // Poblar responsabilidades (fuente nueva de verdad — soporta lugares).
+  // ON CONFLICT por la constraint unique(perfil_id, entidad_tipo, entidad_id)
+  // — usamos upsert para idempotencia en caso de reintentos.
   const respRows = [
     ...hospedajeIds.map((id) => ({
-      perfil_id: invited.user!.id,
+      perfil_id: userId,
       entidad_tipo: "hospedaje" as const,
       entidad_id: id,
     })),
     ...lugarIds.map((id) => ({
-      perfil_id: invited.user!.id,
+      perfil_id: userId,
       entidad_tipo: "lugar" as const,
       entidad_id: id,
     })),
   ];
   if (respRows.length > 0) {
-    await sb.from("responsabilidades").insert(respRows as never);
+    await sb
+      .from("responsabilidades")
+      .upsert(respRows as never, {
+        onConflict: "perfil_id,entidad_tipo,entidad_id",
+        ignoreDuplicates: true,
+      });
   }
 
   revalidatePath("/admin/responsables");
