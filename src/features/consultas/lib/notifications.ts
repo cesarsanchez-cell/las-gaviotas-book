@@ -157,7 +157,14 @@ export async function notifyConsultaNueva(consultaId: string): Promise<void> {
           urlPanelLeads: `${siteConfig.url}/panel/leads`,
           ...fechasCommon,
         });
-        const result = await sendEmail({ to: responsableEmail, ...tpl });
+        // replyTo apunta al email del huésped: cuando el responsable hace
+        // "Responder" en su cliente de mail, va directo al huésped (no a
+        // noreply@misescapadas). Esto es lo que César espera del flow.
+        const result = await sendEmail({
+          to: responsableEmail,
+          replyTo: consulta.email,
+          ...tpl,
+        });
         if (!result.ok) {
           console.error("[notifyConsulta] sendEmail responsable falló:", result.error);
         }
@@ -198,7 +205,12 @@ export async function notifyConsultaNueva(consultaId: string): Promise<void> {
           urlHospedajeAdmin,
           ...fechasCommon,
         });
-        const result = await sendEmail({ to: adminEmail, ...tpl });
+        // Idem: si el admin responde el mail de fallback, va al huésped.
+        const result = await sendEmail({
+          to: adminEmail,
+          replyTo: consulta.email,
+          ...tpl,
+        });
         if (!result.ok) {
           console.error(
             "[notifyConsulta] sendEmail admin falló:",
