@@ -38,6 +38,7 @@ const NAV: NavItem[] = [
   { href: "/admin/atractivos", label: "Atractivos", icon: Camera },
   { href: "/admin/consultas", label: "Consultas", icon: Inbox },
   { href: "/admin/responsables", label: "Responsables", icon: UserCog },
+  { href: "/admin/regiones", label: "Regiones", icon: MapPinned, superOnly: true },
   { href: "/admin/destinos", label: "Destinos", icon: MapPinned },
   { href: "/admin/admins", label: "Administradores", icon: Users, superOnly: true },
   { href: "/admin/perfil", label: "Mi perfil", icon: UserCircle },
