@@ -36,6 +36,10 @@ export function MapView({ destinos }: MapViewProps) {
   const markersLayer = useRef<LayerGroup | null>(null);
   const [selected, setSelected] = useState<DestinoMapPoint | null>(null);
   const [filtroBioma, setFiltroBioma] = useState<Bioma | "todos">("todos");
+  // Necesario para retrigger el effect de markers una vez que el map terminó
+  // de inicializarse (el init es async — sin esto, el primer render dibuja
+  // markers antes de tener mapInstance.current y el fitBounds inicial no corre).
+  const [mapReady, setMapReady] = useState(false);
 
   // Init Leaflet (solo en cliente, después de mount).
   useEffect(() => {
@@ -77,6 +81,7 @@ export function MapView({ destinos }: MapViewProps) {
 
       mapInstance.current = map;
       markersLayer.current = L.layerGroup().addTo(map);
+      setMapReady(true);
     })();
     return () => {
       cancelled = true;
@@ -84,6 +89,7 @@ export function MapView({ destinos }: MapViewProps) {
         mapInstance.current.remove();
         mapInstance.current = null;
       }
+      setMapReady(false);
     };
   }, []);
 
@@ -146,7 +152,7 @@ export function MapView({ destinos }: MapViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [destinos, filtroBioma]);
+  }, [destinos, filtroBioma, mapReady]);
 
   return (
     <div className="relative h-full w-full">
