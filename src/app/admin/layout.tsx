@@ -19,6 +19,15 @@ async function getDestinoNombre(destinoId: string | null): Promise<string | null
   return data?.nombre ?? null;
 }
 
+async function hasResponsabilidades(userId: string): Promise<boolean> {
+  const sb = createAdminClient();
+  const { count } = await sb
+    .from("responsabilidades")
+    .select("perfil_id", { count: "exact", head: true })
+    .eq("perfil_id", userId);
+  return (count ?? 0) > 0;
+}
+
 export default async function AdminLayout({
   children,
 }: {
@@ -31,7 +40,10 @@ export default async function AdminLayout({
     return <>{children}</>;
   }
 
-  const destinoNombre = await getDestinoNombre(admin.destinoId);
+  const [destinoNombre, alsoIsResponsable] = await Promise.all([
+    getDestinoNombre(admin.destinoId),
+    hasResponsabilidades(admin.id),
+  ]);
 
   return (
     <div className="flex min-h-screen">
@@ -42,6 +54,7 @@ export default async function AdminLayout({
             nombre={admin.perfil.nombre}
             isSuperAdmin={admin.isSuperAdmin}
             destinoNombre={destinoNombre}
+            alsoIsResponsable={alsoIsResponsable}
           />
         </div>
       </div>
@@ -52,6 +65,7 @@ export default async function AdminLayout({
             nombre={admin.perfil.nombre}
             isSuperAdmin={admin.isSuperAdmin}
             destinoNombre={destinoNombre}
+            alsoIsResponsable={alsoIsResponsable}
           />
         </div>
         <div className="px-6 py-8 md:px-10 md:py-10">{children}</div>

@@ -29,7 +29,7 @@ async function requireResponsableOwnsUnidadType(
     .eq("id", unidadTypeId)
     .maybeSingle<{ hospedaje_id: string }>();
   if (!data) throw new Error("Tipo de unidad inexistente.");
-  if (!(responsable.perfil.hospedajes_ids ?? []).includes(data.hospedaje_id)) {
+  if (!responsable.hospedajeIds.includes(data.hospedaje_id)) {
     throw new Error("Sin permisos sobre este hospedaje.");
   }
   return {

@@ -10,6 +10,7 @@ import {
   ExternalLink,
   Utensils,
   UserCircle,
+  ShieldCheck,
 } from "lucide-react";
 import { signOutPanelAction } from "@/features/panel/lib/session-actions";
 import { siteConfig } from "@/config/site";
@@ -26,9 +27,15 @@ const NAV = [
 interface PanelSidebarProps {
   email: string;
   nombre: string | null;
+  /** Si el usuario también es admin (local o super), mostrar atajo al /admin. */
+  isAlsoAdmin?: boolean;
 }
 
-export function PanelSidebar({ email, nombre }: PanelSidebarProps) {
+export function PanelSidebar({
+  email,
+  nombre,
+  isAlsoAdmin = false,
+}: PanelSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -66,7 +73,16 @@ export function PanelSidebar({ email, nombre }: PanelSidebarProps) {
           );
         })}
 
-        <div className="mt-6 border-t border-border pt-3">
+        <div className="mt-6 space-y-0.5 border-t border-border pt-3">
+          {isAlsoAdmin && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground transition hover:bg-secondary"
+            >
+              <ShieldCheck className="h-4 w-4" aria-hidden />
+              <span>Ir al panel de administración</span>
+            </Link>
+          )}
           <Link
             href={`/${siteConfig.defaultDestino}`}
             target="_blank"

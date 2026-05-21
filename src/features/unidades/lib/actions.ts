@@ -29,12 +29,12 @@ async function requireResponsableOwnsHospedaje(
   hospedajeId: string
 ): Promise<AccessContext> {
   const responsable = await getCurrentResponsable();
-  if (!responsable || responsable.perfil.rol !== "responsable") {
+  if (!responsable) {
     throw new Error(
       "Solo el responsable del hospedaje puede modificar las unidades."
     );
   }
-  if (!(responsable.perfil.hospedajes_ids ?? []).includes(hospedajeId)) {
+  if (!responsable.hospedajeIds.includes(hospedajeId)) {
     throw new Error("Sin permisos sobre este hospedaje.");
   }
   return { userId: responsable.id, hospedajeId };

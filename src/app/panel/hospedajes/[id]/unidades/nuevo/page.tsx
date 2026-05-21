@@ -21,7 +21,7 @@ export default async function NuevoUnidadTypePage({ params }: PageProps) {
   const user = await requireResponsable();
   const { id } = await params;
 
-  if (!(user.perfil.hospedajes_ids ?? []).includes(id)) notFound();
+  if (!user.hospedajeIds.includes(id)) notFound();
 
   const sb = createAdminClient();
   const { data: hospedaje } = await sb

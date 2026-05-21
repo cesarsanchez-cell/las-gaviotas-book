@@ -35,7 +35,7 @@ export default async function EditMyHospedajePage({ params }: PageProps) {
   const user = await requireResponsable();
   const { id } = await params;
 
-  const hospedaje = await getMyHospedaje(id, user.perfil.hospedajes_ids ?? []);
+  const hospedaje = await getMyHospedaje(id, user.hospedajeIds);
   if (!hospedaje) notFound();
 
   const destinos = await listDestinosForSelect();

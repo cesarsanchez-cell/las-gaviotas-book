@@ -40,7 +40,7 @@ export async function updateConsultaEstadoResponsableAction(input: {
     .maybeSingle<{ hospedaje_id: string }>();
   if (!consulta) return { error: "Consulta no encontrada." };
 
-  const hospedajesIds = user.perfil.hospedajes_ids ?? [];
+  const hospedajesIds = user.hospedajeIds;
   if (!hospedajesIds.includes(consulta.hospedaje_id)) {
     return { error: "No tenés permiso para gestionar esta consulta." };
   }

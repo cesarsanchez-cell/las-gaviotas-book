@@ -49,6 +49,8 @@ interface AdminSidebarProps {
   nombre: string | null;
   isSuperAdmin: boolean;
   destinoNombre: string | null;
+  /** Si el admin tambien tiene responsabilidades (hospedajes o gastros propios). */
+  alsoIsResponsable?: boolean;
 }
 
 export function AdminSidebar({
@@ -56,6 +58,7 @@ export function AdminSidebar({
   nombre,
   isSuperAdmin,
   destinoNombre,
+  alsoIsResponsable = false,
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const visibleNav = NAV.filter((item) => !item.superOnly || isSuperAdmin);
@@ -109,7 +112,16 @@ export function AdminSidebar({
           );
         })}
 
-        <div className="mt-6 border-t border-border pt-3">
+        <div className="mt-6 space-y-0.5 border-t border-border pt-3">
+          {alsoIsResponsable && (
+            <Link
+              href="/panel"
+              className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground transition hover:bg-secondary"
+            >
+              <Building2 className="h-4 w-4" aria-hidden />
+              <span>Ir a mi panel de operador</span>
+            </Link>
+          )}
           <Link
             href={`/${siteConfig.defaultDestino}`}
             target="_blank"

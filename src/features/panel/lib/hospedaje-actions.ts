@@ -69,14 +69,26 @@ export async function createHospedajeAsResponsableAction(
     return { error: error.message };
   }
 
-  // Vincular el hospedaje al perfil del responsable (mismo service role)
-  const nuevosIds = Array.from(
-    new Set([...(user.perfil.hospedajes_ids ?? []), data.id])
-  );
-  await admin
-    .from("perfiles")
-    .update({ hospedajes_ids: nuevosIds } as never)
-    .eq("id", user.id);
+  // Vincular el hospedaje al perfil del responsable. Doble escritura:
+  //  - responsabilidades (fuente nueva de verdad — soporta admin con
+  //    entidades propias, lugares gastronómicos, etc.)
+  //  - perfiles.hospedajes_ids (legacy, mantenido para compatibilidad con
+  //    código y RLS que todavía lo leen).
+  await admin.from("responsabilidades").insert({
+    perfil_id: user.id,
+    entidad_tipo: "hospedaje",
+    entidad_id: data.id,
+  } as never);
+
+  if (user.perfil.rol === "responsable") {
+    const nuevosIds = Array.from(
+      new Set([...(user.perfil.hospedajes_ids ?? []), data.id])
+    );
+    await admin
+      .from("perfiles")
+      .update({ hospedajes_ids: nuevosIds } as never)
+      .eq("id", user.id);
+  }
 
   revalidatePath("/panel", "layout");
   redirect(`/panel/hospedajes/${data.id}`);
@@ -91,7 +103,7 @@ export async function updateHospedajeAsResponsableAction(
 ): Promise<ActionResult> {
   const user = await requireResponsable();
 
-  if (!user.perfil.hospedajes_ids?.includes(id)) {
+  if (!user.hospedajeIds.includes(id)) {
     return { error: "No tenés permiso para editar este hospedaje." };
   }
 
@@ -158,7 +170,7 @@ export async function submitForReviewAction(
   id: string
 ): Promise<ActionResult> {
   const user = await requireResponsable();
-  if (!user.perfil.hospedajes_ids?.includes(id)) {
+  if (!user.hospedajeIds.includes(id)) {
     return { error: "No tenés permiso sobre este hospedaje." };
   }
 
@@ -212,7 +224,7 @@ export async function withdrawFromReviewAction(
   id: string
 ): Promise<ActionResult> {
   const user = await requireResponsable();
-  if (!user.perfil.hospedajes_ids?.includes(id)) {
+  if (!user.hospedajeIds.includes(id)) {
     return { error: "No tenés permiso sobre este hospedaje." };
   }
 

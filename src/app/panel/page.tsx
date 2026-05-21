@@ -37,7 +37,7 @@ const ESTADO_INFO: Record<
 export default async function PanelDashboardPage() {
   const user = await requireResponsable();
   const [hospedajes, lugares] = await Promise.all([
-    listMyHospedajes(user.perfil.hospedajes_ids ?? []),
+    listMyHospedajes(user.hospedajeIds),
     listLugaresDelResponsable(user.id),
   ]);
 

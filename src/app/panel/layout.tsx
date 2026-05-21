@@ -18,12 +18,20 @@ export default async function PanelLayout({
     <div className="flex min-h-screen">
       <div className="hidden w-64 shrink-0 md:block">
         <div className="sticky top-0 h-screen">
-          <PanelSidebar email={user.email} nombre={user.perfil.nombre} />
+          <PanelSidebar
+            email={user.email}
+            nombre={user.perfil.nombre}
+            isAlsoAdmin={user.isAlsoAdmin}
+          />
         </div>
       </div>
       <main className="flex-1 bg-muted/20">
         <div className="md:hidden">
-          <PanelSidebar email={user.email} nombre={user.perfil.nombre} />
+          <PanelSidebar
+            email={user.email}
+            nombre={user.perfil.nombre}
+            isAlsoAdmin={user.isAlsoAdmin}
+          />
         </div>
         <div className="px-6 py-8 md:px-10 md:py-10">{children}</div>
       </main>
