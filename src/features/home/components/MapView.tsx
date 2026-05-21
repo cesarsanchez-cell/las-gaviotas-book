@@ -118,6 +118,21 @@ export function MapView({ destinos }: MapViewProps) {
           iconAnchor: [7, 7],
         });
         const marker = L.marker([d.lat, d.lng], { icon });
+        // Label permanente con el nombre del destino al lado del pin,
+        // tintado del mismo color del bioma primario.
+        marker.bindTooltip(d.nombre, {
+          permanent: true,
+          direction: "right",
+          offset: [10, 0],
+          className: "me-mappin__label",
+        });
+        const tooltip = marker.getTooltip();
+        if (tooltip) {
+          const el = tooltip.getElement();
+          if (el) {
+            el.style.setProperty("--c", color);
+          }
+        }
         marker.on("click", () => setSelected(d));
         marker.addTo(markersLayer.current!);
       }
@@ -181,6 +196,22 @@ export function MapView({ destinos }: MapViewProps) {
         }
         @media (prefers-reduced-motion: reduce) {
           .me-mappin__ring { animation: none; }
+        }
+        /* Label permanente al lado del pin con el color del bioma. */
+        .leaflet-tooltip.me-mappin__label {
+          background: rgba(255, 255, 255, 0.92);
+          color: var(--c);
+          border: 1px solid var(--c);
+          border-radius: 9999px;
+          padding: 2px 8px;
+          font-size: 11px;
+          font-weight: 600;
+          line-height: 1.2;
+          box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+          white-space: nowrap;
+        }
+        .leaflet-tooltip.me-mappin__label::before {
+          display: none;
         }
       `}</style>
 
