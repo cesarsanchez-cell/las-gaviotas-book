@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ChevronLeft, ArrowRight, MapPin } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { Footer } from "@/components/layout/Footer";
 import {
   getRegionBySlug,
@@ -12,6 +12,7 @@ import {
   biomaColor,
   biomaLabel,
 } from "@/features/home/components/BiomaIcon";
+import { DestinoCard } from "@/features/home/components/DestinoCard";
 import { siteConfig } from "@/config/site";
 
 interface PageProps {
@@ -129,31 +130,17 @@ export default async function RegionPage({ params }: PageProps) {
             ) : (
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {destinos.map((d) => (
-                  <Link
+                  <DestinoCard
                     key={d.id}
-                    href={`/${d.slug}`}
-                    className="group flex flex-col rounded-2xl border border-border bg-card p-6 transition hover:border-primary/40 hover:shadow-md"
-                  >
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <MapPin className="h-3.5 w-3.5" aria-hidden />
-                      <span>
-                        {[d.region, d.provincia, d.pais]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </span>
-                    </div>
-                    <h3 className="mt-3 font-display text-xl tracking-tight text-foreground">
-                      {d.nombre}
-                    </h3>
-                    {d.descripcion_corta && (
-                      <p className="mt-2 line-clamp-3 text-sm text-muted-foreground">
-                        {d.descripcion_corta}
-                      </p>
-                    )}
-                    <div className="mt-auto flex items-center justify-end pt-4">
-                      <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-1 group-hover:text-primary" />
-                    </div>
-                  </Link>
+                    slug={d.slug}
+                    nombre={d.nombre}
+                    region={d.region}
+                    pais={d.pais}
+                    descripcion_corta={d.descripcion_corta}
+                    biomas={d.biomas}
+                    hospedajes_count={d.hospedajes_count}
+                    foto_url={d.foto_url}
+                  />
                 ))}
               </div>
             )}

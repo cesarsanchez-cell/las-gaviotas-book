@@ -118,6 +118,13 @@ const destinoSchema = z.object({
     .union([z.coerce.number().min(-180).max(180), z.literal("").transform(() => null)])
     .nullable()
     .optional(),
+  foto_url: z
+    .string()
+    .trim()
+    .url("Debe ser un URL válido (http(s)://...)")
+    .max(500)
+    .optional()
+    .or(z.literal("").transform(() => null)),
   activo: z.coerce.boolean().default(true),
   orden: z.coerce.number().int().min(0).max(10000).default(0),
 });

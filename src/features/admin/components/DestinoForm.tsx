@@ -192,6 +192,31 @@ export function DestinoForm({ initial, submitLabel, action }: Props) {
       </section>
 
       <section className="rounded-xl border border-border bg-card p-6">
+        <h2 className="font-display text-lg tracking-tight">Foto del destino</h2>
+        <div className="mt-4">
+          <label className="text-sm font-medium" htmlFor="foto_url">
+            URL de la foto
+          </label>
+          <input
+            id="foto_url"
+            name="foto_url"
+            type="url"
+            defaultValue={initial?.foto_url ?? ""}
+            placeholder="https://images.unsplash.com/photo-..."
+            className={cls("foto_url")}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            URL externo de la foto que aparece en la tarjeta del destino. Si
+            queda vacío, se muestra el degradado de biomas heredados de la
+            región como fallback.
+          </p>
+          {fe("foto_url") && (
+            <p className="mt-1 text-xs text-rose-600">{fe("foto_url")}</p>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-6">
         <h2 className="font-display text-lg tracking-tight">Ubicación + ordenamiento</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-4">
           <div>
