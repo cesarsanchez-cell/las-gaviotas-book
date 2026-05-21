@@ -139,7 +139,7 @@ export default async function RegionPage({ params }: PageProps) {
                     descripcion_corta={d.descripcion_corta}
                     biomas={d.biomas}
                     hospedajes_count={d.hospedajes_count}
-                    foto_url={d.foto_url}
+                    foto_path={d.foto_path}
                   />
                 ))}
               </div>

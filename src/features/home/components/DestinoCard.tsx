@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, MapPin } from "lucide-react";
 import type { Bioma } from "@/types/database";
+import { getDestinoFotoUrl } from "@/lib/storage";
 import {
   BiomaIcon,
   biomaColor,
@@ -16,7 +17,7 @@ interface DestinoCardProps {
   descripcion_corta: string | null;
   biomas: Bioma[];
   hospedajes_count: number;
-  foto_url: string | null;
+  foto_path: string | null;
 }
 
 export function DestinoCard({
@@ -27,12 +28,13 @@ export function DestinoCard({
   descripcion_corta,
   biomas,
   hospedajes_count,
-  foto_url,
+  foto_path,
 }: DestinoCardProps) {
   const primary = biomas[0] ?? "playa";
   const secondary = biomas[1] ?? primary;
   const PrimaryIcon = biomaIcon(primary);
   const SecondaryIcon = biomaIcon(secondary);
+  const fotoUrl = foto_path ? getDestinoFotoUrl(foto_path) : null;
 
   return (
     <Link
@@ -42,17 +44,17 @@ export function DestinoCard({
       <div
         className="relative aspect-[4/3] overflow-hidden"
         style={
-          foto_url
+          fotoUrl
             ? undefined
             : {
                 background: `linear-gradient(135deg, ${biomaColor(primary)} 0%, ${biomaColor(secondary)} 100%)`,
               }
         }
       >
-        {foto_url ? (
+        {fotoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={foto_url}
+            src={fotoUrl}
             alt={nombre}
             className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
             loading="lazy"

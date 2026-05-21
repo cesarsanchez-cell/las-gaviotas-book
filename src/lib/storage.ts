@@ -36,3 +36,10 @@ export function getFotoUrl(storagePath: string): string {
 
   return `${baseUrl}/storage/v1/object/public/hospedajes/${storagePath}`;
 }
+
+/** URL pública para una foto del bucket `destinos`. */
+export function getDestinoFotoUrl(storagePath: string): string {
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!baseUrl) return FALLBACK_PLACEHOLDER;
+  return `${baseUrl}/storage/v1/object/public/destinos/${storagePath}`;
+}

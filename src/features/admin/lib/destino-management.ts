@@ -118,10 +118,9 @@ const destinoSchema = z.object({
     .union([z.coerce.number().min(-180).max(180), z.literal("").transform(() => null)])
     .nullable()
     .optional(),
-  foto_url: z
+  foto_path: z
     .string()
     .trim()
-    .url("Debe ser un URL válido (http(s)://...)")
     .max(500)
     .optional()
     .or(z.literal("").transform(() => null)),
@@ -273,10 +272,93 @@ export async function deleteDestinoAction(id: string): Promise<ActionResult> {
     };
   }
 
+  // Borrar la foto del bucket si tenía una cargada.
+  const { data: actual } = await sb
+    .from("destinos")
+    .select("foto_path")
+    .eq("id", id)
+    .maybeSingle<{ foto_path: string | null }>();
+  if (actual?.foto_path) {
+    await sb.storage.from("destinos").remove([actual.foto_path]);
+  }
+
   const { error } = await sb.from("destinos").delete().eq("id", id);
   if (error) return { error: error.message };
 
   revalidatePath("/admin/destinos");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/**
+ * Persiste el `foto_path` después de un upload exitoso al bucket
+ * `destinos`. Si había una foto previa, borra el objeto viejo del bucket
+ * (no nos quedamos con huérfanos).
+ */
+export async function setDestinoFotoAction(
+  id: string,
+  fotoPath: string
+): Promise<ActionResult> {
+  const me = await requireAdmin();
+  if (!me.isSuperAdmin) {
+    return { error: "Solo super admin puede modificar la foto del destino." };
+  }
+  if (!fotoPath || fotoPath.length > 500) {
+    return { error: "Path inválido." };
+  }
+
+  const sb = createAdminClient();
+  const { data: actual } = await sb
+    .from("destinos")
+    .select("foto_path")
+    .eq("id", id)
+    .maybeSingle<{ foto_path: string | null }>();
+  if (!actual) return { error: "Destino no encontrado." };
+
+  const { error } = await sb
+    .from("destinos")
+    .update({ foto_path: fotoPath } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  if (actual.foto_path && actual.foto_path !== fotoPath) {
+    await sb.storage.from("destinos").remove([actual.foto_path]);
+  }
+
+  revalidatePath("/admin/destinos");
+  revalidatePath(`/admin/destinos/${id}`);
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/** Borra la foto del destino (objeto en bucket + limpia la columna). */
+export async function deleteDestinoFotoAction(
+  id: string
+): Promise<ActionResult> {
+  const me = await requireAdmin();
+  if (!me.isSuperAdmin) {
+    return { error: "Solo super admin puede borrar la foto del destino." };
+  }
+
+  const sb = createAdminClient();
+  const { data: actual } = await sb
+    .from("destinos")
+    .select("foto_path")
+    .eq("id", id)
+    .maybeSingle<{ foto_path: string | null }>();
+  if (!actual) return { error: "Destino no encontrado." };
+  if (!actual.foto_path) return { ok: true };
+
+  await sb.storage.from("destinos").remove([actual.foto_path]);
+
+  const { error } = await sb
+    .from("destinos")
+    .update({ foto_path: null } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/destinos");
+  revalidatePath(`/admin/destinos/${id}`);
   revalidatePath("/");
   return { ok: true };
 }

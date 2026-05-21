@@ -98,7 +98,7 @@ export async function getRegionById(id: string): Promise<RegionRow | null> {
  *  - `biomas`: heredados de la región (los destinos no tienen biomas
  *    propios todavía).
  *  - `hospedajes_count`: cuántos publicados tiene cada destino.
- *  - `foto_url`: URL externo cargado por el Super Admin (puede ser null).
+ *  - `foto_path`: URL externo cargado por el Super Admin (puede ser null).
  */
 export interface DestinoDeRegionRow {
   id: string;
@@ -110,7 +110,7 @@ export interface DestinoDeRegionRow {
   descripcion_corta: string | null;
   lat: number | null;
   lng: number | null;
-  foto_url: string | null;
+  foto_path: string | null;
   biomas: Bioma[];
   hospedajes_count: number;
 }
@@ -122,7 +122,7 @@ export async function listDestinosDeRegion(
   const { data: destinos } = (await sb
     .from("destinos")
     .select(
-      "id, slug, nombre, region, provincia, pais, descripcion_corta, lat, lng, foto_url"
+      "id, slug, nombre, region, provincia, pais, descripcion_corta, lat, lng, foto_path"
     )
     .eq("region_id", regionId)
     .eq("activo", true)
@@ -137,7 +137,7 @@ export async function listDestinosDeRegion(
       descripcion_corta: string | null;
       lat: number | null;
       lng: number | null;
-      foto_url: string | null;
+      foto_path: string | null;
     }> | null;
   };
   if (!destinos || destinos.length === 0) return [];
@@ -209,7 +209,7 @@ export interface DestinoMiniRow {
   hospedajes_count: number;
   lat: number | null;
   lng: number | null;
-  foto_url: string | null;
+  foto_path: string | null;
   created_at: string;
 }
 
@@ -217,7 +217,7 @@ export async function listDestinosMini(): Promise<DestinoMiniRow[]> {
   const sb = await createClient();
   const { data: destinos } = await sb
     .from("destinos")
-    .select("slug, nombre, region, region_id, lat, lng, foto_url, created_at, activo")
+    .select("slug, nombre, region, region_id, lat, lng, foto_path, created_at, activo")
     .eq("activo", true)
     .order("orden", { ascending: true })
     .returns<
@@ -228,7 +228,7 @@ export async function listDestinosMini(): Promise<DestinoMiniRow[]> {
         region_id: string | null;
         lat: number | null;
         lng: number | null;
-        foto_url: string | null;
+        foto_path: string | null;
         created_at: string;
         activo: boolean;
       }>
@@ -283,7 +283,7 @@ export async function listDestinosMini(): Promise<DestinoMiniRow[]> {
     hospedajes_count: countByDestino.get(idBySlug.get(d.slug) ?? "") ?? 0,
     lat: d.lat,
     lng: d.lng,
-    foto_url: d.foto_url,
+    foto_path: d.foto_path,
     created_at: d.created_at,
   }));
 }

@@ -36,8 +36,8 @@ export interface DestinoRow {
   descripcion_larga: string | null;
   lat: number | null;
   lng: number | null;
-  /** URL externo a foto del destino (cargado por Super Admin). Si es null, las cards caen al gradient pintado con los biomas heredados de la región. */
-  foto_url: string | null;
+  /** Storage path (bucket `destinos`) de la foto del destino subida por Super Admin. Si es null, las cards caen al gradient pintado con los biomas heredados de la región. */
+  foto_path: string | null;
   activo: boolean;
   orden: number;
   created_at: string;
