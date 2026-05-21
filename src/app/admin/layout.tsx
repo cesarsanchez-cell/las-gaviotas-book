@@ -19,13 +19,22 @@ async function getDestinoNombre(destinoId: string | null): Promise<string | null
   return data?.nombre ?? null;
 }
 
-async function hasResponsabilidades(userId: string): Promise<boolean> {
+async function getResponsabilidadesCounts(
+  userId: string
+): Promise<{ hospedajes: number; gastronomicos: number }> {
   const sb = createAdminClient();
-  const { count } = await sb
+  const { data } = await sb
     .from("responsabilidades")
-    .select("perfil_id", { count: "exact", head: true })
-    .eq("perfil_id", userId);
-  return (count ?? 0) > 0;
+    .select("entidad_tipo")
+    .eq("perfil_id", userId)
+    .returns<Array<{ entidad_tipo: "hospedaje" | "lugar" }>>();
+  let hospedajes = 0;
+  let gastronomicos = 0;
+  for (const r of data ?? []) {
+    if (r.entidad_tipo === "hospedaje") hospedajes++;
+    else if (r.entidad_tipo === "lugar") gastronomicos++;
+  }
+  return { hospedajes, gastronomicos };
 }
 
 export default async function AdminLayout({
@@ -40,10 +49,12 @@ export default async function AdminLayout({
     return <>{children}</>;
   }
 
-  const [destinoNombre, alsoIsResponsable] = await Promise.all([
+  const [destinoNombre, respCounts] = await Promise.all([
     getDestinoNombre(admin.destinoId),
-    hasResponsabilidades(admin.id),
+    getResponsabilidadesCounts(admin.id),
   ]);
+  const alsoIsResponsable =
+    respCounts.hospedajes + respCounts.gastronomicos > 0;
 
   return (
     <div className="flex min-h-screen">
@@ -55,6 +66,8 @@ export default async function AdminLayout({
             isSuperAdmin={admin.isSuperAdmin}
             destinoNombre={destinoNombre}
             alsoIsResponsable={alsoIsResponsable}
+            respHospedajes={respCounts.hospedajes}
+            respGastronomicos={respCounts.gastronomicos}
           />
         </div>
       </div>
@@ -66,6 +79,8 @@ export default async function AdminLayout({
             isSuperAdmin={admin.isSuperAdmin}
             destinoNombre={destinoNombre}
             alsoIsResponsable={alsoIsResponsable}
+            respHospedajes={respCounts.hospedajes}
+            respGastronomicos={respCounts.gastronomicos}
           />
         </div>
         <div className="px-6 py-8 md:px-10 md:py-10">{children}</div>

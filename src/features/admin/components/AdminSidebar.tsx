@@ -51,6 +51,14 @@ interface AdminSidebarProps {
   destinoNombre: string | null;
   /** Si el admin tambien tiene responsabilidades (hospedajes o gastros propios). */
   alsoIsResponsable?: boolean;
+  /** Cantidad de hospedajes a su cargo (para el tooltip del badge). */
+  respHospedajes?: number;
+  /** Cantidad de gastronomicos a su cargo (para el tooltip del badge). */
+  respGastronomicos?: number;
+}
+
+function pluralizar(n: number, sing: string, plural: string): string {
+  return `${n} ${n === 1 ? sing : plural}`;
 }
 
 export function AdminSidebar({
@@ -59,6 +67,8 @@ export function AdminSidebar({
   isSuperAdmin,
   destinoNombre,
   alsoIsResponsable = false,
+  respHospedajes = 0,
+  respGastronomicos = 0,
 }: AdminSidebarProps) {
   const pathname = usePathname();
   const visibleNav = NAV.filter((item) => !item.superOnly || isSuperAdmin);
@@ -135,7 +145,7 @@ export function AdminSidebar({
 
       <div className="border-t border-border p-4">
         <div className="mb-3 px-1 text-xs">
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span
               className={cn(
                 "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
@@ -146,6 +156,27 @@ export function AdminSidebar({
             >
               {scopeLabel}
             </span>
+            {alsoIsResponsable && (
+              <span
+                title={`También gestiona ${[
+                  respHospedajes > 0
+                    ? pluralizar(respHospedajes, "hospedaje", "hospedajes")
+                    : null,
+                  respGastronomicos > 0
+                    ? pluralizar(
+                        respGastronomicos,
+                        "gastronómico",
+                        "gastronómicos"
+                      )
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" y ")} como operador.`}
+                className="cursor-help rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-800"
+              >
+                + Operador
+              </span>
+            )}
           </div>
           <p className="mt-1.5 truncate font-medium text-foreground">
             {nombre ?? "Admin"}

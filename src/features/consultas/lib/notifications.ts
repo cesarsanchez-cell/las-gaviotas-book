@@ -102,12 +102,23 @@ export async function notifyConsultaNueva(consultaId: string): Promise<void> {
       .maybeSingle<{ nombre: string }>();
     if (!d) return;
 
-    const { data: perfil } = await sb
-      .from("perfiles")
-      .select("id, nombre")
-      .contains("hospedajes_ids", [h.id])
-      .eq("rol", "responsable")
-      .maybeSingle<{ id: string; nombre: string | null }>();
+    // Busca al responsable del hospedaje vía la tabla responsabilidades
+    // (fuente nueva de verdad). Esto incluye tanto a responsables puros
+    // como a admins locales que también gestionan el hospedaje.
+    const { data: resp } = await sb
+      .from("responsabilidades")
+      .select("perfil_id")
+      .eq("entidad_tipo", "hospedaje")
+      .eq("entidad_id", h.id)
+      .maybeSingle<{ perfil_id: string }>();
+    const perfil = resp?.perfil_id
+      ? await sb
+          .from("perfiles")
+          .select("id, nombre")
+          .eq("id", resp.perfil_id)
+          .maybeSingle<{ id: string; nombre: string | null }>()
+          .then((r) => r.data)
+      : null;
 
     const disponibilidad = await getDisponibilidadFlag(
       h.id,

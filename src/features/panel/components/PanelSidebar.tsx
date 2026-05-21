@@ -96,10 +96,18 @@ export function PanelSidebar({
 
       <div className="border-t border-border p-4">
         <div className="mb-3 px-1 text-xs">
-          <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-800">
               Responsable
             </span>
+            {isAlsoAdmin && (
+              <span
+                title="También es administrador. Usá el atajo de arriba para volver al panel de administración."
+                className="cursor-help rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-800"
+              >
+                + Admin
+              </span>
+            )}
           </div>
           <p className="mt-1.5 truncate font-medium text-foreground">
             {nombre ?? "Responsable"}

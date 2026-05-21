@@ -31,11 +31,19 @@ export async function gatherNotificationContext(
     .maybeSingle<{ slug: string; nombre: string }>();
   if (!d) return null;
 
+  // Busca al responsable vía responsabilidades (fuente nueva). Incluye
+  // tanto responsables puros como admins locales que también gestionan.
+  const { data: resp } = await admin
+    .from("responsabilidades")
+    .select("perfil_id")
+    .eq("entidad_tipo", "hospedaje")
+    .eq("entidad_id", hospedajeId)
+    .maybeSingle<{ perfil_id: string }>();
+  if (!resp) return null;
   const { data: perfil } = await admin
     .from("perfiles")
     .select("id, nombre")
-    .contains("hospedajes_ids", [hospedajeId])
-    .eq("rol", "responsable")
+    .eq("id", resp.perfil_id)
     .maybeSingle<{ id: string; nombre: string | null }>();
   if (!perfil) return null;
 
