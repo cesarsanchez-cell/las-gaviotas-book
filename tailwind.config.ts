@@ -61,6 +61,19 @@ const config: Config = {
           500: "#c8a062",
           700: "#8a6a3a",
         },
+        // Wordmark dual-tone (handoff regiones)
+        "wm-mis": "hsl(var(--wm-mis))",
+        "wm-esc": "hsl(var(--wm-esc))",
+        "brand-cyan": "hsl(var(--brand-cyan))",
+        // Biomas — tokens del handoff regiones
+        bioma: {
+          playa:    "hsl(var(--bioma-playa))",
+          bosque:   "hsl(var(--bioma-bosque))",
+          montana:  "hsl(var(--bioma-montana))",
+          sierra:   "hsl(var(--bioma-sierra))",
+          desierto: "hsl(var(--bioma-desierto))",
+          lago:     "hsl(var(--bioma-lago))",
+        },
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],

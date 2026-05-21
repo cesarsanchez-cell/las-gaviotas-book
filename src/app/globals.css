@@ -4,32 +4,60 @@
 
 @layer base {
   :root {
-    --background: 30 33% 98%;
-    --foreground: 200 50% 12%;
+    /* ─── Paleta operador (handoff regiones 2026-05-21) ─────────────────
+       Antes era cream claro + cyan fuerte. Pasamos a paleta más cálida:
+       cream natural + petrol como primary. Mantiene el contraste navy
+       sobre cream pero con menos saturación.
+    */
+    --background: 30 41% 95%;          /* #F7F1EB cream */
+    --foreground: 207 100% 12%;        /* #00233C deep navy */
 
     --card: 0 0% 100%;
-    --card-foreground: 200 50% 12%;
+    --card-foreground: 207 100% 12%;
 
-    --primary: 200 95% 36%;
+    --primary: 198 46% 29%;            /* #28566B petrol */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 40% 95%;
-    --secondary-foreground: 200 50% 12%;
+    --secondary: 30 33% 92%;
+    --secondary-foreground: 207 100% 12%;
 
-    --muted: 30 20% 94%;
-    --muted-foreground: 200 15% 40%;
+    --muted: 30 25% 91%;
+    --muted-foreground: 207 25% 36%;
 
-    --accent: 35 60% 55%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 195 100% 60%;            /* #33CCFF — usar muy poco */
+    --accent-foreground: 207 100% 12%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 20% 88%;
-    --input: 30 20% 88%;
-    --ring: 200 95% 36%;
+    --border: 30 20% 86%;
+    --input: 30 20% 86%;
+    --ring: 198 46% 29%;
 
     --radius: 0.75rem;
+
+    /* ─── Wordmark (marca paraguas + header destino) ─────────────────── */
+    --wm-mis: 21 35% 56%;              /* #B5876A terracota suave */
+    --wm-esc: 198 28% 56%;             /* #6C9BAE sea pastel */
+    --brand-cyan: 193 75% 49%;         /* #1AB6E0 — accent destino */
+
+    /* ─── Biomas (zona / particularidad) ─────────────────────────────── */
+    --bioma-playa:    198 73% 54%;     /* #3bafda */
+    --bioma-bosque:   144 35% 38%;     /* #3f8159 */
+    --bioma-montana:  213 14% 49%;     /* #6b7a8f */
+    --bioma-sierra:   17 41% 53%;      /* #b97455 */
+    --bioma-desierto: 38 60% 64%;      /* #d9b26a */
+    --bioma-lago:     208 56% 45%;     /* #3678b0 */
+
+    /* ─── Pastels (uso secundario, gradients, surfaces) ──────────────── */
+    --pastel-mint:  172 100% 90%;      /* #CCFFFB */
+    --pastel-sea:   192 35% 58%;       /* #67AFBF */
+    --pastel-green: 120 33% 70%;       /* #99CC99 */
+    --pastel-taupe: 26 17% 55%;        /* #A18C78 */
+
+    /* ─── Motion ─────────────────────────────────────────────────────── */
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 
@@ -45,6 +73,64 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  /* Eyebrow — sans uppercase tracking-widest. Patrón estable del handoff. */
+  .eyebrow {
+    @apply text-sm font-medium uppercase text-primary;
+    letter-spacing: 0.18em;
+  }
+  .eyebrow-on-dark {
+    @apply text-amber-300;
+  }
+  .eyebrow-muted {
+    @apply text-muted-foreground;
+  }
+
+  /* Wordmark dual-tone — Mis (terracota) + Escapadas (sea pastel). */
+  .wordmark-mis {
+    color: hsl(var(--wm-mis));
+  }
+  .wordmark-esc {
+    color: hsl(var(--wm-esc));
+  }
+
+  /* Bioma chip — fondo del color del bioma + texto blanco. */
+  .bioma-chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium text-white;
+  }
+  .bioma-chip[data-bioma="playa"]    { background-color: hsl(var(--bioma-playa)); }
+  .bioma-chip[data-bioma="bosque"]   { background-color: hsl(var(--bioma-bosque)); }
+  .bioma-chip[data-bioma="montana"]  { background-color: hsl(var(--bioma-montana)); }
+  .bioma-chip[data-bioma="sierra"]   { background-color: hsl(var(--bioma-sierra)); }
+  .bioma-chip[data-bioma="desierto"] { background-color: hsl(var(--bioma-desierto)); }
+  .bioma-chip[data-bioma="lago"]     { background-color: hsl(var(--bioma-lago)); }
+}
+
+@layer utilities {
+  /* Motion utilities reusables */
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pop-in {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  @keyframes mappin-pulse {
+    0%   { transform: scale(0.6); opacity: 0.4; }
+    100% { transform: scale(2.4); opacity: 0; }
+  }
+  .anim-fade-up { animation: fade-in-up 600ms var(--ease-out) both; }
+  .anim-pop-in  { animation: pop-in 400ms var(--ease-out) both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .anim-fade-up,
+    .anim-pop-in {
+      animation: none;
+    }
   }
 }
 

@@ -26,7 +26,10 @@ export interface DestinoRow {
   id: string;
   slug: string;
   nombre: string;
+  /** Región natural/textual (label libre, ej. "Partido de la Costa"). */
   region: string | null;
+  /** FK opcional a la tabla `regiones` (agrupamiento geográfico-cultural curado). */
+  region_id: string | null;
   provincia: string | null;
   pais: string | null;
   descripcion_corta: string | null;
@@ -35,6 +38,35 @@ export interface DestinoRow {
   lng: number | null;
   activo: boolean;
   orden: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Biomas dominantes de una región o destino. */
+export type Bioma =
+  | "playa"
+  | "bosque"
+  | "montana"
+  | "sierra"
+  | "lago"
+  | "desierto";
+
+/**
+ * Región: agrupamiento geográfico-cultural de destinos curado por el Super
+ * Admin. Es el primer nivel que ve el viajero en el hub paraguas cuando la
+ * red escala a cientos/miles de destinos.
+ */
+export interface RegionRow {
+  id: string;
+  slug: string;
+  nombre: string;
+  descripcion: string | null;
+  biomas: Bioma[];
+  pais: string;
+  activo: boolean;
+  destacado: boolean;
+  orden: number;
+  foto_path: string | null;
   created_at: string;
   updated_at: string;
 }
