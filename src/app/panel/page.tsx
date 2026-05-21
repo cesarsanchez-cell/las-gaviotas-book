@@ -87,96 +87,110 @@ export default async function PanelDashboardPage() {
         </section>
       )}
 
-      {hospedajes.length > 0 && (
-        <section className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="inline-flex items-center gap-2 font-display text-2xl tracking-tight">
-              <Building2 className="h-5 w-5 text-muted-foreground" aria-hidden />
-              Mis hospedajes
-            </h2>
-            <Link
-              href="/panel/hospedajes/nuevo"
-              className={buttonVariants({ size: "sm" })}
-            >
-              <Plus className="h-4 w-4" />
-              Nuevo
-            </Link>
-          </div>
+      {!sinEntidades && (
+        <>
+          <section className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="inline-flex items-center gap-2 font-display text-2xl tracking-tight">
+                <Building2 className="h-5 w-5 text-muted-foreground" aria-hidden />
+                Mis hospedajes
+              </h2>
+              <Link
+                href="/panel/hospedajes/nuevo"
+                className={buttonVariants({ size: "sm" })}
+              >
+                <Plus className="h-4 w-4" />
+                Nuevo
+              </Link>
+            </div>
 
-          <ul className="divide-y divide-border rounded-xl border border-border bg-card">
-            {hospedajes.map((h) => {
-              const info = ESTADO_INFO[h.estado];
-              const Icon = info.icon;
-              return (
-                <li key={h.id}>
-                  <Link
-                    href={`/panel/hospedajes/${h.id}`}
-                    className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-muted/40"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-medium text-foreground">{h.nombre}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {h.destino_nombre}
-                      </p>
-                    </div>
-                    <div
-                      className={`flex items-center gap-2 text-sm ${info.tone}`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {info.label}
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
+            {hospedajes.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border bg-card px-5 py-6 text-sm text-muted-foreground">
+                Todavía no cargaste ningún hospedaje. Usá <strong>Nuevo</strong>{" "}
+                para agregar uno.
+              </div>
+            ) : (
+              <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+                {hospedajes.map((h) => {
+                  const info = ESTADO_INFO[h.estado];
+                  const Icon = info.icon;
+                  return (
+                    <li key={h.id}>
+                      <Link
+                        href={`/panel/hospedajes/${h.id}`}
+                        className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-muted/40"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground">{h.nombre}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {h.destino_nombre}
+                          </p>
+                        </div>
+                        <div
+                          className={`flex items-center gap-2 text-sm ${info.tone}`}
+                        >
+                          <Icon className="h-4 w-4" />
+                          {info.label}
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
 
-      {lugares.length > 0 && (
-        <section className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="inline-flex items-center gap-2 font-display text-2xl tracking-tight">
-              <Utensils className="h-5 w-5 text-muted-foreground" aria-hidden />
-              Mis gastronómicos
-            </h2>
-            <Link
-              href="/panel/lugares/nuevo"
-              className={buttonVariants({ size: "sm" })}
-            >
-              <Plus className="h-4 w-4" />
-              Nuevo
-            </Link>
-          </div>
+          <section className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="inline-flex items-center gap-2 font-display text-2xl tracking-tight">
+                <Utensils className="h-5 w-5 text-muted-foreground" aria-hidden />
+                Mis gastronómicos
+              </h2>
+              <Link
+                href="/panel/lugares/nuevo"
+                className={buttonVariants({ size: "sm" })}
+              >
+                <Plus className="h-4 w-4" />
+                Nuevo
+              </Link>
+            </div>
 
-          <ul className="divide-y divide-border rounded-xl border border-border bg-card">
-            {lugares.map((l) => {
-              const info = ESTADO_INFO[l.estado];
-              const Icon = info.icon;
-              return (
-                <li key={l.id}>
-                  <Link
-                    href={`/panel/lugares/${l.id}`}
-                    className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-muted/40"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-medium text-foreground">{l.nombre}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {l.categoria}
-                      </p>
-                    </div>
-                    <div
-                      className={`flex items-center gap-2 text-sm ${info.tone}`}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {info.label}
-                    </div>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
+            {lugares.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border bg-card px-5 py-6 text-sm text-muted-foreground">
+                Todavía no cargaste ningún gastronómico. Usá{" "}
+                <strong>Nuevo</strong> para agregar uno.
+              </div>
+            ) : (
+              <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+                {lugares.map((l) => {
+                  const info = ESTADO_INFO[l.estado];
+                  const Icon = info.icon;
+                  return (
+                    <li key={l.id}>
+                      <Link
+                        href={`/panel/lugares/${l.id}`}
+                        className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-muted/40"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium text-foreground">{l.nombre}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {l.categoria}
+                          </p>
+                        </div>
+                        <div
+                          className={`flex items-center gap-2 text-sm ${info.tone}`}
+                        >
+                          <Icon className="h-4 w-4" />
+                          {info.label}
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </>
       )}
     </div>
   );
