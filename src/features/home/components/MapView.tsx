@@ -56,6 +56,8 @@ export function MapView({ destinos }: MapViewProps) {
       if (cancelled || !mapRef.current) return;
 
       const map = L.map(mapRef.current, {
+        // Default a Argentina entera. Después de cargar los markers ajustamos
+        // el viewport con fitBounds para acercarnos a donde están los destinos.
         center: [-38.5, -63.6],
         zoom: 4,
         minZoom: 3,
@@ -91,7 +93,7 @@ export function MapView({ destinos }: MapViewProps) {
     let cancelled = false;
     (async () => {
       const L = (await import("leaflet")).default;
-      if (cancelled || !markersLayer.current) return;
+      if (cancelled || !markersLayer.current || !mapInstance.current) return;
 
       markersLayer.current.clearLayers();
 
@@ -112,6 +114,33 @@ export function MapView({ destinos }: MapViewProps) {
         const marker = L.marker([d.lat, d.lng], { icon });
         marker.on("click", () => setSelected(d));
         marker.addTo(markersLayer.current!);
+      }
+
+      // Auto-fit del viewport a los pins visibles. Acomoda el zoom según la
+      // dispersión geográfica — si todos están en la costa bonaerense, se
+      // acerca; si hay uno en Patagonia y otro en NOA, hace zoom out para
+      // mostrarlos a todos.
+      if (filtrados.length > 0) {
+        const bounds = L.latLngBounds(
+          filtrados.map((d) => L.latLng(d.lat, d.lng))
+        );
+        // 1 punto: setView con zoom 11 (nivel pueblo) — fitBounds con un solo
+        // punto haría zoom máximo, queda demasiado cerca.
+        if (filtrados.length === 1) {
+          const only = filtrados[0];
+          mapInstance.current.setView([only.lat, only.lng], 11, {
+            animate: true,
+          });
+        } else {
+          mapInstance.current.fitBounds(bounds, {
+            padding: [80, 80],
+            maxZoom: 10,
+            animate: true,
+          });
+        }
+      } else {
+        // Sin pins (filtro sin matches), volver al overview de Argentina.
+        mapInstance.current.setView([-38.5, -63.6], 4, { animate: true });
       }
     })();
     return () => {
