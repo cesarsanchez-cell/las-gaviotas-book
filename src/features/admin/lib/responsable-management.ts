@@ -240,8 +240,31 @@ const createResponsableSchema = z.object({
 });
 
 export interface CreateResponsableResult extends ActionResult {
-  /** Email al que se envió la invitación. */
+  /** Email al que se envió la invitación o al que se le sumaron entidades. */
   email?: string;
+  /** true si el email ya existía y se sumaron entidades a su cuenta. */
+  merged?: boolean;
+  /** Cantidad de entidades nuevas sumadas (solo en caso merged). */
+  mergedCount?: number;
+}
+
+/**
+ * Busca un user en auth.users por email iterando listUsers.
+ * Devuelve null si no existe. Tolera hasta 50 páginas de 200 (10k users).
+ */
+async function findAuthUserByEmail(
+  sb: ReturnType<typeof createAdminClient>,
+  email: string
+): Promise<{ id: string; email: string } | null> {
+  const target = email.toLowerCase().trim();
+  for (let page = 1; page <= 50; page++) {
+    const { data, error } = await sb.auth.admin.listUsers({ page, perPage: 200 });
+    if (error || !data) return null;
+    const found = data.users.find((u) => u.email?.toLowerCase() === target);
+    if (found && found.email) return { id: found.id, email: found.email };
+    if (data.users.length < 200) return null;
+  }
+  return null;
 }
 
 /**
@@ -317,11 +340,28 @@ export async function createResponsableAction(
     }
   }
 
-  // Validar que ninguna entidad esté ya asignada a otro responsable.
+  // Pre-chequear si el email ya tiene cuenta — para soportar invite-merge
+  // (operador con varios negocios: hospedaje + gastronómico, o que ya es
+  // admin local). Si existe, NO reinvitamos (evita reenviarle mail de
+  // activación a alguien con cuenta activa) y sumamos a sus responsabilidades.
+  const existingAuthUser = await findAuthUserByEmail(sb, email);
+
+  let existingPerfil: { id: string; rol: string } | null = null;
+  if (existingAuthUser) {
+    const { data } = await sb
+      .from("perfiles")
+      .select("id, rol")
+      .eq("id", existingAuthUser.id)
+      .maybeSingle<{ id: string; rol: string }>();
+    existingPerfil = data;
+  }
+
+  // Validar 1 entidad = 1 responsable — excluyendo responsabilidades del
+  // perfil que estamos por mergear (esas YA son suyas, no son conflicto).
   if (entidades.length > 0) {
-    const { data: yaAsignadas } = await sb
+    let q = sb
       .from("responsabilidades")
-      .select("entidad_tipo, entidad_id")
+      .select("entidad_tipo, entidad_id, perfil_id")
       .or(
         [
           hospedajeIds.length > 0
@@ -333,8 +373,11 @@ export async function createResponsableAction(
         ]
           .filter(Boolean)
           .join(",")
-      )
-      .returns<Array<{ entidad_tipo: "hospedaje" | "lugar"; entidad_id: string }>>();
+      );
+    if (existingPerfil) q = q.neq("perfil_id", existingPerfil.id);
+    const { data: yaAsignadas } = await q.returns<
+      Array<{ entidad_tipo: "hospedaje" | "lugar"; entidad_id: string }>
+    >();
     if (yaAsignadas && yaAsignadas.length > 0) {
       return {
         error:
@@ -346,56 +389,82 @@ export async function createResponsableAction(
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.misescapadas.com.ar";
 
-  // inviteUserByEmail es idempotente: si el email ya existe en auth.users,
-  // Supabase devuelve el user existente (no error) y reenvía el link. Por
-  // eso después tenemos que chequear si ya había perfil para ese id, y
-  // según el rol decidir qué hacer.
-  const { data: invited, error: inviteErr } =
-    await sb.auth.admin.inviteUserByEmail(email, {
-      data: { nombre },
-      redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
-    });
-  if (inviteErr || !invited.user) {
-    return {
-      error: inviteErr?.message ?? "No se pudo enviar la invitación.",
-    };
-  }
+  // Bifurcamos: usuario nuevo → invitar (manda mail). Usuario existente →
+  // merge (NO reinvitar, NO reenviar mail).
+  let userId: string;
+  let merged = false;
 
-  const userId = invited.user.id;
+  if (existingAuthUser) {
+    userId = existingAuthUser.id;
+    merged = true;
 
-  // ¿Ya tenía perfil este user?
-  const { data: existing } = await sb
-    .from("perfiles")
-    .select("id, rol")
-    .eq("id", userId)
-    .maybeSingle<{ id: string; rol: string }>();
-
-  if (existing) {
-    if (existing.rol === "admin") {
-      return {
-        error:
-          "Ese email pertenece a un administrador. No podés convertirlo en responsable.",
-      };
-    }
-    if (existing.rol === "responsable") {
-      return {
-        error:
-          "Ese email ya tiene cuenta como responsable. Editalo desde la lista de abajo para asignarle más entidades.",
-      };
-    }
-    // Otro rol (huésped futuro, etc.): convertir a responsable.
-    const { error: updErr } = await sb
-      .from("perfiles")
-      .update({
+    if (existingPerfil) {
+      if (existingPerfil.rol === "admin") {
+        // Caso operador-admin-local que también gestiona entidades: NO
+        // cambiamos rol (sigue siendo admin). Solo sumamos responsabilidades.
+        // Caveat: con el alcance mínimo no podrá gestionar estas entidades
+        // desde /panel — ver [[project-roles-multiples]] para el rediseño
+        // completo de auth helpers.
+      } else if (existingPerfil.rol === "responsable") {
+        // Mergear: actualizar nombre + unión de hospedajes_ids.
+        const { data: perfilFull } = await sb
+          .from("perfiles")
+          .select("hospedajes_ids")
+          .eq("id", userId)
+          .maybeSingle<{ hospedajes_ids: string[] | null }>();
+        const mergedHospedajeIds = Array.from(
+          new Set([...(perfilFull?.hospedajes_ids ?? []), ...hospedajeIds])
+        );
+        const { error: updErr } = await sb
+          .from("perfiles")
+          .update({
+            nombre,
+            hospedajes_ids: mergedHospedajeIds,
+          } as never)
+          .eq("id", userId);
+        if (updErr) {
+          return { error: `Falló actualizar el perfil: ${updErr.message}` };
+        }
+      } else {
+        // Otro rol → upgrade a responsable.
+        const { error: updErr } = await sb
+          .from("perfiles")
+          .update({
+            nombre,
+            rol: "responsable",
+            hospedajes_ids: hospedajeIds,
+          } as never)
+          .eq("id", userId);
+        if (updErr) {
+          return { error: `Falló actualizar el perfil: ${updErr.message}` };
+        }
+      }
+    } else {
+      // auth.user existe pero NO tiene perfil. Crear perfil como responsable.
+      const { error: perfilErr } = await sb.from("perfiles").insert({
+        id: userId,
         nombre,
         rol: "responsable",
         hospedajes_ids: hospedajeIds,
-      } as never)
-      .eq("id", userId);
-    if (updErr) {
-      return { error: `Falló actualizar el perfil: ${updErr.message}` };
+      } as never);
+      if (perfilErr) {
+        return { error: `Falló crear el perfil: ${perfilErr.message}` };
+      }
     }
   } else {
+    // Usuario nuevo: invitar (manda mail con link de activación).
+    const { data: invited, error: inviteErr } =
+      await sb.auth.admin.inviteUserByEmail(email, {
+        data: { nombre },
+        redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
+      });
+    if (inviteErr || !invited.user) {
+      return {
+        error: inviteErr?.message ?? "No se pudo enviar la invitación.",
+      };
+    }
+    userId = invited.user.id;
+
     const { error: perfilErr } = await sb.from("perfiles").insert({
       id: userId,
       nombre,
@@ -403,17 +472,15 @@ export async function createResponsableAction(
       hospedajes_ids: hospedajeIds,
     } as never);
     if (perfilErr) {
-      // No borramos el auth.user: pudo haber sido pre-existente y borrarlo
-      // sería destructivo. El admin puede reintentar el invite (reenvía link).
+      // No borramos el auth.user: el invite ya se mandó. El admin puede
+      // reintentar — el flow ahora caerá en el branch "existente sin perfil".
       return {
         error: `Invitación enviada pero falló el perfil: ${perfilErr.message}`,
       };
     }
   }
 
-  // Poblar responsabilidades (fuente nueva de verdad — soporta lugares).
-  // ON CONFLICT por la constraint unique(perfil_id, entidad_tipo, entidad_id)
-  // — usamos upsert para idempotencia en caso de reintentos.
+  // Poblar responsabilidades (idempotente — upsert con ignoreDuplicates).
   const respRows = [
     ...hospedajeIds.map((id) => ({
       perfil_id: userId,
@@ -436,7 +503,12 @@ export async function createResponsableAction(
   }
 
   revalidatePath("/admin/responsables");
-  return { ok: true, email };
+  return {
+    ok: true,
+    email,
+    merged,
+    mergedCount: merged ? entidades.length : undefined,
+  };
 }
 
 const updateResponsableSchema = z.object({
