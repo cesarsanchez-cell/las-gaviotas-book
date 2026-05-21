@@ -95,12 +95,24 @@ export async function getRegionById(id: string): Promise<RegionRow | null> {
 /** Lista destinos de una región (activos), ordenados. */
 export async function listDestinosDeRegion(regionId: string) {
   const sb = await createClient();
-  const { data } = await sb
+  const { data } = (await sb
     .from("destinos")
     .select("*")
     .eq("region_id", regionId)
     .eq("activo", true)
-    .order("orden", { ascending: true });
+    .order("orden", { ascending: true })) as {
+    data: Array<{
+      id: string;
+      slug: string;
+      nombre: string;
+      region: string | null;
+      provincia: string | null;
+      pais: string | null;
+      descripcion_corta: string | null;
+      lat: number | null;
+      lng: number | null;
+    }> | null;
+  };
   return data ?? [];
 }
 
