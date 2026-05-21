@@ -74,11 +74,22 @@ export async function createHospedajeAsResponsableAction(
   //    entidades propias, lugares gastronómicos, etc.)
   //  - perfiles.hospedajes_ids (legacy, mantenido para compatibilidad con
   //    código y RLS que todavía lo leen).
-  await admin.from("responsabilidades").insert({
+  //
+  // El insert a responsabilidades es crítico: si falla, el hospedaje queda
+  // huérfano (creado pero sin operador asignado). Logueamos el error pero
+  // NO rollbackeamos el hospedaje porque puede haber sido un duplicate-key
+  // benigno (reintento). El admin puede asignarse manualmente después.
+  const { error: respError } = await admin.from("responsabilidades").insert({
     perfil_id: user.id,
     entidad_tipo: "hospedaje",
     entidad_id: data.id,
   } as never);
+  if (respError) {
+    console.error(
+      "[createHospedajeAsResponsable] no se pudo crear responsabilidad",
+      { userId: user.id, hospedajeId: data.id, error: respError }
+    );
+  }
 
   if (user.perfil.rol === "responsable") {
     const nuevosIds = Array.from(
