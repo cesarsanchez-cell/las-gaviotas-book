@@ -19,6 +19,13 @@ export interface ResponsableListRow {
   email: string;
   entidades: EntidadAsignada[];
   createdAt: string;
+  /**
+   * true si el perfil tambien tiene rol=admin (doble funcion admin+operador).
+   * Sirve para mostrar un chip "Admin local" o "Super admin" en el listado.
+   */
+  isAlsoAdmin: boolean;
+  /** Si es admin, indica si es super admin (destino_id null). */
+  isSuperAdmin: boolean;
 }
 
 export interface EntidadAsignable {
@@ -48,18 +55,51 @@ type ResponsabilidadDB = {
  * También incluye responsables "sueltos" (sin entidades asignadas): solo
  * los ve el super admin, porque un admin local sin entidad en común no
  * tiene cómo determinar si le corresponde.
+ *
+ * Cross-listing: si un Admin Local (o Super Admin) tiene responsabilidades
+ * sobre alguna entidad, también aparece en este listado con el chip
+ * "Admin local" para marcar la doble función. Esto da visibilidad al
+ * Super Admin de TODOS los que gestionan negocios, sin importar el rol
+ * primario.
  */
 export async function listResponsablesAction(): Promise<ResponsableListRow[]> {
   const me = await requireAdmin();
   const sb = createAdminClient();
 
-  const { data: perfiles } = await sb
+  // Traemos perfiles con rol=responsable Y todos los rol=admin que tengan
+  // al menos una responsabilidad (admin local con doble función).
+  const { data: perfilesResp } = await sb
     .from("perfiles")
-    .select("id, nombre, created_at")
-    .eq("rol", "responsable")
+    .select("id, nombre, rol, destino_id, created_at")
+    .in("rol", ["responsable", "admin"])
     .order("created_at", { ascending: true })
-    .returns<Array<{ id: string; nombre: string | null; created_at: string }>>();
-  if (!perfiles) return [];
+    .returns<
+      Array<{
+        id: string;
+        nombre: string | null;
+        rol: string;
+        destino_id: string | null;
+        created_at: string;
+      }>
+    >();
+  if (!perfilesResp) return [];
+
+  // De los admins, solo conservamos los que tienen al menos una responsabilidad.
+  // Los admins puros (sin entidades) ya se gestionan desde /admin/admins.
+  const adminIds = perfilesResp.filter((p) => p.rol === "admin").map((p) => p.id);
+  const adminsConRespIds = new Set<string>();
+  if (adminIds.length > 0) {
+    const { data: adminResps } = await sb
+      .from("responsabilidades")
+      .select("perfil_id")
+      .in("perfil_id", adminIds)
+      .returns<Array<{ perfil_id: string }>>();
+    for (const r of adminResps ?? []) adminsConRespIds.add(r.perfil_id);
+  }
+
+  const perfiles = perfilesResp.filter(
+    (p) => p.rol === "responsable" || adminsConRespIds.has(p.id)
+  );
 
   const perfilIds = perfiles.map((p) => p.id);
   if (perfilIds.length === 0) return [];
@@ -134,6 +174,8 @@ export async function listResponsablesAction(): Promise<ResponsableListRow[]> {
       email: u?.user?.email ?? "(sin email)",
       entidades,
       createdAt: p.created_at,
+      isAlsoAdmin: p.rol === "admin",
+      isSuperAdmin: p.rol === "admin" && p.destino_id == null,
     });
   }
   return rows;

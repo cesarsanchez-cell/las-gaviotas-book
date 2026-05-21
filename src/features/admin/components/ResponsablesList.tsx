@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Trash2, Building2, UtensilsCrossed, Pencil, X, Check } from "lucide-react";
+import {
+  Trash2,
+  Building2,
+  UtensilsCrossed,
+  Pencil,
+  X,
+  Check,
+  ShieldCheck,
+} from "lucide-react";
 import {
   deleteResponsableAction,
   updateResponsableAction,
@@ -127,32 +135,55 @@ export function ResponsablesList({ responsables, entidadesDisponibles }: Props) 
           >
             <header className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="font-display text-lg tracking-tight">
-                  {r.nombre ?? "—"}
-                </h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-display text-lg tracking-tight">
+                    {r.nombre ?? "—"}
+                  </h3>
+                  {r.isAlsoAdmin && (
+                    <span
+                      title={
+                        r.isSuperAdmin
+                          ? "Super Administrador con entidades propias. Gestiona su cuenta desde /admin/admins."
+                          : "Administrador Local con entidades propias. Gestiona su cuenta desde /admin/admins."
+                      }
+                      className="inline-flex cursor-help items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-800"
+                    >
+                      <ShieldCheck className="h-3 w-3" />
+                      {r.isSuperAdmin ? "Super Admin" : "Admin Local"}
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-muted-foreground">{r.email}</p>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
-                {!isEditing && (
-                  <button
-                    type="button"
-                    onClick={() => startEdit(r)}
-                    disabled={pending}
-                    className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs transition hover:bg-secondary disabled:opacity-50"
-                  >
-                    <Pencil className="h-3 w-3" />
-                    Editar
-                  </button>
+                {r.isAlsoAdmin ? (
+                  <span className="text-xs italic text-muted-foreground">
+                    Se gestiona desde Administradores
+                  </span>
+                ) : (
+                  <>
+                    {!isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => startEdit(r)}
+                        disabled={pending}
+                        className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs transition hover:bg-secondary disabled:opacity-50"
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Editar
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(r)}
+                      disabled={pending}
+                      className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1 text-xs text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      Borrar
+                    </button>
+                  </>
                 )}
-                <button
-                  type="button"
-                  onClick={() => handleDelete(r)}
-                  disabled={pending}
-                  className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1 text-xs text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
-                >
-                  <Trash2 className="h-3 w-3" />
-                  Borrar
-                </button>
               </div>
             </header>
 
