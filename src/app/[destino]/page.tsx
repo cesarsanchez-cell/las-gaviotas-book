@@ -1,12 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import type { Metadata } from "next";
 import {
   ArrowRight,
   Building2,
   Utensils,
-  Camera,
   Sparkles,
 } from "lucide-react";
 import { Container } from "@/components/layout/Container";
@@ -16,16 +14,22 @@ import { Footer } from "@/components/layout/Footer";
 import { buttonVariants } from "@/components/ui/button";
 import { HospedajeCard } from "@/features/hospedajes/components/HospedajeCard";
 import { LugarCard } from "@/features/lugares/components/LugarCard";
-import { BuscadorBar } from "@/features/busqueda/components/BuscadorBar";
+import {
+  HeroCarousel,
+  type HeroSlide,
+} from "@/features/destinos/components/HeroCarousel";
+import { getCategoriaLabel } from "@/config/categorias-lugar";
 import { JsonLd } from "@/components/seo/JsonLd";
 import {
   getDestinoBySlug,
   getDestacadosByDestino,
   listHospedajesByDestino,
+  type HospedajeCard as HospedajeCardData,
 } from "@/features/hospedajes/lib/queries";
 import {
   listImperdiblesByDestino,
   listLugaresByDestino,
+  type LugarCard as LugarCardData,
 } from "@/features/lugares/lib/queries";
 import { listPromosByDestino } from "@/features/promos/lib/queries";
 import { DestinoPromos } from "@/features/promos/components/DestinoPromos";
@@ -35,6 +39,74 @@ import { getFotoUrl } from "@/lib/storage";
 
 interface PageProps {
   params: Promise<{ destino: string }>;
+}
+
+const HOSP_TIPO_LABEL: Record<string, string> = {
+  hotel: "Hotel",
+  apart: "Apart",
+  cabana: "Cabaña",
+  hosteria: "Hostería",
+  camping: "Camping",
+  casa: "Casa",
+  departamento: "Departamento",
+};
+
+function fotoOrPlaceholder(path?: string): string {
+  return path ? getFotoUrl(path) : getFotoUrl("placeholders/cabana-1.jpg");
+}
+
+/**
+ * Arma hasta 5 slides para el HeroCarousel mezclando imperdibles, hospedajes
+ * destacados y gastronómicos; completa con lo que haya. Dedupea por tipo+slug.
+ */
+function buildHeroSlides(
+  destinoSlug: string,
+  imperdibles: LugarCardData[],
+  destacados: HospedajeCardData[],
+  lugares: LugarCardData[]
+): HeroSlide[] {
+  const slides: HeroSlide[] = [];
+  const seen = new Set<string>();
+
+  const pushLugar = (l: LugarCardData) => {
+    const type = l.tipo === "gastronomico" ? "gastronomia" : "atractivo";
+    const key = `${type}:${l.slug}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    slides.push({
+      type,
+      slug: l.slug,
+      nombre: l.nombre,
+      categoria: getCategoriaLabel(l.tipo, l.categoria) ?? "",
+      descripcion: l.descripcion_corta,
+      photoUrl: fotoOrPlaceholder(l.foto_principal_path),
+      href: `/${destinoSlug}/${type === "gastronomia" ? "gastronomia" : "atractivos"}/${l.slug}`,
+    });
+  };
+
+  const pushHospedaje = (h: HospedajeCardData) => {
+    const key = `hospedaje:${h.slug}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    slides.push({
+      type: "hospedaje",
+      slug: h.slug,
+      nombre: h.nombre,
+      categoria: HOSP_TIPO_LABEL[h.tipo] ?? "Hospedaje",
+      descripcion: h.descripcion_corta,
+      photoUrl: fotoOrPlaceholder(h.foto_principal_path),
+      href: `/${destinoSlug}/hospedajes/${h.slug}`,
+    });
+  };
+
+  imperdibles.slice(0, 2).forEach(pushLugar);
+  destacados.slice(0, 2).forEach(pushHospedaje);
+  lugares.filter((l) => l.tipo === "gastronomico").slice(0, 2).forEach(pushLugar);
+  for (const l of lugares) {
+    if (slides.length >= 5) break;
+    pushLugar(l);
+  }
+  return slides.slice(0, 5);
 }
 
 export async function generateMetadata({
@@ -76,10 +148,12 @@ export default async function DestinoPage({ params }: PageProps) {
       listPromosByDestino(destino.id),
     ]);
 
-  const heroFoto = imperdibles[0]?.foto_principal_path;
-  const heroUrl = heroFoto
-    ? getFotoUrl(heroFoto)
-    : getFotoUrl("placeholders/cabana-1.jpg");
+  const heroSlides = buildHeroSlides(
+    slug,
+    imperdibles,
+    destacados,
+    lugaresTodos
+  );
 
   const url = `${siteConfig.url}/${slug}`;
 
@@ -96,68 +170,38 @@ export default async function DestinoPage({ params }: PageProps) {
       <Header destinoSlug={slug} destinoNombre={destino.nombre} />
 
       <main>
-        {/* Hero dark-theme con foto de fondo */}
-        <section className="relative isolate overflow-hidden bg-slate-950 text-white">
-          <div className="absolute inset-0 -z-10">
-            <Image
-              src={heroUrl}
-              alt=""
-              fill
-              priority
-              sizes="100vw"
-              className="object-cover"
-            />
-            {/* Gradient lateral: oscuro a la izquierda (donde está el texto)
-                y transparente a la derecha (para que se vea la foto). */}
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/55 to-slate-950/10" />
-            {/* Sutil vignette inferior para legibilidad del buscador. */}
-            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-slate-950/70 to-transparent" />
-          </div>
-
-          <Container size="lg">
-            <div className="py-20 md:py-32">
-              <p className="font-medium uppercase tracking-widest text-sm text-amber-300">
-                {destino.region ?? destino.provincia} · {destino.pais}
-              </p>
-              <h1 className="mt-4 font-display text-5xl md:text-7xl tracking-tight drop-shadow-lg">
-                {destino.nombre}
-              </h1>
-              {destino.descripcion_corta && (
-                <p className="mt-6 max-w-2xl text-lg md:text-xl text-white/90 drop-shadow">
-                  {destino.descripcion_corta}
+        {/* Hero emocional: carrusel de imperdibles/hospedajes/gastro. Si el
+            destino aún no tiene contenido, hero mínimo con el título. */}
+        {heroSlides.length > 0 ? (
+          <HeroCarousel
+            nombre={destino.nombre}
+            region={destino.region ?? destino.provincia}
+            pais={destino.pais}
+            descripcionCorta={destino.descripcion_corta}
+            slides={heroSlides}
+            searchHref={`/${slug}/hospedajes`}
+          />
+        ) : (
+          <section className="bg-slate-950 text-white">
+            <Container size="lg">
+              <div className="py-20 md:py-28">
+                <p className="text-sm font-medium uppercase tracking-widest text-amber-300">
+                  {[destino.region ?? destino.provincia, destino.pais]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
-              )}
-
-              <div className="mt-10 rounded-2xl bg-background/95 p-2 text-foreground shadow-2xl backdrop-blur supports-[backdrop-filter]:bg-background/85">
-                <BuscadorBar destinoSlug={slug} variant="hero" />
+                <h1 className="mt-4 font-display text-5xl tracking-tight drop-shadow-lg md:text-7xl">
+                  {destino.nombre}
+                </h1>
+                {destino.descripcion_corta && (
+                  <p className="mt-6 max-w-2xl text-lg text-white/90 md:text-xl">
+                    {destino.descripcion_corta}
+                  </p>
+                )}
               </div>
-
-              <div className="mt-6 flex flex-wrap gap-3 text-sm">
-                <Link
-                  href={`/${slug}/hospedajes`}
-                  className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-slate-950/40 px-4 py-2 text-white backdrop-blur transition hover:bg-slate-950/60"
-                >
-                  <Building2 className="h-4 w-4" />
-                  Hospedajes
-                </Link>
-                <Link
-                  href={`/${slug}/gastronomia`}
-                  className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-slate-950/40 px-4 py-2 text-white backdrop-blur transition hover:bg-slate-950/60"
-                >
-                  <Utensils className="h-4 w-4" />
-                  Gastronomía
-                </Link>
-                <Link
-                  href={`/${slug}/atractivos`}
-                  className="inline-flex items-center gap-1 rounded-full border border-white/30 bg-slate-950/40 px-4 py-2 text-white backdrop-blur transition hover:bg-slate-950/60"
-                >
-                  <Camera className="h-4 w-4" />
-                  Atractivos
-                </Link>
-              </div>
-            </div>
-          </Container>
-        </section>
+            </Container>
+          </section>
+        )}
 
         {/* Promos del destino — banda con toggle de vertical (solo si hay) */}
         <DestinoPromos promos={promos} destinoNombre={destino.nombre} />
