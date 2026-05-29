@@ -11,6 +11,7 @@ import {
   type VerticalKey,
 } from "@/features/home/lib/queries";
 import { HubV2 } from "@/features/home/components/HubV2";
+import { listPromosRed } from "@/features/promos/lib/queries";
 import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
@@ -42,12 +43,14 @@ export default async function HubPage() {
     redirect(`/${destinos[0].slug}`);
   }
 
-  const [hospedajes, gastronomia, atractivos, regiones] = await Promise.all([
-    listVerticalItemsRed("hospedajes"),
-    listVerticalItemsRed("gastronomia"),
-    listVerticalItemsRed("atractivos"),
-    listRegionesVisibles(destinos),
-  ]);
+  const [hospedajes, gastronomia, atractivos, regiones, promos] =
+    await Promise.all([
+      listVerticalItemsRed("hospedajes"),
+      listVerticalItemsRed("gastronomia"),
+      listVerticalItemsRed("atractivos"),
+      listRegionesVisibles(destinos),
+      listPromosRed(),
+    ]);
 
   const verticalData: Record<VerticalKey, VerticalItem[]> = {
     hospedajes,
@@ -61,6 +64,7 @@ export default async function HubPage() {
         verticalData={verticalData}
         destinos={destinos}
         regiones={regiones}
+        promos={promos}
         session={session}
       />
       <Footer />

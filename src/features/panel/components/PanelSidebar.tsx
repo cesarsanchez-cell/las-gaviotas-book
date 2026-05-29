@@ -9,6 +9,7 @@ import {
   LogOut,
   ExternalLink,
   Utensils,
+  Tag,
   UserCircle,
   ShieldCheck,
 } from "lucide-react";
@@ -20,6 +21,7 @@ const NAV = [
   { href: "/panel", label: "Mi panel", icon: LayoutDashboard, exact: true },
   { href: "/panel/hospedajes", label: "Mis hospedajes", icon: Building2 },
   { href: "/panel/lugares", label: "Mis gastronómicos", icon: Utensils },
+  { href: "/panel/promos", label: "Mis promos", icon: Tag },
   { href: "/panel/leads", label: "Consultas", icon: Inbox },
   { href: "/panel/perfil", label: "Mi perfil", icon: UserCircle },
 ];

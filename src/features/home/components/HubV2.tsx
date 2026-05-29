@@ -2,12 +2,14 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowRight, Store, LocateFixed, MapPinOff } from "lucide-react";
+import { ArrowRight, Store, LocateFixed, MapPinOff, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AirbnbTop } from "./AirbnbTop";
 import { SearchPanel } from "./SearchPanel";
 import { ItemCard } from "./ItemCard";
+import { PromoCard } from "./PromoCard";
 import { DestinoMiniCard, type DestinoMini } from "./DestinoMiniCard";
+import type { PromoPublic } from "@/features/promos/lib/queries";
 import {
   EMPTY_SEARCH,
   VERTICAL_TITLE,
@@ -26,6 +28,7 @@ interface HubV2Props {
   verticalData: Record<VerticalKey, VerticalItem[]>;
   destinos: DestinoPublicadoLite[];
   regiones: RegionVisible[];
+  promos: PromoPublic[];
   session: HeaderSession;
 }
 
@@ -46,7 +49,13 @@ function haversine(
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-export function HubV2({ verticalData, destinos, regiones, session }: HubV2Props) {
+export function HubV2({
+  verticalData,
+  destinos,
+  regiones,
+  promos,
+  session,
+}: HubV2Props) {
   const [vertical, setVertical] = React.useState<VerticalKey>("hospedajes");
   const [search, setSearch] = React.useState<SearchState>(EMPTY_SEARCH);
   const [searchOpen, setSearchOpen] = React.useState(false);
@@ -109,6 +118,25 @@ export function HubV2({ verticalData, destinos, regiones, session }: HubV2Props)
       }));
   }, [geo, coords, destinos]);
 
+  // Promos del "dónde" (banda "Promos en {lugar}").
+  const promosEnLugar = React.useMemo(() => {
+    if (!dondeSlugs) return [];
+    return promos.filter((p) => dondeSlugs.has(p.destino.slug));
+  }, [dondeSlugs, promos]);
+
+  // Promos destacadas (sin dónde): hasta 2 por destino, ordenadas por descuento.
+  const promosDestacadas = React.useMemo(() => {
+    const porDestino = new Map<string, PromoPublic[]>();
+    for (const p of promos) {
+      const arr = porDestino.get(p.destino.slug) ?? [];
+      if (arr.length < 2) arr.push(p);
+      porDestino.set(p.destino.slug, arr);
+    }
+    return [...porDestino.values()]
+      .flat()
+      .sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0));
+  }, [promos]);
+
   function askGeo() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setGeo("denied");
@@ -131,7 +159,16 @@ export function HubV2({ verticalData, destinos, regiones, session }: HubV2Props)
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const showNearbyBand = !hasDonde && geo === "granted" && nearby.length > 0;
+  // Banda contextual con prioridad: promos del lugar buscado > cercanos (geo) >
+  // promos destacadas.
+  const band: "promos-lugar" | "nearby" | "destacadas" | null =
+    hasDonde && promosEnLugar.length > 0
+      ? "promos-lugar"
+      : !hasDonde && geo === "granted" && nearby.length > 0
+        ? "nearby"
+        : !hasDonde && promosDestacadas.length > 0
+          ? "destacadas"
+          : null;
   const showRegionChips = !hasDonde && regiones.length > 1;
 
   return (
@@ -157,27 +194,39 @@ export function HubV2({ verticalData, destinos, regiones, session }: HubV2Props)
       />
 
       <main className="pb-16">
-        {/* Banda contextual "Cerca tuyo" (con geo). Sin promos cargadas todavía,
-            no se muestra banda de promos. */}
-        {showNearbyBand && (
-          <section className="border-b border-border py-8">
-            <div className="container">
-              <header className="mb-4">
-                <p className="eyebrow flex items-center gap-2">
-                  <LocateFixed className="h-4 w-4" aria-hidden />
-                  Cerca tuyo
-                </p>
-                <h2 className="mt-1 font-display text-2xl tracking-tight text-foreground md:text-3xl">
-                  Escapadas a pocas horas
-                </h2>
-              </header>
-              <div className="flex gap-4 overflow-x-auto pb-2 [scrollbar-width:thin] sm:gap-5">
-                {nearby.map((d) => (
-                  <DestinoMiniCard key={d.slug} destino={d} />
-                ))}
-              </div>
-            </div>
-          </section>
+        {/* Banda contextual: promos del lugar / cercanos / promos destacadas. */}
+        {band === "promos-lugar" && (
+          <Band
+            icon={<Tag className="h-4 w-4" aria-hidden />}
+            eyebrow={`Promos en ${search.donde}`}
+            title="Lo que conviene ahora"
+          >
+            {promosEnLugar.map((p) => (
+              <PromoCard key={p.id} promo={p} />
+            ))}
+          </Band>
+        )}
+        {band === "nearby" && (
+          <Band
+            icon={<LocateFixed className="h-4 w-4" aria-hidden />}
+            eyebrow="Cerca tuyo"
+            title="Escapadas a pocas horas"
+          >
+            {nearby.map((d) => (
+              <DestinoMiniCard key={d.slug} destino={d} />
+            ))}
+          </Band>
+        )}
+        {band === "destacadas" && (
+          <Band
+            icon={<Tag className="h-4 w-4" aria-hidden />}
+            eyebrow="Promos destacadas"
+            title="Lo mejor de cada lugar"
+          >
+            {promosDestacadas.map((p) => (
+              <PromoCard key={p.id} promo={p} />
+            ))}
+          </Band>
         )}
 
         {/* Chips de región */}
@@ -269,6 +318,37 @@ export function HubV2({ verticalData, destinos, regiones, session }: HubV2Props)
         </section>
       </main>
     </>
+  );
+}
+
+function Band({
+  icon,
+  eyebrow,
+  title,
+  children,
+}: {
+  icon: React.ReactNode;
+  eyebrow: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="border-b border-border py-8">
+      <div className="container">
+        <header className="mb-4">
+          <p className="eyebrow flex items-center gap-2">
+            {icon}
+            {eyebrow}
+          </p>
+          <h2 className="mt-1 font-display text-2xl tracking-tight text-foreground md:text-3xl">
+            {title}
+          </h2>
+        </header>
+        <div className="flex gap-4 overflow-x-auto pb-2 [scrollbar-width:thin] sm:gap-5">
+          {children}
+        </div>
+      </div>
+    </section>
   );
 }
 
