@@ -138,31 +138,17 @@ export interface PromoPublic {
 }
 
 /**
- * Promos públicas para la home: activas, vigentes, con su comercio PUBLICADO y
- * su destino activo. Resuelve foto/nombre del comercio (foto heredada).
+ * Resuelve un set de filas promo a PromoPublic: descarta las que no tienen
+ * comercio publicado y ordena por descuento desc (las sin pct al final).
  */
-export async function listPromosRed(): Promise<PromoPublic[]> {
-  const sb = await createClient();
-  const hoy = new Date().toISOString().slice(0, 10);
-
-  const { data: promos } = (await sb
-    .from("promos")
-    .select("*")
-    .eq("activo", true)
-    .or(`vigencia_hasta.is.null,vigencia_hasta.gte.${hoy}`)
-    .or(`vigencia_desde.is.null,vigencia_desde.lte.${hoy}`)) as {
-    data: PromoRow[] | null;
-  };
-  if (!promos || promos.length === 0) return [];
-
+async function toPublicPromos(promos: PromoRow[]): Promise<PromoPublic[]> {
+  if (promos.length === 0) return [];
   const comercios = await resolveComercios(
     promos.map((p) => ({ tipo: p.comercio_tipo, id: p.comercio_id }))
   );
-
   const result: PromoPublic[] = [];
   for (const p of promos) {
     const c = comercios.get(`${p.comercio_tipo}:${p.comercio_id}`);
-    // Solo mostramos promos cuyo comercio existe y está publicado.
     if (!c || c.estado !== "publicado") continue;
     result.push({
       id: p.id,
@@ -174,8 +160,38 @@ export async function listPromosRed(): Promise<PromoPublic[]> {
       destino: { slug: c.destino.slug, nombre: c.destino.nombre },
     });
   }
-  // Orden por descuento desc (las sin pct al final).
   return result.sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0));
+}
+
+function vigentesQuery(sb: Awaited<ReturnType<typeof createClient>>) {
+  const hoy = new Date().toISOString().slice(0, 10);
+  return sb
+    .from("promos")
+    .select("*")
+    .eq("activo", true)
+    .or(`vigencia_hasta.is.null,vigencia_hasta.gte.${hoy}`)
+    .or(`vigencia_desde.is.null,vigencia_desde.lte.${hoy}`);
+}
+
+/**
+ * Promos públicas para la home: activas, vigentes, con su comercio PUBLICADO y
+ * su destino activo. Resuelve foto/nombre del comercio (foto heredada).
+ */
+export async function listPromosRed(): Promise<PromoPublic[]> {
+  const sb = await createClient();
+  const { data } = (await vigentesQuery(sb)) as { data: PromoRow[] | null };
+  return toPublicPromos(data ?? []);
+}
+
+/** Promos públicas de un destino (para la banda dentro de la página del destino). */
+export async function listPromosByDestino(
+  destinoId: string
+): Promise<PromoPublic[]> {
+  const sb = await createClient();
+  const { data } = (await vigentesQuery(sb).eq("destino_id", destinoId)) as {
+    data: PromoRow[] | null;
+  };
+  return toPublicPromos(data ?? []);
 }
 
 // -----------------------------------------------------------------------------
