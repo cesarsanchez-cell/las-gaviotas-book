@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { Footer } from "@/components/layout/Footer";
 import { getHeaderSession } from "@/features/home/lib/header-session";
 import {
@@ -35,12 +34,11 @@ export default async function HubPage() {
   // ≥1 hospedaje publicado) antes de decidir qué mostrar.
   const destinos = await listDestinosPublicados();
 
-  // 0 destinos → pantalla de "preparando". 1 destino → entramos directo a él.
+  // 0 destinos publicados → pantalla "preparando". Con 1+ mostramos el hub v2
+  // (la grilla expone comercios de toda la red, así que con un solo destino
+  // igual tiene contenido).
   if (destinos.length === 0) {
     return <EmptyHub />;
-  }
-  if (destinos.length === 1) {
-    redirect(`/${destinos[0].slug}`);
   }
 
   const [hospedajes, gastronomia, atractivos, regiones, promos] =
