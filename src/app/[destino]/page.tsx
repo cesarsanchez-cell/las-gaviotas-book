@@ -27,6 +27,8 @@ import {
   listImperdiblesByDestino,
   listLugaresByDestino,
 } from "@/features/lugares/lib/queries";
+import { listPromosByDestino } from "@/features/promos/lib/queries";
+import { DestinoPromos } from "@/features/promos/components/DestinoPromos";
 import { buildDestinoJsonLd, buildBreadcrumbJsonLd } from "@/lib/seo/jsonld";
 import { siteConfig } from "@/config/site";
 import { getFotoUrl } from "@/lib/storage";
@@ -65,12 +67,13 @@ export default async function DestinoPage({ params }: PageProps) {
   const destino = await getDestinoBySlug(slug);
   if (!destino) notFound();
 
-  const [imperdibles, destacados, hospedajesTodos, lugaresTodos] =
+  const [imperdibles, destacados, hospedajesTodos, lugaresTodos, promos] =
     await Promise.all([
       listImperdiblesByDestino(destino.id, 6),
       getDestacadosByDestino(destino.id, 3),
       listHospedajesByDestino(destino.id, undefined, 6),
       listLugaresByDestino(destino.id, undefined, 6),
+      listPromosByDestino(destino.id),
     ]);
 
   const heroFoto = imperdibles[0]?.foto_principal_path;
@@ -155,6 +158,9 @@ export default async function DestinoPage({ params }: PageProps) {
             </div>
           </Container>
         </section>
+
+        {/* Promos del destino — banda con toggle de vertical (solo si hay) */}
+        <DestinoPromos promos={promos} destinoNombre={destino.nombre} />
 
         {/* Imperdibles — solo si hay */}
         {imperdibles.length > 0 && (
