@@ -73,6 +73,26 @@ export interface RegionRow {
   updated_at: string;
 }
 
+/** Comercio al que apunta una promo (FK polimórfica, sin constraint en BD). */
+export type ComercioTipo = "hospedaje" | "gastronomico" | "atractivo";
+
+export interface PromoRow {
+  id: string;
+  destino_id: string;
+  comercio_tipo: ComercioTipo;
+  comercio_id: string;
+  titulo: string;
+  bajada: string | null;
+  beneficio: string;
+  /** Descuento porcentual opcional (1-100). */
+  pct: number | null;
+  vigencia_desde: string | null;
+  vigencia_hasta: string | null;
+  activo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface LocalidadRow {
   id: string;
   destino_id: string;
@@ -502,6 +522,12 @@ export type Database = {
           created_at?: string;
         };
         Update: Update<ResponsabilidadRow>;
+        Relationships: [];
+      };
+      promos: {
+        Row: PromoRow;
+        Insert: Insert<PromoRow>;
+        Update: Update<PromoRow>;
         Relationships: [];
       };
     };
