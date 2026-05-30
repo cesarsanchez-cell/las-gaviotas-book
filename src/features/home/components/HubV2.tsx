@@ -11,6 +11,7 @@ import { PromoCard } from "./PromoCard";
 import { DestinoMiniCard, type DestinoMini } from "./DestinoMiniCard";
 import { ComboCard } from "@/features/combos/components/ComboCard";
 import { ComboDetailModal } from "@/features/combos/components/ComboDetailModal";
+import { ArmadorCTA } from "@/features/armador/components/ArmadorCTA";
 import type { ComboPublic } from "@/features/combos/lib/queries";
 import type { PromoPublic } from "@/features/promos/lib/queries";
 import {
@@ -202,6 +203,10 @@ export function HubV2({
 
   const showNearby = geo === "granted" && nearby.length > 0;
   const showRegionChips = regiones.length > 1;
+  // Armador es por-destino: con un solo destino tenemos target claro. Con
+  // varios, el CTA vive en cada página de destino (TODO multi-destino: elegir
+  // destino antes de armar).
+  const singleDestino = destinos.length === 1 ? destinos[0] : null;
 
   return (
     <>
@@ -315,6 +320,17 @@ export function HubV2({
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Armá la tuya — con un solo destino, target directo. */}
+              {singleDestino && (
+                <div className="mt-6">
+                  <ArmadorCTA
+                    compact
+                    destinoSlug={singleDestino.slug}
+                    destinoNombre={singleDestino.nombre}
+                  />
                 </div>
               )}
             </div>
