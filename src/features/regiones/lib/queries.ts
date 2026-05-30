@@ -7,8 +7,10 @@ export interface RegionWithCount extends RegionRow {
 }
 
 /**
- * Lista regiones activas para la home pública. Ordenadas por `orden` y trae
- * el count de destinos publicados por región para mostrar en la card.
+ * Lista regiones VISIBLES para superficies públicas: activas y con al menos un
+ * destino publicado (activo + ≥1 hospedaje publicado). Las regiones sin destinos
+ * publicados NO se devuelven (regla de publicación del árbol). `destinos_count`
+ * cuenta destinos publicados, no solo activos.
  */
 export async function listRegionesPublicas(): Promise<RegionWithCount[]> {
   const sb = await createClient();
@@ -20,24 +22,37 @@ export async function listRegionesPublicas(): Promise<RegionWithCount[]> {
     .returns<RegionRow[]>();
   if (!regiones || regiones.length === 0) return [];
 
-  // Contamos destinos activos por región en una sola query.
+  // Destinos activos con su región.
   const { data: destinos } = (await sb
     .from("destinos")
-    .select("region_id")
+    .select("id, region_id")
     .eq("activo", true)
     .not("region_id", "is", null)) as {
-    data: Array<{ region_id: string | null }> | null;
+    data: Array<{ id: string; region_id: string | null }> | null;
   };
 
+  // Hospedajes publicados → set de destinos "publicados".
+  const { data: hosps } = (await sb
+    .from("hospedajes")
+    .select("destino_id")
+    .eq("estado", "publicado")) as {
+    data: Array<{ destino_id: string }> | null;
+  };
+  const destinosPublicados = new Set((hosps ?? []).map((h) => h.destino_id));
+
+  // Contamos solo destinos publicados por región.
   const counts = new Map<string, number>();
   for (const d of destinos ?? []) {
-    if (!d.region_id) continue;
+    if (!d.region_id || !destinosPublicados.has(d.id)) continue;
     counts.set(d.region_id, (counts.get(d.region_id) ?? 0) + 1);
   }
-  return regiones.map((r) => ({
-    ...r,
-    destinos_count: counts.get(r.id) ?? 0,
-  }));
+
+  return regiones
+    .filter((r) => (counts.get(r.id) ?? 0) > 0)
+    .map((r) => ({
+      ...r,
+      destinos_count: counts.get(r.id) ?? 0,
+    }));
 }
 
 /**
@@ -167,11 +182,15 @@ export async function listDestinosDeRegion(
     );
   }
 
-  return destinos.map((d) => ({
-    ...d,
-    biomas,
-    hospedajes_count: countByDestino.get(d.id) ?? 0,
-  }));
+  // Regla de publicación: solo destinos publicados (activo + ≥1 hospedaje
+  // publicado). Los activos sin hospedajes no se muestran en la página de región.
+  return destinos
+    .filter((d) => (countByDestino.get(d.id) ?? 0) > 0)
+    .map((d) => ({
+      ...d,
+      biomas,
+      hospedajes_count: countByDestino.get(d.id) ?? 0,
+    }));
 }
 
 /**
@@ -275,15 +294,19 @@ export async function listDestinosMini(): Promise<DestinoMiniRow[]> {
     );
   }
 
-  return destinos.map((d) => ({
-    slug: d.slug,
-    nombre: d.nombre,
-    region_label: d.region,
-    biomas: d.region_id ? biomasByRegion.get(d.region_id) ?? [] : [],
-    hospedajes_count: countByDestino.get(idBySlug.get(d.slug) ?? "") ?? 0,
-    lat: d.lat,
-    lng: d.lng,
-    foto_path: d.foto_path,
-    created_at: d.created_at,
-  }));
+  // Regla de publicación: solo destinos publicados (activo + ≥1 hospedaje
+  // publicado) aparecen en el mapa / carousels.
+  return destinos
+    .map((d) => ({
+      slug: d.slug,
+      nombre: d.nombre,
+      region_label: d.region,
+      biomas: d.region_id ? biomasByRegion.get(d.region_id) ?? [] : [],
+      hospedajes_count: countByDestino.get(idBySlug.get(d.slug) ?? "") ?? 0,
+      lat: d.lat,
+      lng: d.lng,
+      foto_path: d.foto_path,
+      created_at: d.created_at,
+    }))
+    .filter((d) => d.hospedajes_count > 0);
 }
