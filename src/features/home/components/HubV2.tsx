@@ -9,6 +9,9 @@ import { SearchPanel } from "./SearchPanel";
 import { ItemCard } from "./ItemCard";
 import { PromoCard } from "./PromoCard";
 import { DestinoMiniCard, type DestinoMini } from "./DestinoMiniCard";
+import { ComboCard } from "@/features/combos/components/ComboCard";
+import { ComboDetailModal } from "@/features/combos/components/ComboDetailModal";
+import type { ComboPublic } from "@/features/combos/lib/queries";
 import type { PromoPublic } from "@/features/promos/lib/queries";
 import {
   EMPTY_SEARCH,
@@ -30,6 +33,7 @@ interface HubV2Props {
   destinos: DestinoPublicadoLite[];
   regiones: RegionVisible[];
   promos: PromoPublic[];
+  combos: ComboPublic[];
   session: HeaderSession;
 }
 
@@ -55,16 +59,19 @@ export function HubV2({
   destinos,
   regiones,
   promos,
+  combos,
   session,
 }: HubV2Props) {
-  const hasPromos = promos.length > 0;
-  const defaultTab: HubTab = hasPromos ? "promos" : "hospedajes";
+  // La tab "Promos" mezcla combos (promociones combinadas) + promos individuales.
+  const hasOfertas = promos.length > 0 || combos.length > 0;
+  const defaultTab: HubTab = hasOfertas ? "promos" : "hospedajes";
   const [tab, setTab] = React.useState<HubTab>(defaultTab);
   const [search, setSearch] = React.useState<SearchState>(EMPTY_SEARCH);
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [regionFilter, setRegionFilter] = React.useState<string | null>(null);
   const [geo, setGeo] = React.useState<GeoState>("idle");
   const [coords, setCoords] = React.useState<{ lat: number; lng: number } | null>(null);
+  const [comboSel, setComboSel] = React.useState<ComboPublic | null>(null);
 
   const hasDonde = Boolean(search.donde.trim());
 
@@ -115,6 +122,14 @@ export function HubV2({
     if (!allowedSlugs) return promos;
     return promos.filter((p) => allowedSlugs.has(p.destino.slug));
   }, [promos, allowedSlugs]);
+
+  // Combos visibles (mismos filtros). Van arriba de las promos en la tab Promos.
+  const combosVisibles = React.useMemo(() => {
+    if (!allowedSlugs) return combos;
+    return combos.filter((c) => allowedSlugs.has(c.destinoSlug));
+  }, [combos, allowedSlugs]);
+
+  const ofertasCount = combosVisibles.length + promosVisibles.length;
 
   // Destinos cercanos por distancia (solo con geo concedida).
   const nearby: DestinoMini[] = React.useMemo(() => {
@@ -170,7 +185,7 @@ export function HubV2({
         search={search}
         onOpenSearch={() => setSearchOpen(true)}
         session={session}
-        showPromos={hasPromos}
+        showPromos={hasOfertas}
       />
 
       <SearchPanel
@@ -243,11 +258,11 @@ export function HubV2({
                   </h2>
                 </div>
                 <span className="shrink-0 text-sm text-muted-foreground">
-                  {promosVisibles.length} promo{promosVisibles.length === 1 ? "" : "s"}
+                  {ofertasCount} promo{ofertasCount === 1 ? "" : "s"}
                 </span>
               </header>
 
-              {promosVisibles.length === 0 ? (
+              {ofertasCount === 0 ? (
                 <EmptyState
                   noun="promos"
                   onClear={() => {
@@ -256,10 +271,23 @@ export function HubV2({
                   }}
                 />
               ) : (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {promosVisibles.map((p) => (
-                    <PromoCard key={p.id} promo={p} widthClass="w-full" />
-                  ))}
+                <div className="space-y-6">
+                  {/* Combos (promociones combinadas) primero — el plus "solo acá". */}
+                  {combosVisibles.length > 0 && (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      {combosVisibles.map((c) => (
+                        <ComboCard key={c.id} combo={c} onOpen={setComboSel} />
+                      ))}
+                    </div>
+                  )}
+                  {/* Promos individuales debajo. */}
+                  {promosVisibles.length > 0 && (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {promosVisibles.map((p) => (
+                        <PromoCard key={p.id} promo={p} widthClass="w-full" />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -315,6 +343,10 @@ export function HubV2({
           </div>
         </section>
       </main>
+
+      {comboSel && (
+        <ComboDetailModal combo={comboSel} onClose={() => setComboSel(null)} />
+      )}
     </>
   );
 }

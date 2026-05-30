@@ -11,6 +11,7 @@ import {
 } from "@/features/home/lib/queries";
 import { HubV2 } from "@/features/home/components/HubV2";
 import { listPromosRed } from "@/features/promos/lib/queries";
+import { listCombosRed } from "@/features/combos/lib/queries";
 import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
@@ -41,13 +42,14 @@ export default async function HubPage() {
     return <EmptyHub />;
   }
 
-  const [hospedajes, gastronomia, atractivos, regiones, promos] =
+  const [hospedajes, gastronomia, atractivos, regiones, promos, combos] =
     await Promise.all([
       listVerticalItemsRed("hospedajes"),
       listVerticalItemsRed("gastronomia"),
       listVerticalItemsRed("atractivos"),
       listRegionesVisibles(destinos),
       listPromosRed(),
+      listCombosRed(),
     ]);
 
   const verticalData: Record<VerticalKey, VerticalItem[]> = {
@@ -63,6 +65,7 @@ export default async function HubPage() {
         destinos={destinos}
         regiones={regiones}
         promos={promos}
+        combos={combos}
         session={session}
       />
       <Footer />

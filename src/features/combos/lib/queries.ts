@@ -167,6 +167,7 @@ export interface ComboPublic {
   beneficios: string[];
   validez: string | null;
   destinoNombre: string;
+  destinoSlug: string;
   heroUrl: string | null;
   items: ComboItemPublic[];
   /** WhatsApp del hospedaje ancla (o 1er item con whatsapp). */
@@ -205,6 +206,10 @@ function toComboPublic(
     resolved.find((r) => r.c?.whatsapp)?.c ??
     null;
 
+  // Destino del combo: el del hospedaje ancla, o el del 1er item resuelto.
+  const destino =
+    anchor?.c?.destino ?? resolved.find((r) => r.c?.destino)?.c?.destino ?? null;
+
   return {
     id: combo.id,
     slug: combo.slug,
@@ -215,7 +220,8 @@ function toComboPublic(
     ahorroPct: combo.ahorro_pct,
     beneficios: combo.beneficios ?? [],
     validez: combo.validez,
-    destinoNombre: anchor?.c?.destino.nombre ?? "",
+    destinoNombre: destino?.nombre ?? "",
+    destinoSlug: destino?.slug ?? "",
     heroUrl,
     items: resolved.map((r) => r.pub),
     whatsapp: waSource?.whatsapp
@@ -233,6 +239,34 @@ export async function listCombosByDestino(
     .from("combos")
     .select("*")
     .eq("destino_id", destinoId)
+    .eq("estado", "publicado")
+    .order("created_at", { ascending: false })) as { data: ComboRow[] | null };
+  if (!combos || combos.length === 0) return [];
+
+  const itemsByCombo = await fetchItems(combos.map((c) => c.id));
+  const allRefs = [...itemsByCombo.values()]
+    .flat()
+    .map((it) => ({ tipo: it.comercio_tipo, id: it.comercio_id }));
+  const comercios = await resolveComerciosFull(allRefs);
+
+  return combos.map((c) =>
+    toComboPublic(c, itemsByCombo.get(c.id) ?? [], comercios)
+  );
+}
+
+/**
+ * Combos publicados de toda la red (para la tab "Promos" de la home, que muestra
+ * promos + combos mezclados). Hoy, con un solo destino, son todos de la zona.
+ *
+ * TODO multi-destino: cuando haya varios destinos, la home antes de elegir
+ * debería priorizar últimas búsquedas y, si no hay, lo más cercano
+ * geográficamente. Por ahora se muestran todos mezclados (decisión 2026-05-29).
+ */
+export async function listCombosRed(): Promise<ComboPublic[]> {
+  const sb = await createClient();
+  const { data: combos } = (await sb
+    .from("combos")
+    .select("*")
     .eq("estado", "publicado")
     .order("created_at", { ascending: false })) as { data: ComboRow[] | null };
   if (!combos || combos.length === 0) return [];
