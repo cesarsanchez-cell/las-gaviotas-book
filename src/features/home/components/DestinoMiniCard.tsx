@@ -20,7 +20,7 @@ export function DestinoMiniCard({ destino }: { destino: DestinoMini }) {
   return (
     <Link
       href={`/${destino.slug}`}
-      className="group flex w-56 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-60"
+      className="group flex w-44 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-56"
     >
       <div
         className="relative aspect-square overflow-hidden"

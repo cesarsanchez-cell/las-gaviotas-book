@@ -1,5 +1,8 @@
 import type { VerticalKey } from "./queries";
 
+/** Tabs del hub: las 3 verticales de comercios + Promos (resultado, no comercio). */
+export type HubTab = "promos" | VerticalKey;
+
 /** Estado del buscador de la home, compartido entre AirbnbTop y SearchPanel. */
 export interface SearchState {
   /** Texto del lugar (nombre de destino o región). */

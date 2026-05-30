@@ -15,6 +15,7 @@ import {
   VERTICAL_TITLE,
   VERTICAL_NOUN,
   type SearchState,
+  type HubTab,
 } from "@/features/home/lib/search-types";
 import type {
   VerticalKey,
@@ -56,7 +57,9 @@ export function HubV2({
   promos,
   session,
 }: HubV2Props) {
-  const [vertical, setVertical] = React.useState<VerticalKey>("hospedajes");
+  const hasPromos = promos.length > 0;
+  const defaultTab: HubTab = hasPromos ? "promos" : "hospedajes";
+  const [tab, setTab] = React.useState<HubTab>(defaultTab);
   const [search, setSearch] = React.useState<SearchState>(EMPTY_SEARCH);
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [regionFilter, setRegionFilter] = React.useState<string | null>(null);
@@ -81,22 +84,37 @@ export function HubV2({
     return set;
   }, [hasDonde, search.donde, destinos, regiones]);
 
-  // Grilla del vertical activo, filtrada por región, dónde y tipo.
-  const items = React.useMemo(() => {
-    let all = verticalData[vertical] ?? [];
+  // Slugs permitidos combinando región + dónde (null = sin filtro).
+  const allowedSlugs = React.useMemo(() => {
+    let set: Set<string> | null = null;
     if (regionFilter) {
       const region = regiones.find((r) => r.slug === regionFilter);
-      const allowed = new Set(region?.destinos_slugs ?? []);
-      all = all.filter((it) => allowed.has(it.destino.slug));
+      set = new Set(region?.destinos_slugs ?? []);
     }
     if (dondeSlugs) {
-      all = all.filter((it) => dondeSlugs.has(it.destino.slug));
+      set = set
+        ? new Set([...set].filter((s) => dondeSlugs.has(s)))
+        : new Set(dondeSlugs);
     }
-    if (vertical !== "hospedajes" && search.tipo) {
+    return set;
+  }, [regionFilter, dondeSlugs, regiones]);
+
+  // Grilla de la vertical activa (cuando no es la tab Promos).
+  const items = React.useMemo(() => {
+    if (tab === "promos") return [];
+    let all = verticalData[tab] ?? [];
+    if (allowedSlugs) all = all.filter((it) => allowedSlugs.has(it.destino.slug));
+    if (tab !== "hospedajes" && search.tipo) {
       all = all.filter((it) => it.tipoLabel === search.tipo);
     }
     return all;
-  }, [verticalData, vertical, regionFilter, dondeSlugs, search.tipo, regiones]);
+  }, [verticalData, tab, allowedSlugs, search.tipo]);
+
+  // Promos visibles (tab Promos), filtradas por región + dónde.
+  const promosVisibles = React.useMemo(() => {
+    if (!allowedSlugs) return promos;
+    return promos.filter((p) => allowedSlugs.has(p.destino.slug));
+  }, [promos, allowedSlugs]);
 
   // Destinos cercanos por distancia (solo con geo concedida).
   const nearby: DestinoMini[] = React.useMemo(() => {
@@ -118,25 +136,6 @@ export function HubV2({
       }));
   }, [geo, coords, destinos]);
 
-  // Promos del "dónde" (banda "Promos en {lugar}").
-  const promosEnLugar = React.useMemo(() => {
-    if (!dondeSlugs) return [];
-    return promos.filter((p) => dondeSlugs.has(p.destino.slug));
-  }, [dondeSlugs, promos]);
-
-  // Promos destacadas (sin dónde): hasta 2 por destino, ordenadas por descuento.
-  const promosDestacadas = React.useMemo(() => {
-    const porDestino = new Map<string, PromoPublic[]>();
-    for (const p of promos) {
-      const arr = porDestino.get(p.destino.slug) ?? [];
-      if (arr.length < 2) arr.push(p);
-      porDestino.set(p.destino.slug, arr);
-    }
-    return [...porDestino.values()]
-      .flat()
-      .sort((a, b) => (b.pct ?? 0) - (a.pct ?? 0));
-  }, [promos]);
-
   function askGeo() {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setGeo("denied");
@@ -153,33 +152,25 @@ export function HubV2({
   }
 
   function goHub() {
-    setVertical("hospedajes");
+    setTab(defaultTab);
     setRegionFilter(null);
     setSearch(EMPTY_SEARCH);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  // Banda contextual con prioridad: promos del lugar buscado > cercanos (geo) >
-  // promos destacadas.
-  const band: "promos-lugar" | "nearby" | "destacadas" | null =
-    hasDonde && promosEnLugar.length > 0
-      ? "promos-lugar"
-      : !hasDonde && geo === "granted" && nearby.length > 0
-        ? "nearby"
-        : !hasDonde && promosDestacadas.length > 0
-          ? "destacadas"
-          : null;
-  const showRegionChips = !hasDonde && regiones.length > 1;
+  const showNearby = geo === "granted" && nearby.length > 0;
+  const showRegionChips = regiones.length > 1;
 
   return (
     <>
       <AirbnbTop
-        vertical={vertical}
-        onChangeVertical={setVertical}
+        vertical={tab}
+        onChangeVertical={setTab}
         onGoHub={goHub}
         search={search}
         onOpenSearch={() => setSearchOpen(true)}
         session={session}
+        showPromos={hasPromos}
       />
 
       <SearchPanel
@@ -189,24 +180,13 @@ export function HubV2({
         onApply={setSearch}
         destinos={destinos}
         regiones={regiones}
-        vertical={vertical}
+        vertical={tab}
         onUseGeo={askGeo}
       />
 
       <main className="pb-16">
-        {/* Banda contextual: promos del lugar / cercanos / promos destacadas. */}
-        {band === "promos-lugar" && (
-          <Band
-            icon={<Tag className="h-4 w-4" aria-hidden />}
-            eyebrow={`Promos en ${search.donde}`}
-            title="Lo que conviene ahora"
-          >
-            {promosEnLugar.map((p) => (
-              <PromoCard key={p.id} promo={p} />
-            ))}
-          </Band>
-        )}
-        {band === "nearby" && (
+        {/* Cercanos (geolocalización). El resto del contenido es el de la tab. */}
+        {showNearby && (
           <Band
             icon={<LocateFixed className="h-4 w-4" aria-hidden />}
             eyebrow="Cerca tuyo"
@@ -214,17 +194,6 @@ export function HubV2({
           >
             {nearby.map((d) => (
               <DestinoMiniCard key={d.slug} destino={d} />
-            ))}
-          </Band>
-        )}
-        {band === "destacadas" && (
-          <Band
-            icon={<Tag className="h-4 w-4" aria-hidden />}
-            eyebrow="Promos destacadas"
-            title="Lo mejor de cada lugar"
-          >
-            {promosDestacadas.map((p) => (
-              <PromoCard key={p.id} promo={p} />
             ))}
           </Band>
         )}
@@ -258,45 +227,74 @@ export function HubV2({
           </div>
         )}
 
-        {/* Grilla del vertical activo */}
-        <section className="py-8">
-          <div className="container">
-            <header className="mb-5 flex items-end justify-between gap-4">
-              <h2 className="font-display text-2xl tracking-tight text-foreground md:text-3xl">
-                {VERTICAL_TITLE[vertical]}
-                {hasDonde ? ` en ${search.donde}` : ""}
-              </h2>
-              <span className="shrink-0 text-sm text-muted-foreground">
-                {items.length} resultado{items.length === 1 ? "" : "s"}
-              </span>
-            </header>
+        {/* Contenido de la tab activa */}
+        {tab === "promos" ? (
+          <section className="py-8">
+            <div className="container">
+              <header className="mb-5 flex items-end justify-between gap-4">
+                <div>
+                  <p className="eyebrow flex items-center gap-2">
+                    <Tag className="h-4 w-4" aria-hidden />
+                    Promos
+                  </p>
+                  <h2 className="mt-1 font-display text-xl tracking-tight text-foreground sm:text-2xl md:text-3xl">
+                    Lo que conviene ahora
+                    {hasDonde ? ` en ${search.donde}` : ""}
+                  </h2>
+                </div>
+                <span className="shrink-0 text-sm text-muted-foreground">
+                  {promosVisibles.length} promo{promosVisibles.length === 1 ? "" : "s"}
+                </span>
+              </header>
 
-            {items.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border py-14 text-center">
-                <MapPinOff className="h-6 w-6 text-muted-foreground" aria-hidden />
-                <p className="text-sm text-muted-foreground">
-                  No encontramos {VERTICAL_NOUN[vertical]} con ese criterio.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
+              {promosVisibles.length === 0 ? (
+                <EmptyState
+                  noun="promos"
+                  onClear={() => {
                     setRegionFilter(null);
                     setSearch(EMPTY_SEARCH);
                   }}
-                  className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
-                >
-                  Limpiar filtros
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {items.map((it) => (
-                  <ItemCard key={`${it.kind}-${it.destino.slug}-${it.slug}`} item={it} />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
+                />
+              ) : (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {promosVisibles.map((p) => (
+                    <PromoCard key={p.id} promo={p} widthClass="w-full" />
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        ) : (
+          <section className="py-8">
+            <div className="container">
+              <header className="mb-5 flex items-end justify-between gap-4">
+                <h2 className="font-display text-xl tracking-tight text-foreground sm:text-2xl md:text-3xl">
+                  {VERTICAL_TITLE[tab as VerticalKey]}
+                  {hasDonde ? ` en ${search.donde}` : ""}
+                </h2>
+                <span className="shrink-0 text-sm text-muted-foreground">
+                  {items.length} resultado{items.length === 1 ? "" : "s"}
+                </span>
+              </header>
+
+              {items.length === 0 ? (
+                <EmptyState
+                  noun={VERTICAL_NOUN[tab as VerticalKey]}
+                  onClear={() => {
+                    setRegionFilter(null);
+                    setSearch(EMPTY_SEARCH);
+                  }}
+                />
+              ) : (
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                  {items.map((it) => (
+                    <ItemCard key={`${it.kind}-${it.destino.slug}-${it.slug}`} item={it} />
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* CTA comerciante → registro */}
         <section className="container">
@@ -321,6 +319,30 @@ export function HubV2({
   );
 }
 
+function EmptyState({
+  noun,
+  onClear,
+}: {
+  noun: string;
+  onClear: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border py-14 text-center">
+      <MapPinOff className="h-6 w-6 text-muted-foreground" aria-hidden />
+      <p className="text-sm text-muted-foreground">
+        No encontramos {noun} con ese criterio.
+      </p>
+      <button
+        type="button"
+        onClick={onClear}
+        className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
+      >
+        Limpiar filtros
+      </button>
+    </div>
+  );
+}
+
 function Band({
   icon,
   eyebrow,
@@ -340,7 +362,7 @@ function Band({
             {icon}
             {eyebrow}
           </p>
-          <h2 className="mt-1 font-display text-2xl tracking-tight text-foreground md:text-3xl">
+          <h2 className="mt-1 font-display text-xl tracking-tight text-foreground sm:text-2xl md:text-3xl">
             {title}
           </h2>
         </header>
