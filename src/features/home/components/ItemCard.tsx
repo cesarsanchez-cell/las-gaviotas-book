@@ -13,7 +13,7 @@ const FALLBACK_ICON: Record<VerticalKey, LucideIcon> = {
 /**
  * Card de comercio para la grilla del hub v2. Si no hay foto, cae a un
  * gradiente del bioma del destino + glyph (mismo lenguaje visual que
- * RegionCard / DestinoMiniCard). Click → detalle del comercio puntual
+ * DestinoMiniCard). Click → detalle del comercio puntual
  * (`/{destino}/{kind}/{slug}`); `kind` coincide 1:1 con el segmento de ruta
  * (hospedajes/gastronomia/atractivos). Volver = back del navegador a la home.
  */
