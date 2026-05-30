@@ -33,6 +33,8 @@ import {
 } from "@/features/lugares/lib/queries";
 import { listPromosByDestino } from "@/features/promos/lib/queries";
 import { DestinoPromos } from "@/features/promos/components/DestinoPromos";
+import { listCombosByDestino } from "@/features/combos/lib/queries";
+import { CombosSection } from "@/features/combos/components/CombosSection";
 import { buildDestinoJsonLd, buildBreadcrumbJsonLd } from "@/lib/seo/jsonld";
 import { siteConfig } from "@/config/site";
 import { getFotoUrl } from "@/lib/storage";
@@ -139,13 +141,14 @@ export default async function DestinoPage({ params }: PageProps) {
   const destino = await getDestinoBySlug(slug);
   if (!destino) notFound();
 
-  const [imperdibles, destacados, hospedajesTodos, lugaresTodos, promos] =
+  const [imperdibles, destacados, hospedajesTodos, lugaresTodos, promos, combos] =
     await Promise.all([
       listImperdiblesByDestino(destino.id, 6),
       getDestacadosByDestino(destino.id, 3),
       listHospedajesByDestino(destino.id, undefined, 6),
       listLugaresByDestino(destino.id, undefined, 6),
       listPromosByDestino(destino.id),
+      listCombosByDestino(destino.id),
     ]);
 
   const heroSlides = buildHeroSlides(
@@ -205,6 +208,9 @@ export default async function DestinoPage({ params }: PageProps) {
 
         {/* Promos del destino — banda con toggle de vertical (solo si hay) */}
         <DestinoPromos promos={promos} destinoNombre={destino.nombre} />
+
+        {/* Escapadas armadas (combos) — solo si hay combos publicados */}
+        <CombosSection combos={combos} destinoNombre={destino.nombre} />
 
         {/* Imperdibles — solo si hay */}
         {imperdibles.length > 0 && (
