@@ -13,7 +13,9 @@ const FALLBACK_ICON: Record<VerticalKey, LucideIcon> = {
 /**
  * Card de comercio para la grilla del hub v2. Si no hay foto, cae a un
  * gradiente del bioma del destino + glyph (mismo lenguaje visual que
- * RegionCard / DestinoMiniCard). Click → portal del destino del comercio.
+ * RegionCard / DestinoMiniCard). Click → detalle del comercio puntual
+ * (`/{destino}/{kind}/{slug}`); `kind` coincide 1:1 con el segmento de ruta
+ * (hospedajes/gastronomia/atractivos). Volver = back del navegador a la home.
  */
 export function ItemCard({ item }: { item: VerticalItem }) {
   const primary = item.biomas[0] ?? "playa";
@@ -23,7 +25,7 @@ export function ItemCard({ item }: { item: VerticalItem }) {
 
   return (
     <Link
-      href={`/${item.destino.slug}`}
+      href={`/${item.destino.slug}/${item.kind}/${item.slug}`}
       className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       <div className="relative aspect-[4/3] overflow-hidden">

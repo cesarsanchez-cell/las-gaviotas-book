@@ -73,6 +73,33 @@ export function HubV2({
   const [coords, setCoords] = React.useState<{ lat: number; lng: number } | null>(null);
   const [comboSel, setComboSel] = React.useState<ComboPublic | null>(null);
 
+  // Persistimos la tab activa en la URL (?v=) con history.replaceState — sin
+  // disparar navegación de Next. Así, al entrar a un comercio y volver con el
+  // back del navegador, la home reabre en la misma vertical donde estabas.
+  const changeTab = React.useCallback(
+    (next: HubTab) => {
+      setTab(next);
+      const params = new URLSearchParams(window.location.search);
+      if (next === defaultTab) params.delete("v");
+      else params.set("v", next);
+      const qs = params.toString();
+      window.history.replaceState(
+        null,
+        "",
+        qs ? `${window.location.pathname}?${qs}` : window.location.pathname
+      );
+    },
+    [defaultTab]
+  );
+
+  // Al montar (incluido el back del navegador), recuperamos la tab de la URL.
+  React.useEffect(() => {
+    const v = new URLSearchParams(window.location.search).get("v");
+    if (v === "promos" || v === "hospedajes" || v === "gastronomia" || v === "atractivos") {
+      setTab(v as HubTab);
+    }
+  }, []);
+
   const hasDonde = Boolean(search.donde.trim());
 
   // Slugs de destino permitidos por el "dónde" (matchea destino o región).
@@ -167,7 +194,7 @@ export function HubV2({
   }
 
   function goHub() {
-    setTab(defaultTab);
+    changeTab(defaultTab);
     setRegionFilter(null);
     setSearch(EMPTY_SEARCH);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -180,7 +207,7 @@ export function HubV2({
     <>
       <AirbnbTop
         vertical={tab}
-        onChangeVertical={setTab}
+        onChangeVertical={changeTab}
         onGoHub={goHub}
         search={search}
         onOpenSearch={() => setSearchOpen(true)}
