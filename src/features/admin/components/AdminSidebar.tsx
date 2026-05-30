@@ -16,6 +16,7 @@ import {
   Utensils,
   Camera,
   Tag,
+  Layers,
   UserCircle,
 } from "lucide-react";
 import { signOutAction } from "@/features/admin/lib/session-actions";
@@ -38,6 +39,7 @@ const NAV: NavItem[] = [
   { href: "/admin/gastronomia", label: "Gastronomía", icon: Utensils },
   { href: "/admin/atractivos", label: "Atractivos", icon: Camera },
   { href: "/admin/promos", label: "Promos", icon: Tag },
+  { href: "/admin/combos", label: "Combos", icon: Layers },
   { href: "/admin/consultas", label: "Consultas", icon: Inbox },
   { href: "/admin/responsables", label: "Responsables", icon: UserCog },
   { href: "/admin/regiones", label: "Regiones", icon: MapPinned, superOnly: true },

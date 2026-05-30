@@ -93,6 +93,42 @@ export interface PromoRow {
   updated_at: string;
 }
 
+export type EstadoCombo =
+  | "borrador"
+  | "pendiente_validacion"
+  | "publicado"
+  | "pausado"
+  | "rechazado";
+
+/** Sinergia: paquete curado que cruza 2-3 comercios de un destino. */
+export interface ComboRow {
+  id: string;
+  destino_id: string;
+  slug: string;
+  titulo: string;
+  bajada: string | null;
+  noches: number;
+  precio_desde: number | null;
+  ahorro_pct: number | null;
+  /** Beneficios cruzados (lista de textos). */
+  beneficios: string[];
+  validez: string | null;
+  estado: EstadoCombo;
+  /** Perfil (responsable o admin) que armó el combo. */
+  creado_por: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ComboItemRow {
+  id: string;
+  combo_id: string;
+  comercio_tipo: ComercioTipo;
+  comercio_id: string;
+  beneficio: string;
+  orden: number;
+}
+
 export interface LocalidadRow {
   id: string;
   destino_id: string;
@@ -528,6 +564,18 @@ export type Database = {
         Row: PromoRow;
         Insert: Insert<PromoRow>;
         Update: Update<PromoRow>;
+        Relationships: [];
+      };
+      combos: {
+        Row: ComboRow;
+        Insert: Insert<ComboRow>;
+        Update: Update<ComboRow>;
+        Relationships: [];
+      };
+      combo_items: {
+        Row: ComboItemRow;
+        Insert: Insert<ComboItemRow>;
+        Update: Update<ComboItemRow>;
         Relationships: [];
       };
     };

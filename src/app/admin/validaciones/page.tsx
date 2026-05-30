@@ -1,17 +1,24 @@
 import { requireAdmin } from "@/features/admin/lib/auth";
 import { listPendientesValidacion } from "@/features/admin/lib/queries";
 import { listLugaresPendientesValidacion } from "@/features/admin/lib/lugar-queries";
+import { listCombosPendientesValidacion } from "@/features/combos/lib/queries";
 import { ValidacionCard } from "@/features/admin/components/ValidacionCard";
 import { LugarValidacionCard } from "@/features/admin/components/LugarValidacionCard";
+import { ComboTable } from "@/features/combos/components/ComboTable";
 
 export default async function ValidacionesPage() {
   const admin = await requireAdmin();
-  const [pendientesHospedajes, pendientesLugares] = await Promise.all([
-    listPendientesValidacion(admin.destinoId),
-    listLugaresPendientesValidacion(admin.destinoId),
-  ]);
+  const [pendientesHospedajes, pendientesLugares, pendientesCombos] =
+    await Promise.all([
+      listPendientesValidacion(admin.destinoId),
+      listLugaresPendientesValidacion(admin.destinoId),
+      listCombosPendientesValidacion(admin.destinoId),
+    ]);
 
-  const total = pendientesHospedajes.length + pendientesLugares.length;
+  const total =
+    pendientesHospedajes.length +
+    pendientesLugares.length +
+    pendientesCombos.length;
 
   return (
     <div className="max-w-6xl space-y-10">
@@ -62,6 +69,18 @@ export default async function ValidacionesPage() {
               <LugarValidacionCard key={l.id} lugar={l} />
             ))}
           </div>
+        </section>
+      )}
+
+      {pendientesCombos.length > 0 && (
+        <section>
+          <h2 className="mb-4 font-display text-xl tracking-tight">
+            Combos ({pendientesCombos.length})
+          </h2>
+          <p className="mb-3 text-sm text-muted-foreground">
+            Abrí cada combo para revisarlo y publicarlo o rechazarlo.
+          </p>
+          <ComboTable rows={pendientesCombos} basePath="/admin/combos" />
         </section>
       )}
     </div>
