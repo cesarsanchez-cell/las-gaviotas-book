@@ -1,8 +1,10 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, MapPin, BedDouble } from "lucide-react";
 import { Footer } from "@/components/layout/Footer";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { buildBreadcrumbJsonLd } from "@/lib/seo/jsonld";
 import {
   getRegionBySlug,
   listDestinosDeRegion,
@@ -55,9 +57,19 @@ export default async function RegionPage({ params }: PageProps) {
 
   const primary = region.biomas[0] ?? "playa";
   const secondary = region.biomas[1] ?? primary;
+  const totalHospedajes = destinos.reduce(
+    (sum, d) => sum + d.hospedajes_count,
+    0
+  );
 
   return (
     <>
+      <JsonLd
+        data={buildBreadcrumbJsonLd([
+          { name: "Inicio", url: "/" },
+          { name: region.nombre, url: `/regiones/${slug}` },
+        ])}
+      />
       <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur">
         <div className="container">
           <div className="flex h-16 items-center gap-4">
@@ -114,42 +126,46 @@ export default async function RegionPage({ params }: PageProps) {
                 </span>
               ))}
             </div>
+
+            <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-white/90">
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="h-4 w-4" aria-hidden />
+                {destinos.length} destinos
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <BedDouble className="h-4 w-4" aria-hidden />
+                {totalHospedajes} hospedaje{totalHospedajes === 1 ? "" : "s"}{" "}
+                verificado{totalHospedajes === 1 ? "" : "s"}
+              </span>
+            </div>
           </div>
         </section>
 
-        {/* Listado de destinos */}
+        {/* Listado de destinos (siempre 2+: con 1 redirige, con 0 es notFound) */}
         <section className="py-12">
           <div className="container">
             <header className="mb-6 max-w-2xl">
               <p className="eyebrow">Destinos de la región</p>
               <h2 className="mt-2 font-display text-3xl tracking-tight text-foreground md:text-4xl">
-                {destinos.length === 0
-                  ? "Sin destinos cargados todavía"
-                  : `${destinos.length} ${destinos.length === 1 ? "destino" : "destinos"} en ${region.nombre}`}
+                Elegí dónde escaparte en {region.nombre}
               </h2>
             </header>
 
-            {destinos.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Estamos sumando destinos en esta región. Volvé pronto.
-              </p>
-            ) : (
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {destinos.map((d) => (
-                  <DestinoCard
-                    key={d.id}
-                    slug={d.slug}
-                    nombre={d.nombre}
-                    region={d.region}
-                    pais={d.pais}
-                    descripcion_corta={d.descripcion_corta}
-                    biomas={d.biomas}
-                    hospedajes_count={d.hospedajes_count}
-                    foto_path={d.foto_path}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {destinos.map((d) => (
+                <DestinoCard
+                  key={d.id}
+                  slug={d.slug}
+                  nombre={d.nombre}
+                  region={d.region}
+                  pais={d.pais}
+                  descripcion_corta={d.descripcion_corta}
+                  biomas={d.biomas}
+                  hospedajes_count={d.hospedajes_count}
+                  foto_path={d.foto_path}
+                />
+              ))}
+            </div>
           </div>
         </section>
       </main>
