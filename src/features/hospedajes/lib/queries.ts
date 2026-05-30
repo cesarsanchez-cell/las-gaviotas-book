@@ -225,14 +225,39 @@ export async function listAllHospedajesForSitemap(): Promise<
 }
 
 export async function listAllDestinosForSitemap(): Promise<
-  { slug: string; updated_at: string }[]
+  { slug: string; updated_at: string; region_slug: string | null }[]
 > {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data } = (await supabase
     .from("destinos")
-    .select("slug, updated_at")
-    .eq("activo", true);
-  return data ?? [];
+    .select("id, slug, updated_at, regiones(slug)")
+    .eq("activo", true)) as {
+    data: Array<{
+      id: string;
+      slug: string;
+      updated_at: string;
+      regiones: { slug: string } | null;
+    }> | null;
+  };
+  if (!data || data.length === 0) return [];
+
+  // Regla de publicación: solo destinos con ≥1 hospedaje publicado son
+  // indexables (no advertimos destinos vacíos a los buscadores).
+  const { data: hosps } = (await supabase
+    .from("hospedajes")
+    .select("destino_id")
+    .eq("estado", "publicado")) as {
+    data: Array<{ destino_id: string }> | null;
+  };
+  const publicados = new Set((hosps ?? []).map((h) => h.destino_id));
+
+  return data
+    .filter((d) => publicados.has(d.id))
+    .map((d) => ({
+      slug: d.slug,
+      updated_at: d.updated_at,
+      region_slug: d.regiones?.slug ?? null,
+    }));
 }
 
 /**

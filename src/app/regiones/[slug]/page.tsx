@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Footer } from "@/components/layout/Footer";
 import {
@@ -43,9 +43,15 @@ export async function generateMetadata({
 export default async function RegionPage({ params }: PageProps) {
   const { slug } = await params;
   const region = await getRegionBySlug(slug);
-  if (!region) notFound();
+  // Región inexistente o despublicada no tiene página pública.
+  if (!region || !region.activo) notFound();
 
   const destinos = await listDestinosDeRegion(region.id);
+
+  // Regla de publicación: región visible ⇔ ≥1 destino publicado.
+  if (destinos.length === 0) notFound();
+  // Con un solo destino, la región no aporta una capa intermedia: vamos directo.
+  if (destinos.length === 1) redirect(`/${destinos[0].slug}`);
 
   const primary = region.biomas[0] ?? "playa";
   const secondary = region.biomas[1] ?? primary;

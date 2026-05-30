@@ -58,5 +58,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...destinoUrls, ...hospedajeUrls, ...lugarUrls];
+  // Regiones: solo las que renderizan página propia (2+ destinos publicados).
+  // Con 1 destino la región redirige al destino, así que no la indexamos.
+  const destinosPorRegion = new Map<string, number>();
+  for (const d of destinos) {
+    if (!d.region_slug) continue;
+    destinosPorRegion.set(d.region_slug, (destinosPorRegion.get(d.region_slug) ?? 0) + 1);
+  }
+  const regionUrls: MetadataRoute.Sitemap = [...destinosPorRegion.entries()]
+    .filter(([, count]) => count >= 2)
+    .map(([regionSlug]) => ({
+      url: `${base}/regiones/${regionSlug}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.6,
+    }));
+
+  return [...destinoUrls, ...hospedajeUrls, ...lugarUrls, ...regionUrls];
 }
