@@ -35,6 +35,7 @@ import { listPromosByDestino } from "@/features/promos/lib/queries";
 import { DestinoPromos } from "@/features/promos/components/DestinoPromos";
 import { listCombosByDestino } from "@/features/combos/lib/queries";
 import { CombosSection } from "@/features/combos/components/CombosSection";
+import { ArmadorCTA } from "@/features/armador/components/ArmadorCTA";
 import { buildDestinoJsonLd, buildBreadcrumbJsonLd } from "@/lib/seo/jsonld";
 import { siteConfig } from "@/config/site";
 import { getFotoUrl } from "@/lib/storage";
@@ -211,6 +212,18 @@ export default async function DestinoPage({ params }: PageProps) {
 
         {/* Escapadas armadas (combos) — solo si hay combos publicados */}
         <CombosSection combos={combos} destinoNombre={destino.nombre} />
+
+        {/* Armador a medida — solo si hay con qué combinar (hospedaje + lugar) */}
+        {hospedajesTodos.length > 0 && lugaresTodos.length > 0 && (
+          <section className="py-12 md:py-16">
+            <Container size="xl">
+              <ArmadorCTA
+                destinoSlug={slug}
+                destinoNombre={destino.nombre}
+              />
+            </Container>
+          </section>
+        )}
 
         {/* Imperdibles — solo si hay */}
         {imperdibles.length > 0 && (
