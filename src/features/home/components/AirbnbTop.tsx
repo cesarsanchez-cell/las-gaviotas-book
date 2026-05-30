@@ -1,26 +1,28 @@
 "use client";
 
-import { BedDouble, UtensilsCrossed, Compass, Search, type LucideIcon } from "lucide-react";
+import { BedDouble, UtensilsCrossed, Compass, Tag, Search, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PinHeart } from "./PinHeart";
 import { UserMenu } from "./UserMenu";
-import type { VerticalKey } from "@/features/home/lib/queries";
-import type { SearchState } from "@/features/home/lib/search-types";
+import type { SearchState, HubTab } from "@/features/home/lib/search-types";
 import type { HeaderSession } from "@/features/home/lib/header-session";
 
-const VERTICALES: Array<{ key: VerticalKey; label: string; icon: LucideIcon }> = [
+const TABS: Array<{ key: HubTab; label: string; icon: LucideIcon }> = [
+  { key: "promos", label: "Promos", icon: Tag },
   { key: "hospedajes", label: "Hospedajes", icon: BedDouble },
   { key: "gastronomia", label: "Gastronomía", icon: UtensilsCrossed },
   { key: "atractivos", label: "Qué hacer", icon: Compass },
 ];
 
 interface AirbnbTopProps {
-  vertical: VerticalKey;
-  onChangeVertical: (v: VerticalKey) => void;
+  vertical: HubTab;
+  onChangeVertical: (v: HubTab) => void;
   onGoHub: () => void;
   search: SearchState;
   onOpenSearch: () => void;
   session: HeaderSession;
+  /** Si false, se oculta la tab Promos (no hay promos publicadas). */
+  showPromos: boolean;
 }
 
 export function AirbnbTop({
@@ -30,15 +32,20 @@ export function AirbnbTop({
   search,
   onOpenSearch,
   session,
+  showPromos,
 }: AirbnbTopProps) {
+  const tabs = TABS.filter((t) => t.key !== "promos" || showPromos);
+
   // El 2º/3º segmento del pill cambia según la vertical activa.
   const pill =
-    vertical === "gastronomia" || vertical === "atractivos"
-      ? { b: search.tipo || (vertical === "gastronomia" ? "Tipo" : "Qué"), c: search.cuando || "Cuándo" }
-      : { b: search.cuando || "Cuándo", c: search.quien || "Quién" };
+    vertical === "promos"
+      ? { b: search.cuando || "Cuándo", c: "" }
+      : vertical === "gastronomia" || vertical === "atractivos"
+        ? { b: search.tipo || (vertical === "gastronomia" ? "Tipo" : "Qué"), c: search.cuando || "Cuándo" }
+        : { b: search.cuando || "Cuándo", c: search.quien || "Quién" };
 
   const Verticales = ({ size }: { size: number }) =>
-    VERTICALES.map((v) => {
+    tabs.map((v) => {
       const Icon = v.icon;
       const active = vertical === v.key;
       return (
@@ -105,10 +112,14 @@ export function AirbnbTop({
             </span>
             <span className="h-4 w-px shrink-0 bg-border" aria-hidden />
             <span className="truncate text-muted-foreground">{pill.b}</span>
-            <span className="hidden h-4 w-px shrink-0 bg-border sm:block" aria-hidden />
-            <span className="hidden truncate text-muted-foreground sm:block">
-              {pill.c}
-            </span>
+            {pill.c && (
+              <>
+                <span className="hidden h-4 w-px shrink-0 bg-border sm:block" aria-hidden />
+                <span className="hidden truncate text-muted-foreground sm:block">
+                  {pill.c}
+                </span>
+              </>
+            )}
             <span className="ml-auto inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
               <Search className="h-4 w-4" aria-hidden />
             </span>

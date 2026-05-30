@@ -4,14 +4,21 @@ import { Tag, MapPin } from "lucide-react";
 import type { PromoPublic } from "@/features/promos/lib/queries";
 
 /**
- * Card de promo para las bandas de la home. La foto se hereda del comercio
- * referenciado. Click → portal del destino del comercio.
+ * Card de promo. La foto se hereda del comercio referenciado. Click → portal
+ * del destino. `widthClass` controla el ancho según el contenedor: strip
+ * horizontal (default) o grilla full-width (tab Promos de la home).
  */
-export function PromoCard({ promo }: { promo: PromoPublic }) {
+export function PromoCard({
+  promo,
+  widthClass = "w-44 shrink-0 sm:w-56 lg:w-64",
+}: {
+  promo: PromoPublic;
+  widthClass?: string;
+}) {
   return (
     <Link
       href={`/${promo.destino.slug}`}
-      className="group flex w-60 shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-64"
+      className={`group flex ${widthClass} flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary`}
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
         {promo.comercio.fotoUrl ? (

@@ -7,12 +7,11 @@ import {
   CATEGORIAS_GASTRONOMICO,
   CATEGORIAS_ATRACTIVO,
 } from "@/config/categorias-lugar";
-import type { VerticalKey } from "@/features/home/lib/queries";
 import type {
   DestinoPublicadoLite,
   RegionVisible,
 } from "@/features/home/lib/queries";
-import type { SearchState } from "@/features/home/lib/search-types";
+import type { SearchState, HubTab } from "@/features/home/lib/search-types";
 
 const GASTRO_TIPOS = Object.values(CATEGORIAS_GASTRONOMICO).map((c) => c.label);
 const ATRACTIVO_TIPOS = Object.values(CATEGORIAS_ATRACTIVO).map((c) => c.label);
@@ -35,7 +34,7 @@ interface SearchPanelProps {
   onApply: (s: SearchState) => void;
   destinos: DestinoPublicadoLite[];
   regiones: RegionVisible[];
-  vertical: VerticalKey;
+  vertical: HubTab;
   onUseGeo: () => void;
 }
 
@@ -68,6 +67,7 @@ export function SearchPanel({
   const [step, setStep] = React.useState<Step>("donde");
 
   const esHospedaje = vertical === "hospedajes";
+  const showTipo = vertical === "gastronomia" || vertical === "atractivos";
   const tipos = vertical === "gastronomia" ? GASTRO_TIPOS : ATRACTIVO_TIPOS;
 
   // Bloquear scroll del body mientras el panel está abierto + Escape para cerrar.
@@ -260,7 +260,7 @@ export function SearchPanel({
           </section>
 
           {/* Tipo — gastronomía / qué hacer */}
-          {!esHospedaje && (
+          {showTipo && (
             <section>
               <button type="button" className={secHeadClass} onClick={() => setStep("tipo")}>
                 <span className="text-sm font-medium text-foreground">
