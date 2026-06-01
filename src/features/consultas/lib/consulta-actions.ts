@@ -25,9 +25,12 @@ async function getClientIp(): Promise<string | null> {
  *
  * Capas de defensa, en orden:
  *  1. Honeypot — campo `company` debe venir vacío. Bots lo llenan automático.
- *  2. Rate limit por IP — 5 / 10 min en memoria del servidor.
- *  3. Zod schema — formato, longitudes, fechas válidas.
- *  4. RLS de Supabase — INSERT solo si consentimiento=true y hospedaje publicado.
+ *  2. Rate limit por IP — 5 / 10 min, persistido en Postgres (RPC
+ *     `check_consulta_rate_limit`), efectivo entre instancias/cold starts.
+ *  3. Zod schema — formato, longitudes, fechas válidas, consentimiento=true.
+ *  4. Revalidación en código de `hospedaje.estado='publicado'`. La policy RLS
+ *     también lo exige, pero el INSERT va por service role (saltea RLS), así
+ *     que la defensa efectiva acá es este chequeo, no la RLS.
  *  5. Notificación al responsable — vía Resend, falla silencioso si falla.
  *
  * Usamos service role para el INSERT porque queremos guardar ip + user_agent
