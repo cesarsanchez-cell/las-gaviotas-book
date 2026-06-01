@@ -9,7 +9,7 @@ import {
   type FormEvent,
 } from "react";
 import Image from "next/image";
-import { CheckCircle2, Users, Bed } from "lucide-react";
+import { CheckCircle2, Users, Bed, Minus, Plus } from "lucide-react";
 import { createConsultaAction } from "@/features/consultas/lib/consulta-actions";
 import type { UnidadSugerida } from "@/features/consultas/lib/types";
 import { UnidadAmenitiesList } from "@/features/unidades/components/UnidadAmenitiesList";
@@ -24,7 +24,10 @@ interface Props {
   /** Valores heredados del buscador principal (vía URL), para no recargarlos. */
   initialCheckIn?: string;
   initialCheckOut?: string;
-  initialHuespedes?: number;
+  /** Desglose de huéspedes heredado del buscador (mismo formato que el hero). */
+  initialAdultos?: number;
+  initialNinos?: number;
+  initialBebes?: number;
 }
 
 
@@ -48,7 +51,9 @@ export function ConsultaForm({
   capacidadMax,
   initialCheckIn,
   initialCheckOut,
-  initialHuespedes,
+  initialAdultos,
+  initialNinos,
+  initialBebes,
 }: Props) {
   const formId = useId();
   const [pending, startTransition] = useTransition();
@@ -63,7 +68,7 @@ export function ConsultaForm({
     whatsapp: useRef<HTMLInputElement | null>(null),
     checkIn: useRef<HTMLDivElement | null>(null),
     checkOut: useRef<HTMLDivElement | null>(null),
-    cantidadHuespedes: useRef<HTMLInputElement | null>(null),
+    cantidadHuespedes: useRef<HTMLDivElement | null>(null),
     mensaje: useRef<HTMLTextAreaElement | null>(null),
     consentimiento: useRef<HTMLInputElement | null>(null),
   };
@@ -72,6 +77,14 @@ export function ConsultaForm({
   const [checkOut, setCheckOut] = useState<string>(
     initialCheckOut ?? tomorrowISO()
   );
+
+  // Huéspedes: mismo desglose que el buscador principal (adultos/niños/bebés).
+  // Los bebés son informativos y no cuentan para la capacidad.
+  const [adultos, setAdultos] = useState<number>(initialAdultos ?? 2);
+  const [ninos, setNinos] = useState<number>(initialNinos ?? 0);
+  const [bebes, setBebes] = useState<number>(initialBebes ?? 0);
+  const maxCap = capacidadMax ?? 20;
+  const totalCapacidad = adultos + ninos;
 
   // Cuando llegan field errors, mover el foco al primer campo con error
   // (en el orden visual del form). NO se limpian los valores cargados —
@@ -93,12 +106,25 @@ export function ConsultaForm({
     setFieldErrors({});
 
     const formData = new FormData(e.currentTarget);
+
+    // El modelo solo guarda el total, así que adjuntamos el desglose de pax
+    // (adultos/niños/bebés) al mensaje para que el responsable lo reciba.
+    const userMensaje = String(formData.get("mensaje") ?? "").trim();
+    const paxParts = [`${adultos} ${adultos === 1 ? "adulto" : "adultos"}`];
+    if (ninos > 0) paxParts.push(`${ninos} ${ninos === 1 ? "niño" : "niños"}`);
+    if (bebes > 0) paxParts.push(`${bebes} ${bebes === 1 ? "bebé" : "bebés"}`);
+    const paxLine = `Huéspedes: ${paxParts.join(", ")}.`;
+    const mensaje =
+      userMensaje && userMensaje.length + paxLine.length + 2 <= 1000
+        ? `${userMensaje}\n\n${paxLine}`
+        : userMensaje;
+
     const input = {
       hospedajeId,
       nombre: String(formData.get("nombre") ?? ""),
       email: String(formData.get("email") ?? ""),
       whatsapp: String(formData.get("whatsapp") ?? ""),
-      mensaje: String(formData.get("mensaje") ?? ""),
+      mensaje,
       checkIn: String(formData.get("checkIn") ?? ""),
       checkOut: String(formData.get("checkOut") ?? ""),
       cantidadHuespedes: Number(formData.get("cantidadHuespedes") ?? 1),
@@ -298,7 +324,7 @@ export function ConsultaForm({
         )}
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <div ref={refs.checkIn as React.RefObject<HTMLDivElement>}>
           <label className="text-sm font-medium" htmlFor={`${formId}-checkIn`}>
             Check-in
@@ -339,27 +365,47 @@ export function ConsultaForm({
             <p className="mt-1 text-xs text-rose-600">{fe("checkOut")}</p>
           )}
         </div>
-        <div>
-          <label className="text-sm font-medium" htmlFor={`${formId}-cant`}>
-            Huéspedes
-          </label>
-          <input
-            id={`${formId}-cant`}
-            name="cantidadHuespedes"
-            type="number"
-            required
+      </div>
+
+      <div ref={refs.cantidadHuespedes as React.RefObject<HTMLDivElement>}>
+        <label className="text-sm font-medium">Huéspedes</label>
+        <div className="mt-2 flex flex-col gap-1 rounded-md border border-input bg-background px-3 py-1.5">
+          <Counter
+            label="Adultos"
+            hint="13 años o más"
+            value={adultos}
             min={1}
-            max={capacidadMax ?? 20}
-            defaultValue={initialHuespedes ?? 2}
-            ref={refs.cantidadHuespedes as React.RefObject<HTMLInputElement>}
-            className={cls("cantidadHuespedes")}
+            disableInc={totalCapacidad >= maxCap}
+            onChange={setAdultos}
           />
-          {fe("cantidadHuespedes") && (
-            <p className="mt-1 text-xs text-rose-600">
-              {fe("cantidadHuespedes")}
-            </p>
-          )}
+          <Counter
+            label="Niños"
+            hint="2 a 12 años"
+            value={ninos}
+            disableInc={totalCapacidad >= maxCap}
+            onChange={setNinos}
+          />
+          <Counter
+            label="Bebés"
+            hint="menos de 2 — no pagan, informativo"
+            value={bebes}
+            max={10}
+            onChange={setBebes}
+          />
         </div>
+        {/* El modelo guarda un único total; los bebés no cuentan capacidad. */}
+        <input type="hidden" name="cantidadHuespedes" value={totalCapacidad} />
+        {capacidadMax != null && totalCapacidad >= capacidadMax && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Capacidad máxima del hospedaje: {capacidadMax}{" "}
+            {capacidadMax === 1 ? "persona" : "personas"}.
+          </p>
+        )}
+        {fe("cantidadHuespedes") && (
+          <p className="mt-1 text-xs text-rose-600">
+            {fe("cantidadHuespedes")}
+          </p>
+        )}
       </div>
 
       <div>
@@ -407,5 +453,59 @@ export function ConsultaForm({
         {pending ? "Enviando…" : "Enviar consulta"}
       </button>
     </form>
+  );
+}
+
+/** Contador de huéspedes con el mismo formato que el buscador principal. */
+function Counter({
+  label,
+  hint,
+  value,
+  min = 0,
+  max = 20,
+  disableInc,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  value: number;
+  min?: number;
+  max?: number;
+  disableInc?: boolean;
+  onChange: (n: number) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <div>
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      </div>
+      <div className="inline-flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(min, value - 1))}
+          disabled={value <= min}
+          aria-label={`Quitar ${label.toLowerCase()}`}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:border-foreground disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Minus className="h-3.5 w-3.5" aria-hidden />
+        </button>
+        <span
+          className="min-w-[1.5rem] text-center text-sm font-medium tabular-nums"
+          aria-live="polite"
+        >
+          {value}
+        </span>
+        <button
+          type="button"
+          onClick={() => onChange(Math.min(max, value + 1))}
+          disabled={disableInc ?? value >= max}
+          aria-label={`Agregar ${label.toLowerCase()}`}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition hover:border-foreground disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Plus className="h-3.5 w-3.5" aria-hidden />
+        </button>
+      </div>
+    </div>
   );
 }

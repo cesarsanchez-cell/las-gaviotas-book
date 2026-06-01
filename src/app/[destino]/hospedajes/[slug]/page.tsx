@@ -331,7 +331,21 @@ export default async function HospedajeDetailPage({
                     capacidadMax={hospedaje.capacidad_max ?? null}
                     initialCheckIn={ctxCheckIn}
                     initialCheckOut={ctxCheckOut}
-                    initialHuespedes={huespedes}
+                    initialAdultos={
+                      Number.isFinite(ctxAdultos) && ctxAdultos > 0
+                        ? ctxAdultos
+                        : undefined
+                    }
+                    initialNinos={
+                      Number.isFinite(ctxNinos) && ctxNinos > 0
+                        ? ctxNinos
+                        : undefined
+                    }
+                    initialBebes={
+                      Number.isFinite(ctxBebes) && ctxBebes > 0
+                        ? ctxBebes
+                        : undefined
+                    }
                   />
                 </div>
               </section>

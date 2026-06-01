@@ -19,6 +19,16 @@ interface Props {
   className?: string;
   /** Si el buscador vive en hero (más grande) o inline (compacto). */
   variant?: "hero" | "inline";
+  /**
+   * Ruta a la que navega al enviar (sin query). Por defecto la página de
+   * resultados del destino. Se pisa cuando el buscador edita el contexto de
+   * una ficha concreta (unidad/hospedaje) y debe quedarse en ella.
+   */
+  basePath?: string;
+  /** "row" para hero ancho; "stack" para sidebars angostos (apila campos). */
+  layout?: "row" | "stack";
+  /** Texto del botón de envío. */
+  submitLabel?: string;
 }
 
 const addDays = addDaysISO;
@@ -80,6 +90,9 @@ export function BuscadorBar({
   defaultBebes = 0,
   className,
   variant = "hero",
+  basePath,
+  layout = "row",
+  submitLabel = "Buscar",
 }: Props) {
   const router = useRouter();
   const baseId = useId();
@@ -101,7 +114,8 @@ export function BuscadorBar({
       ninos: String(ninos),
       bebes: String(bebes),
     });
-    router.push(`/${destinoSlug}/buscar?${params.toString()}`);
+    const target = basePath ?? `/${destinoSlug}/buscar`;
+    router.push(`${target}?${params.toString()}`);
   }
 
   const paxTotal = adultos + ninos + bebes;
@@ -122,7 +136,14 @@ export function BuscadorBar({
         className
       )}
     >
-      <div className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
+      <div
+        className={cn(
+          "grid gap-3",
+          layout === "stack"
+            ? "grid-cols-1"
+            : "md:grid-cols-[1fr_1fr_1fr_auto]"
+        )}
+      >
         <div>
           <label className="text-xs font-medium text-muted-foreground" htmlFor={`${baseId}-ci`}>
             Check-in
@@ -203,10 +224,14 @@ export function BuscadorBar({
             </div>
           )}
         </div>
-        <div className="md:self-end">
-          <Button type="submit" size="lg" className="w-full md:w-auto">
+        <div className={layout === "stack" ? "" : "md:self-end"}>
+          <Button
+            type="submit"
+            size="lg"
+            className={layout === "stack" ? "w-full" : "w-full md:w-auto"}
+          >
             <Search className="h-4 w-4" />
-            Buscar
+            {submitLabel}
           </Button>
         </div>
       </div>
