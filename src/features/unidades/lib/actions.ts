@@ -72,8 +72,6 @@ function formatZodError(err: z.ZodError): ActionResult {
     const key = issue.path.join(".");
     fieldErrors[key] ??= issue.message;
   }
-  // Log server-side para diagnóstico durante 2.B — sacar después.
-  console.error("[unidades] zod error:", JSON.stringify(err.issues, null, 2));
   return { error: "Hay errores en el formulario.", fieldErrors };
 }
 

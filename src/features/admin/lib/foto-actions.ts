@@ -12,7 +12,7 @@ import type { PerfilRow } from "@/types/database";
  * Permite:
  * - super admin (destino_id=null): cualquier hospedaje
  * - admin local (destino_id=<uuid>): solo hospedajes de su destino
- * - responsable: solo hospedajes en su lista
+ * - responsable: solo hospedajes que gestiona (vía `responsabilidades`)
  */
 async function requireAccessToHospedaje(hospedajeId: string) {
   const supabase = await createClient();
@@ -43,11 +43,18 @@ async function requireAccessToHospedaje(hospedajeId: string) {
     }
     return { user, perfil };
   }
-  if (
-    perfil.rol === "responsable" &&
-    (perfil.hospedajes_ids ?? []).includes(hospedajeId)
-  ) {
-    return { user, perfil };
+  if (perfil.rol === "responsable") {
+    // Ownership vía `responsabilidades` (fuente de verdad), no por el array
+    // legacy `perfiles.hospedajes_ids[]`. La policy "lectura propia" permite
+    // al usuario leer sus propias filas con el cliente RLS.
+    const { data: resp } = await supabase
+      .from("responsabilidades")
+      .select("entidad_id")
+      .eq("perfil_id", user.id)
+      .eq("entidad_tipo", "hospedaje")
+      .eq("entidad_id", hospedajeId)
+      .maybeSingle<{ entidad_id: string }>();
+    if (resp) return { user, perfil };
   }
   throw new Error("Sin permisos sobre este hospedaje");
 }
