@@ -11,9 +11,9 @@ Estado consolidado del proyecto. Visión y reglas detalladas en [CLAUDE.md](CLAU
 
 | Item              | Valor                                                                            |
 |-------------------|----------------------------------------------------------------------------------|
-| Etapa vigente     | **Rediseño multi-unidad: Etapas 1, 2, 3 cerradas y en prod** — siguiente: Etapa 4 (página pública con sección Unidades) |
-| Último commit     | `ec37d88` — Etapa 3.B calendario por unidad con tabs (panel + admin)             |
-| Fecha             | 2026-05-18                                                                       |
+| Etapa vigente     | **Rediseño multi-unidad Etapas 1-6 cerradas + verticales gastro/atractivos + roles múltiples + regiones + autogestión password, todo en prod**. Pendiente técnico chico: Etapa 7 restricciones (UI). Siguiente foco: **Visión de producto** (home emocional + sinergia comercial) — ver sección final |
+| Último commit     | `d28d124` — Destinos: foto del destino con upload a Storage                       |
+| Fecha             | 2026-05-27                                                                       |
 | Entorno local     | PM2 → `las-gaviotas-book` en `http://localhost:3005`                             |
 | **Deploy producción** | ✅ https://www.misescapadas.com.ar (canónico) + redirects desde apex y vercel.app |
 | Repo remoto       | https://github.com/cesarsanchez-cell/las-gaviotas-book (privado)                 |
@@ -101,14 +101,12 @@ Bloque D — Validación end-to-end:
 - [x] Mar Azul marcado `activo=false` — queda como semilla de testing, hub público vuelve a redirigir a Las Gaviotas
 
 ### Pendientes (menores, NO bloqueantes)
-- [ ] Mejorar copy del email de confirmación de signup (sigue siendo el default de Supabase)
-- [ ] UX: link "¿No tenés cuenta? Registrate" más visible o redirect inteligente cuando email no existe
-- [ ] Considerar trigger BEFORE UPDATE en hospedajes que valide transiciones de estado por rol (defensa en profundidad)
-- [ ] **Autogestión de password para admins de destino**: hoy el super admin tiene que pasarle una clave compleja y rezar para que no la pierda. Debe ser autónomo: flow de "olvidé mi password" funcionando + opción de cambiar password desde el perfil del admin. Aplica también a responsables. Sin esto, cada admin caído genera ticket al super admin.
-- [ ] **UI para gestionar localidades (zonas)** desde `/admin/localidades`: alta de zonas por destino ("Frente al mar", "Centro", "Bosque", etc.) la debe hacer el admin local del destino — conoce las zonas mejor que el super admin. Hoy se cargan por SQL directo. RLS ya existe (admin scoped por destino), solo falta el page + form + listado. ~2-3 hs, calcado del CRUD de destinos.
+- [ ] Copy del email de confirmación de signup (verificar si sigue el default de Supabase o ya se ajustó en Resend)
+- [ ] Considerar trigger BEFORE UPDATE en hospedajes que valide transiciones de estado por rol (defensa en profundidad, opcional — RLS + asserts TS ya cubren)
+- [ ] Decisión de producto: el `ConsultaForm` genérico al hospedaje convive con el `ConsultaUnidadForm` del flow del buscador. Definir si se deja (consulta sin fechas decididas) o se fuerza el flow nuevo.
+- [ ] Etapa 7 restricciones (ver arriba) — único gap técnico abierto del rediseño.
 
-### Pendientes de diseño (requieren pensar antes de codear)
-- [ ] **Disponibilidad multi-dimensional por capacidad de unidad**: el modelo actual bloquea el hospedaje entero por día, pero un hospedaje real tiene varias unidades de distintos tamaños (cabaña 2 pax / depto 4 pax / casa 6 pax). No es lo mismo tener libre una unidad para 2 que recibir una consulta de familia de 6. Requiere: (1) tabla `unidades` por hospedaje con capacidad declarada, (2) disponibilidad atada a `unidad_id` no a `hospedaje_id`, (3) form de consulta sugiriendo unidades que entren para la cantidad de pasajeros pedida, (4) badge en consultas que diga "Disponible para 4 pax (unidad X libre)" en vez de solo "Disponible". Diseñar antes de Etapa 4 — afecta el schema de reservas. Memoria: [[project-disponibilidad-multi-unidad]].
+**Resueltos desde la versión anterior del roadmap:** autogestión password ✅, gestión de zonas (resuelto vía Regiones+destinos, no se hace `/admin/localidades`) ✅, disponibilidad multi-unidad por capacidad ✅ (rediseño Etapas 1-6), bug visual del form en incógnito ✅, mail de confirmación al hospedaje ✅ (Resend), landing de clientes ✅.
 
 ### Etapa 2 — Leads y consultas ✅ cerrada (2026-05-16)
 
@@ -202,22 +200,54 @@ Reescritura mayor del modelo: la disponibilidad pasa de estar atada al `hospedaj
 
 **Limitación conocida**: el badge en consultas (`disponible/parcial/ocupado`) sigue siendo "tonto" — no diferencia por capacidad ni por unidad puntual. Se arregla en Etapa 5 de este rediseño.
 
-### Etapa 4 rediseño — Página pública con unidades (planeada, siguiente)
-- [ ] Refactor `DisponibilidadPublica` para mini-cal por unidad
-- [ ] Sección "Unidades" en `/[destino]/hospedajes/[slug]` con cards por tipo (foto principal, capacidad, amenities, camas, mini-cal)
-- [ ] Capacidad agregada en cards del listado de hospedajes (`getCapacidadTotalHospedaje` ya existe)
+### Etapa 4 rediseño — Página pública con unidades ✅ cerrada (`e628c12` y sig.)
+- [x] `DisponibilidadPublica` con prop `compact` (mini-cal 1 mes) + `aggregateFullBlockPorTipo`
+- [x] Sección "Unidades" en `/[destino]/hospedajes/[slug]` con `UnidadCard` por tipo
+- [x] Secciones "Servicios del complejo" + "Cómo opera el hospedaje" (operational amenities)
+- [x] Capacidad real agregada desde unidades en el listado de hospedajes (fallback a `capacidad_max` legacy)
 
-### Etapa 5 rediseño — Consultas integradas (planeada)
-- [ ] Badge fino "Disponible para N pax (X unidades libres)" que mira capacidad
-- [ ] Form de consulta sugiere unidades compatibles con cantidad de pax pedidos
+### Etapa 5 rediseño — Búsqueda + flow contextualizado ✅ cerrada (`e628c12` y sig.)
+- [x] `BuscadorBar` (check-in/out + popover pax adultos/niños/bebés) + `DateField` con react-day-picker es-AR
+- [x] `searchUnidadesPorDestino`: query cross-hospedaje, tipos que cumplen capacidad + libres en todo el rango
+- [x] `/[destino]/buscar` con `UnidadResultCard` + detalle `/unidades/[unidadTypeId]` con galería embla + form contextualizado
+- [x] `createConsultaUnidadAction` enriquece la consulta con unidad/fechas/pax/canal
 
-### Etapa 6 rediseño — Motor de tarifas (planeada)
-- [ ] UI alta de tarifa por unidad_type + temporada
-- [ ] Display de precio en página pública
+### Etapa 6 rediseño — Motor de tarifas ✅ cerrada (`d2ea9ed` + `bb54d94`)
+- [x] Migración `consultas`: columnas dedicadas `unidad_type_id`, `canal_preferido`, `adultos`/`ninos`/`bebes`
+- [x] UI alta de tarifa por unidad_type + temporada en panel responsable
+- [x] Display de precio en página pública (fallback "Precio a consultar" si no hay tarifa)
+- [x] fieldErrors específicos en el form de tarifas
 
-### Etapa 7 rediseño — Restricciones (planeada)
-- [ ] UI alta de restricciones opt-in por temporada (estadía mínima, días fijos de ingreso/egreso)
-- [ ] Validación en form de consulta
+### Etapa 7 rediseño — Restricciones ⏳ pendiente (único gap técnico del rediseño)
+- [ ] UI alta de restricciones opt-in por temporada (estadía mínima, días fijos de ingreso/egreso). `RestriccionRow` ya existe en BD, falta el panel.
+- [ ] Aplicar en `searchUnidadesPorDestino`: descartar unidades cuyo rango pedido no cumpla la restricción
+- [ ] Mostrar "Estadía mínima N noches" como info en el detalle de unidad
+
+### Verticales MisEscapadas — Gastronomía + Atractivos ✅ cerrada (`e628c12`)
+- [x] Tabla `lugares` unificada (tipo discriminador) + `lugar_fotos` + `responsabilidades` (many-to-many) + RLS scoped
+- [x] Admin: `/admin/gastronomia` + `/admin/atractivos` (listado, alta, edición, estados, fotos)
+- [x] Públicas: `/[destino]/gastronomia` y `/[destino]/atractivos` (index + detalle con horarios/categorías)
+- [x] Invitación de responsables gastronómicos + invite suelto (`ca39b88`, `7824c18`)
+
+### Roles múltiples ✅ cerrada (`8597ca8` → `caa2847`)
+- [x] Un perfil puede ser responsable de varias entidades vía `responsabilidades`
+- [x] Admin local con responsabilidades accede a `/panel`; badge dual rol; notificaciones vía `responsabilidades`
+- [x] Panel dashboard muestra siempre ambas secciones (hospedajes + gastronómicos)
+
+### Autogestión de password ✅ cerrada (`5743391` + `1ae8ce6` + `0e1d288`)
+- [x] Invite-by-email al alta + cambio desde perfil + "olvidé mi password" (resetPasswordForEmail, PKCE-compatible)
+- [x] Redirect determinista al login correcto según rol
+
+### Regiones — capa por encima de destinos ✅ cerrada (`914b300` → `d28d124`)
+- [x] Schema + tipos + queries + paleta + biomas
+- [x] CRUD admin `/admin/regiones`
+- [x] Home pública refactorizada (SearchHero + grilla + carousels + bioma strip + CTA)
+- [x] Página `/regiones/[slug]` + vista mapa `/mapa` con Leaflet (auto-fit + labels permanentes por pin)
+- [x] Foto con upload a Storage en **destinos** (regiones todavía sin foto propia — ver propuestas)
+
+### Header mobile + date pairs ✅ (`da05ff5` + `47ced13` + `e47d823`)
+- [x] Menú hamburguesa con drawer slide-in
+- [x] Binding desde/hasta en todo el sitio + fix de bug TZ en `addDays`
 
 ### Etapa post-rediseño — Reservas online (planeada)
 - [ ] Motor de reservas con bloqueo de fechas
@@ -271,3 +301,18 @@ Resumen — detalle completo en `CLAUDE.md` y en la memoria de patrones.
 7. **Entity + Media driven** (fotos first-class, no afterthought)
 
 Filtro para cualquier decisión técnica: _"¿se rompe cuando agreguemos reservas en Etapa 4 o un segundo destino?"_. Si rompe, rediseñar ahora. No implementar features futuras todavía.
+
+---
+
+## Visión de producto — próximas propuestas (2026-05-27)
+
+Backlog de mejoras pensadas con el operador para desarrollar cuando haya tokens. Detalle completo y razonamiento en la memoria `project-propuestas-experiencia-cliente`. El norte: **la home del destino debe vender la experiencia del lugar, no ser un buscador de hospedajes**. El diferencial es la sinergia entre comercios y la utilidad real para el prospecto.
+
+1. **Mejoras de UI cliente** (transversal, se afina con Claude Design).
+2. **Fotos en regiones** — replicar el upload a Storage que ya tienen destinos.
+3. **Navegación con passthrough inteligente** — mostrar solo regiones/destinos con datos cargados (hospedajes y/o gastro y/o atractivos) y saltar directo al que tenga contenido (1 destino con datos → entro directo; varios en una región → entro a la región). La **desactivación manual siempre gana**: desactivado no se muestra aunque tenga datos.
+4. **Bajar el protagonismo del buscador** en la home del destino. Reemplazar el hero-buscador por un **carrousel de imperdibles** (mezcla de paisajes, hospedajes y gastronómicos atractivos).
+5. **Tours y sinergia comercial** — combos hospedaje + gastronomía + atractivo, promos cruzadas (hospedate en X, cená en Y con % de descuento, y viceversa). Diferencial exclusivo de la plataforma.
+6. **Guía útil del destino** — paseos, ferias, actividades culturales, y **servicios esenciales** (asistencia médica, farmacias, policía, bomberos). Que el visitante esté cómodo, entretenido y seguro.
+
+Filosofía rectora: **experiencia útil para el prospecto → valora → recomienda**. Para el comerciante: herramienta para mostrarse y sentirla propia.

@@ -27,6 +27,8 @@ export interface VerticalItem {
   categoria: string | null;
   /** Etiqueta legible del tipo/categoría. */
   tipoLabel: string;
+  /** Bajada corta del comercio (para slides del hero). */
+  descripcionCorta: string | null;
   fotoUrl: string | null;
   destacado: boolean;
   destino: { slug: string; nombre: string };
@@ -96,24 +98,29 @@ function biomasFromDestino(d: DestinoJoin | null): Bioma[] {
 // -----------------------------------------------------------------------------
 
 /**
- * Lista todos los comercios publicados de una vertical en toda la red, con su
- * destino y los biomas heredados de la región. Para la grilla de la home v2.
+ * Lista los comercios publicados de una vertical, con su destino y los biomas
+ * heredados de la región. Sin `destinoSlug` lista toda la red (grilla de la home
+ * v2); con `destinoSlug` acota a ese destino (hub scopeado de la página de
+ * destino).
  */
 export async function listVerticalItemsRed(
-  vertical: VerticalKey
+  vertical: VerticalKey,
+  destinoSlug?: string
 ): Promise<VerticalItem[]> {
   const sb = await createClient();
 
   if (vertical === "hospedajes") {
-    const { data } = (await sb
+    let q = sb
       .from("hospedajes")
       .select(
-        `slug, nombre, tipo, destacado,
+        `slug, nombre, tipo, destacado, descripcion_corta,
          hospedaje_fotos(storage_path, es_principal, orden),
          destinos!inner(slug, nombre, activo, regiones(biomas))`
       )
       .eq("estado", "publicado")
-      .eq("destinos.activo", true)
+      .eq("destinos.activo", true);
+    if (destinoSlug) q = q.eq("destinos.slug", destinoSlug);
+    const { data } = (await q
       .order("destacado", { ascending: false })
       .order("nombre", { ascending: true })) as {
       data:
@@ -122,6 +129,7 @@ export async function listVerticalItemsRed(
             nombre: string;
             tipo: TipoHospedaje;
             destacado: boolean;
+            descripcion_corta: string | null;
             hospedaje_fotos: FotoJoin[] | null;
             destinos: DestinoJoin | null;
           }>
@@ -133,6 +141,7 @@ export async function listVerticalItemsRed(
       nombre: h.nombre,
       categoria: h.tipo,
       tipoLabel: TIPO_HOSPEDAJE_LABEL[h.tipo] ?? "Hospedaje",
+      descripcionCorta: h.descripcion_corta,
       fotoUrl: pickFotoUrl(h.hospedaje_fotos),
       destacado: h.destacado,
       destino: {
@@ -145,16 +154,18 @@ export async function listVerticalItemsRed(
 
   // gastronomia | atractivos → tabla `lugares`
   const tipoLugar = vertical === "gastronomia" ? "gastronomico" : "atractivo";
-  const { data } = (await sb
+  let q = sb
     .from("lugares")
     .select(
-      `slug, nombre, categoria, destacado,
+      `slug, nombre, categoria, destacado, descripcion_corta,
        lugar_fotos(storage_path, es_principal, orden),
        destinos!inner(slug, nombre, activo, regiones(biomas))`
     )
     .eq("estado", "publicado")
     .eq("tipo", tipoLugar)
-    .eq("destinos.activo", true)
+    .eq("destinos.activo", true);
+  if (destinoSlug) q = q.eq("destinos.slug", destinoSlug);
+  const { data } = (await q
     .order("destacado", { ascending: false })
     .order("nombre", { ascending: true })) as {
     data:
@@ -163,6 +174,7 @@ export async function listVerticalItemsRed(
           nombre: string;
           categoria: string;
           destacado: boolean;
+          descripcion_corta: string | null;
           lugar_fotos: FotoJoin[] | null;
           destinos: DestinoJoin | null;
         }>
@@ -176,6 +188,7 @@ export async function listVerticalItemsRed(
     tipoLabel:
       getCategoriaLabel(tipoLugar, l.categoria) ??
       (vertical === "gastronomia" ? "Gastronomía" : "Atractivo"),
+    descripcionCorta: l.descripcion_corta,
     fotoUrl: pickFotoUrl(l.lugar_fotos),
     destacado: l.destacado,
     destino: {

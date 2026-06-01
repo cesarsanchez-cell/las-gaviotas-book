@@ -121,6 +121,18 @@ export async function deleteFotoAction(input: {
   }
   const admin = createAdminClient();
 
+  // Scope obligatorio: la foto tiene que pertenecer a ESTE hospedaje. Como
+  // usamos service role (sin RLS), sin este chequeo un caller con acceso a un
+  // hospedaje propio podría borrar una foto de otro pasando un fotoId ajeno.
+  // Además tomamos el storage_path desde la BD — nunca del input del cliente.
+  const { data: foto } = await admin
+    .from("hospedaje_fotos")
+    .select("storage_path")
+    .eq("id", input.fotoId)
+    .eq("hospedaje_id", input.hospedajeId)
+    .maybeSingle<{ storage_path: string }>();
+  if (!foto) return { error: "La foto no pertenece a este hospedaje." };
+
   // Si el hospedaje está publicado, no permitir el borrado si dejaría
   // al hospedaje con menos de 5 fotos en alta resolución. El responsable
   // (o admin) debe pausar primero o subir un reemplazo de buena calidad.
@@ -148,12 +160,13 @@ export async function deleteFotoAction(input: {
     }
   }
 
-  await admin.storage.from("hospedajes").remove([input.storagePath]);
+  await admin.storage.from("hospedajes").remove([foto.storage_path]);
 
   const { error } = await admin
     .from("hospedaje_fotos")
     .delete()
-    .eq("id", input.fotoId);
+    .eq("id", input.fotoId)
+    .eq("hospedaje_id", input.hospedajeId);
 
   if (error) return { error: error.message };
 
@@ -182,7 +195,8 @@ export async function setPrincipalAction(input: {
   const { error: e2 } = await admin
     .from("hospedaje_fotos")
     .update({ es_principal: true } as never)
-    .eq("id", input.fotoId);
+    .eq("id", input.fotoId)
+    .eq("hospedaje_id", input.hospedajeId);
   if (e2) return { error: e2.message };
 
   revalidatePath(`/admin/hospedajes/${input.hospedajeId}`);
@@ -207,6 +221,7 @@ export async function updateFotoOrderAction(input: {
         .from("hospedaje_fotos")
         .update({ orden: i } as never)
         .eq("id", id)
+        .eq("hospedaje_id", input.hospedajeId)
     )
   );
 

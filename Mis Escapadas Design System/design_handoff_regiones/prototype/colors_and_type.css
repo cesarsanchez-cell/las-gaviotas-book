@@ -1,0 +1,394 @@
+/* ============================================================
+   Mis Escapadas — Design Tokens (color, type, spacing, motion)
+   ------------------------------------------------------------
+   Single source of truth for any HTML artifact in this design
+   system. Import via <link rel="stylesheet"> in <head>.
+
+   Built from src/app/globals.css + src/design-system/tokens.ts
+   + tailwind.config.ts of cesarsanchez-cell/las-gaviotas-book,
+   extended with new tokens for the weather / bioma / transport
+   modules requested by the operator.
+   ============================================================ */
+
+/* Web fonts — Inter (sans) + Fraunces (display). */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap");
+
+:root {
+  /* ─── Brand core — paleta operador 2026-05-21 ─────────────────── */
+  /* HSL channels (used in tailwind-style hsl(var(--x)) wrappers). */
+  --me-background: 30 41% 95%;       /* #F7F1EB cream */
+  --me-foreground: 207 100% 12%;     /* #00233C deep navy */
+
+  --me-card: 0 0% 100%;
+  --me-card-foreground: 207 100% 12%;
+
+  --me-primary: 198 46% 29%;         /* #28566B petrol */
+  --me-primary-foreground: 0 0% 100%;
+
+  --me-secondary: 30 33% 92%;
+  --me-secondary-foreground: 207 100% 12%;
+
+  --me-muted: 30 25% 91%;
+  --me-muted-foreground: 207 25% 36%;
+
+  --me-accent: 195 100% 60%;         /* #33CCFF — usar muy poco */
+  --me-accent-foreground: 207 100% 12%;
+
+  --me-destructive: 0 84% 60%;
+  --me-destructive-foreground: 0 0% 100%;
+
+  --me-border: 30 20% 86%;
+  --me-input: 30 20% 86%;
+  --me-ring: 198 46% 29%;
+
+  /* Shortcut hsl() vars for direct use */
+  --me-bg: hsl(var(--me-background));
+  --me-fg: hsl(var(--me-foreground));
+  --me-card-bg: hsl(var(--me-card));
+  --me-fg-muted: hsl(var(--me-muted-foreground));
+  --me-fg-on-primary: hsl(var(--me-primary-foreground));
+  --me-color-primary: hsl(var(--me-primary));
+  --me-color-accent: hsl(var(--me-accent));
+  --me-color-border: hsl(var(--me-border));
+  --me-color-muted: hsl(var(--me-muted));
+  --me-color-secondary: hsl(var(--me-secondary));
+
+  /* ─── Wordmark · two-tone (hub + header) ─────────────────────────── */
+  --me-wm-mis: #b5876a;   /* terracota suave — "lo propio", calidez */
+  --me-wm-esc: #6c9bae;   /* sea pastel    — disfrute, escapada */
+
+  /* ─── Brand cyan (logo + destino accent) ─────────────────────────── */
+  --me-brand-cyan: #1ab6e0;
+  --me-brand-cyan-hover: #16a3c8;
+
+  /* ─── Palette pastels (operador) ──────────────────────────────────── */
+  --me-petrol-deep: #00233c;
+  --me-petrol:      #28566b;
+  --me-cyan-pop:    #33ccff;
+  --me-pastel-mint: #ccfffb;
+  --me-pastel-sea:  #67afbf;
+  --me-pastel-green:#99cc99;
+  --me-pastel-taupe:#a18c78;
+
+  /* ─── Sand scale ─────────────────────────────────────────────── */
+  --me-sand-50:  #fdfbf7;
+  --me-sand-100: #f8f1e3;
+  --me-sand-200: #ede0c2;
+  --me-sand-500: #c8a062;
+  --me-sand-700: #8a6a3a;
+
+  /* ─── Sea scale ──────────────────────────────────────────────── */
+  --me-sea-50:  #f0f9ff;
+  --me-sea-100: #e0f2fe;
+  --me-sea-500: #0ea5e9;
+  --me-sea-600: #0284c7;
+  --me-sea-700: #0369a1;
+  --me-sea-900: #0c4a6e;
+
+  /* ─── Slate (dark blocks, hero overlay) ──────────────────────── */
+  --me-slate-800: #1e293b;
+  --me-slate-900: #0f172a;
+  --me-slate-950: #020617;
+
+  /* ─── Semantic ───────────────────────────────────────────────── */
+  --me-verified-bg: #d1fadf;
+  --me-verified-fg: #065f46;
+  --me-whatsapp:    #25d366;
+  --me-whatsapp-hover: #1ebe5a;
+  --me-amber-bg:    #fef3c7;
+  --me-amber-fg:    #92400e;
+
+  /* ─── Biomas (zona / particularidad) ─────────────────────────── */
+  --me-bioma-playa:    #3bafda;
+  --me-bioma-bosque:   #3f8159;
+  --me-bioma-montana:  #6b7a8f;
+  --me-bioma-sierra:   #b97455;
+  --me-bioma-desierto: #d9b26a;
+  --me-bioma-lago:     #3678b0;
+
+  /* ─── Typography ─────────────────────────────────────────────── */
+  --me-font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --me-font-display: "Fraunces", "Georgia", "Times New Roman", serif;
+
+  --me-text-xs:   0.75rem;
+  --me-text-sm:   0.875rem;
+  --me-text-base: 1rem;
+  --me-text-lg:   1.125rem;
+  --me-text-xl:   1.25rem;
+  --me-text-2xl:  1.5rem;
+  --me-text-3xl:  1.875rem;
+  --me-text-4xl:  2.25rem;
+  --me-text-5xl:  3rem;
+  --me-text-6xl:  3.75rem;
+  --me-text-7xl:  4.5rem;
+
+  --me-leading-tight: 1.15;
+  --me-leading-snug:  1.3;
+  --me-leading-normal: 1.5;
+  --me-leading-relaxed: 1.65;
+
+  --me-tracking-tight:    -0.02em;
+  --me-tracking-normal:   0;
+  --me-tracking-wide:     0.05em;
+  --me-tracking-widest:   0.18em;
+
+  /* ─── Spacing ────────────────────────────────────────────────── */
+  --me-space-xs:  0.25rem;
+  --me-space-sm:  0.5rem;
+  --me-space-md:  1rem;
+  --me-space-lg:  1.5rem;
+  --me-space-xl:  2rem;
+  --me-space-2xl: 3rem;
+  --me-space-3xl: 4rem;
+  --me-space-4xl: 6rem;
+
+  /* ─── Radius ─────────────────────────────────────────────────── */
+  --me-radius-sm:   0.375rem;
+  --me-radius-md:   0.625rem;
+  --me-radius-lg:   0.75rem;   /* default --radius from globals */
+  --me-radius-xl:   1rem;
+  --me-radius-2xl:  1.5rem;
+  --me-radius-full: 9999px;
+
+  /* ─── Shadow ─────────────────────────────────────────────────── */
+  --me-shadow-card:       0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --me-shadow-card-hover: 0 10px 30px -10px rgb(0 0 0 / 0.15), 0 4px 6px -4px rgb(0 0 0 / 0.06);
+  --me-shadow-overlay:    0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --me-shadow-2xl:        0 25px 50px -12px rgb(0 0 0 / 0.35);
+
+  /* ─── Motion ─────────────────────────────────────────────────── */
+  --me-ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --me-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --me-dur-fast:    150ms;
+  --me-dur-base:    200ms;
+  --me-dur-slow:    400ms;
+  --me-dur-slower:  600ms;
+  --me-dur-image:   500ms;
+}
+
+/* ============================================================
+   Base — semantic styles you can drop in directly.
+   ============================================================ */
+
+html { -webkit-text-size-adjust: 100%; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+body {
+  margin: 0;
+  background: var(--me-bg);
+  color: var(--me-fg);
+  font-family: var(--me-font-sans);
+  font-size: var(--me-text-base);
+  line-height: var(--me-leading-normal);
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Display heading scale */
+h1, .me-h1 {
+  font-family: var(--me-font-display);
+  font-size: clamp(2.5rem, 5vw + 1rem, var(--me-text-7xl));
+  line-height: var(--me-leading-tight);
+  letter-spacing: var(--me-tracking-tight);
+  font-weight: 500;
+  margin: 0;
+}
+h2, .me-h2 {
+  font-family: var(--me-font-display);
+  font-size: clamp(1.75rem, 2.5vw + 1rem, var(--me-text-4xl));
+  line-height: var(--me-leading-tight);
+  letter-spacing: var(--me-tracking-tight);
+  font-weight: 500;
+  margin: 0;
+}
+h3, .me-h3 {
+  font-family: var(--me-font-display);
+  font-size: var(--me-text-2xl);
+  line-height: var(--me-leading-snug);
+  letter-spacing: var(--me-tracking-tight);
+  font-weight: 500;
+  margin: 0;
+}
+h4, .me-h4 {
+  font-family: var(--me-font-display);
+  font-size: var(--me-text-xl);
+  line-height: var(--me-leading-snug);
+  letter-spacing: var(--me-tracking-tight);
+  font-weight: 500;
+  margin: 0;
+}
+
+p, .me-p {
+  font-family: var(--me-font-sans);
+  font-size: var(--me-text-base);
+  line-height: var(--me-leading-relaxed);
+  color: var(--me-fg);
+  margin: 0;
+}
+
+.me-lead { font-size: var(--me-text-lg); color: var(--me-fg-muted); line-height: var(--me-leading-relaxed); }
+
+.me-eyebrow {
+  font-family: var(--me-font-sans);
+  font-size: var(--me-text-sm);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--me-tracking-widest);
+  color: var(--me-color-primary);
+}
+.me-eyebrow--on-dark { color: #fcd34d; }   /* amber-300, used on hero dark photo */
+.me-eyebrow--muted   { color: var(--me-fg-muted); }
+
+.me-meta {
+  font-family: var(--me-font-sans);
+  font-size: var(--me-text-xs);
+  color: var(--me-fg-muted);
+  line-height: var(--me-leading-snug);
+}
+
+.me-mono-num { font-variant-numeric: tabular-nums; }
+
+a {
+  color: var(--me-color-primary);
+  text-decoration: none;
+  transition: color var(--me-dur-fast) var(--me-ease-in-out);
+}
+a:hover { text-decoration: underline; }
+
+/* Buttons (utility — full button comp in ui_kits) */
+.me-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 2.5rem;
+  padding: 0 1rem;
+  font-family: var(--me-font-sans);
+  font-size: var(--me-text-sm);
+  font-weight: 500;
+  border-radius: var(--me-radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color var(--me-dur-fast) var(--me-ease-in-out),
+              color var(--me-dur-fast) var(--me-ease-in-out),
+              border-color var(--me-dur-fast) var(--me-ease-in-out);
+  white-space: nowrap;
+}
+.me-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--me-bg), 0 0 0 4px hsl(var(--me-ring));
+}
+.me-btn--primary    { background: var(--me-color-primary); color: var(--me-fg-on-primary); box-shadow: var(--me-shadow-card); }
+.me-btn--primary:hover { background: hsl(200 95% 32%); }
+.me-btn--secondary  { background: var(--me-color-secondary); color: var(--me-fg); }
+.me-btn--secondary:hover { background: hsl(30 40% 92%); }
+.me-btn--outline    { background: var(--me-bg); color: var(--me-fg); border-color: var(--me-color-border); }
+.me-btn--outline:hover { background: var(--me-color-secondary); }
+.me-btn--ghost      { background: transparent; color: var(--me-fg); }
+.me-btn--ghost:hover { background: var(--me-color-secondary); }
+.me-btn--whatsapp   { background: var(--me-whatsapp); color: #fff; }
+.me-btn--whatsapp:hover { background: var(--me-whatsapp-hover); }
+.me-btn--lg { height: 3rem; padding: 0 1.5rem; font-size: var(--me-text-base); }
+.me-btn--sm { height: 2.25rem; padding: 0 0.75rem; font-size: var(--me-text-sm); }
+
+/* Card */
+.me-card {
+  background: var(--me-card-bg);
+  color: var(--me-fg);
+  border: 1px solid var(--me-color-border);
+  border-radius: var(--me-radius-xl);
+  box-shadow: var(--me-shadow-card);
+  overflow: hidden;
+  transition: box-shadow var(--me-dur-base) var(--me-ease-in-out);
+}
+.me-card:hover { box-shadow: var(--me-shadow-card-hover); }
+
+/* Badge */
+.me-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.625rem;
+  font-family: var(--me-font-sans);
+  font-size: var(--me-text-xs);
+  font-weight: 500;
+  border-radius: var(--me-radius-full);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.me-badge--default  { background: var(--me-color-primary); color: var(--me-fg-on-primary); }
+.me-badge--secondary{ background: var(--me-color-secondary); color: var(--me-fg); }
+.me-badge--featured { background: var(--me-color-accent); color: #fff; }
+.me-badge--verified { background: var(--me-verified-bg); color: var(--me-verified-fg); }
+.me-badge--outline  { color: var(--me-fg); border-color: var(--me-color-border); background: transparent; }
+
+/* Input */
+.me-input {
+  display: block;
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 0.75rem;
+  font-family: var(--me-font-sans);
+  font-size: var(--me-text-sm);
+  background: var(--me-bg);
+  color: var(--me-fg);
+  border: 1px solid var(--me-color-border);
+  border-radius: var(--me-radius-md);
+  transition: border-color var(--me-dur-fast) var(--me-ease-in-out),
+              box-shadow var(--me-dur-fast) var(--me-ease-in-out);
+}
+.me-input::placeholder { color: var(--me-fg-muted); }
+.me-input:focus-visible {
+  outline: none;
+  border-color: var(--me-color-primary);
+  box-shadow: 0 0 0 3px hsl(var(--me-ring) / 0.25);
+}
+
+/* Pill (chip / filter) */
+.me-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--me-radius-full);
+  font-size: var(--me-text-xs);
+  font-weight: 500;
+  border: 1px solid var(--me-color-border);
+  color: var(--me-fg-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color var(--me-dur-fast), color var(--me-dur-fast), background var(--me-dur-fast);
+}
+.me-pill:hover { border-color: var(--me-fg); color: var(--me-fg); }
+.me-pill--active { background: var(--me-color-primary); color: var(--me-fg-on-primary); border-color: var(--me-color-primary); }
+
+/* Motion utilities */
+@keyframes me-fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes me-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes me-pop-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes me-spin-slow { to { transform: rotate(360deg); } }
+@keyframes me-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+.me-anim-fade-up  { animation: me-fade-in-up var(--me-dur-slower) var(--me-ease-out) both; }
+.me-anim-fade-in  { animation: me-fade-in var(--me-dur-slow) var(--me-ease-out) both; }
+.me-anim-pop-in   { animation: me-pop-in var(--me-dur-slow) var(--me-ease-out) both; }
+.me-anim-spin-60  { animation: me-spin-slow 60s linear infinite; }
+.me-anim-float-4  { animation: me-float 4s var(--me-ease-in-out) infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}

@@ -17,32 +17,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const base = siteConfig.url.replace(/\/$/, "");
 
-  const destinoUrls: MetadataRoute.Sitemap = destinos.flatMap((d) => [
-    {
-      url: `${base}/${d.slug}`,
-      lastModified: new Date(d.updated_at),
-      changeFrequency: "weekly",
-      priority: 0.9,
-    },
-    {
-      url: `${base}/${d.slug}/hospedajes`,
-      lastModified: new Date(d.updated_at),
-      changeFrequency: "weekly",
-      priority: 0.8,
-    },
-    {
-      url: `${base}/${d.slug}/gastronomia`,
-      lastModified: new Date(d.updated_at),
-      changeFrequency: "weekly",
-      priority: 0.75,
-    },
-    {
-      url: `${base}/${d.slug}/atractivos`,
-      lastModified: new Date(d.updated_at),
-      changeFrequency: "weekly",
-      priority: 0.75,
-    },
-  ]);
+  // Los listados por vertical (/destino/hospedajes, etc.) redirigen al hub del
+  // destino (/destino?v=...), así que no se indexan por separado: el destino ya
+  // cubre las tres verticales.
+  const destinoUrls: MetadataRoute.Sitemap = destinos.map((d) => ({
+    url: `${base}/${d.slug}`,
+    lastModified: new Date(d.updated_at),
+    changeFrequency: "weekly",
+    priority: 0.9,
+  }));
 
   const hospedajeUrls: MetadataRoute.Sitemap = hospedajes.map((h) => ({
     url: `${base}/${h.destino_slug}/hospedajes/${h.slug}`,

@@ -21,6 +21,10 @@ interface Props {
   hospedajeId: string;
   hospedajeNombre: string;
   capacidadMax?: number | null;
+  /** Valores heredados del buscador principal (vía URL), para no recargarlos. */
+  initialCheckIn?: string;
+  initialCheckOut?: string;
+  initialHuespedes?: number;
 }
 
 
@@ -42,6 +46,9 @@ export function ConsultaForm({
   hospedajeId,
   hospedajeNombre,
   capacidadMax,
+  initialCheckIn,
+  initialCheckOut,
+  initialHuespedes,
 }: Props) {
   const formId = useId();
   const [pending, startTransition] = useTransition();
@@ -61,8 +68,10 @@ export function ConsultaForm({
     consentimiento: useRef<HTMLInputElement | null>(null),
   };
 
-  const [checkIn, setCheckIn] = useState<string>(todayISO());
-  const [checkOut, setCheckOut] = useState<string>(tomorrowISO());
+  const [checkIn, setCheckIn] = useState<string>(initialCheckIn ?? todayISO());
+  const [checkOut, setCheckOut] = useState<string>(
+    initialCheckOut ?? tomorrowISO()
+  );
 
   // Cuando llegan field errors, mover el foco al primer campo con error
   // (en el orden visual del form). NO se limpian los valores cargados —
@@ -341,7 +350,7 @@ export function ConsultaForm({
             required
             min={1}
             max={capacidadMax ?? 20}
-            defaultValue={2}
+            defaultValue={initialHuespedes ?? 2}
             ref={refs.cantidadHuespedes as React.RefObject<HTMLInputElement>}
             className={cls("cantidadHuespedes")}
           />

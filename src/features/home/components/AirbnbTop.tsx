@@ -1,28 +1,27 @@
 "use client";
 
-import { BedDouble, UtensilsCrossed, Compass, Tag, Search, type LucideIcon } from "lucide-react";
+import { BedDouble, UtensilsCrossed, Compass, Search, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PinHeart } from "./PinHeart";
 import { UserMenu } from "./UserMenu";
 import type { SearchState, HubTab } from "@/features/home/lib/search-types";
 import type { HeaderSession } from "@/features/home/lib/header-session";
 
+// Las verticales del menú. Las promos ya no son una pestaña: viven en el hero.
 const TABS: Array<{ key: HubTab; label: string; icon: LucideIcon }> = [
-  { key: "promos", label: "Promos", icon: Tag },
   { key: "hospedajes", label: "Hospedajes", icon: BedDouble },
   { key: "gastronomia", label: "Gastronomía", icon: UtensilsCrossed },
   { key: "atractivos", label: "Qué hacer", icon: Compass },
 ];
 
 interface AirbnbTopProps {
-  vertical: HubTab;
+  /** Vertical activa; null = landing (ninguna pestaña resaltada). */
+  vertical: HubTab | null;
   onChangeVertical: (v: HubTab) => void;
   onGoHub: () => void;
   search: SearchState;
   onOpenSearch: () => void;
   session: HeaderSession;
-  /** Si false, se oculta la tab Promos (no hay promos publicadas). */
-  showPromos: boolean;
 }
 
 export function AirbnbTop({
@@ -32,17 +31,14 @@ export function AirbnbTop({
   search,
   onOpenSearch,
   session,
-  showPromos,
 }: AirbnbTopProps) {
-  const tabs = TABS.filter((t) => t.key !== "promos" || showPromos);
+  const tabs = TABS;
 
   // El 2º/3º segmento del pill cambia según la vertical activa.
   const pill =
-    vertical === "promos"
-      ? { b: search.cuando || "Cuándo", c: "" }
-      : vertical === "gastronomia" || vertical === "atractivos"
-        ? { b: search.tipo || (vertical === "gastronomia" ? "Tipo" : "Qué"), c: search.cuando || "Cuándo" }
-        : { b: search.cuando || "Cuándo", c: search.quien || "Quién" };
+    vertical === "gastronomia" || vertical === "atractivos"
+      ? { b: search.tipo || (vertical === "gastronomia" ? "Tipo" : "Qué"), c: search.cuando || "Cuándo" }
+      : { b: search.cuando || "Cuándo", c: search.quien || "Quién" };
 
   const Verticales = ({ size }: { size: number }) =>
     tabs.map((v) => {

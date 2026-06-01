@@ -34,8 +34,16 @@ interface SearchPanelProps {
   onApply: (s: SearchState) => void;
   destinos: DestinoPublicadoLite[];
   regiones: RegionVisible[];
-  vertical: HubTab;
+  /** Vertical activa; null = landing (busca hospedajes por defecto). */
+  vertical: HubTab | null;
   onUseGeo: () => void;
+}
+
+/** ISO de hoy (local) para impedir elegir fechas pasadas. */
+function todayISO(): string {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
 }
 
 function fmtFecha(s: string): string {
@@ -66,9 +74,11 @@ export function SearchPanel({
   const [bebes, setBebes] = React.useState(search.pax.bebes);
   const [step, setStep] = React.useState<Step>("donde");
 
-  const esHospedaje = vertical === "hospedajes";
+  // En landing (vertical null) la búsqueda es de hospedajes (disponibilidad).
+  const esHospedaje = vertical === "hospedajes" || vertical === null;
   const showTipo = vertical === "gastronomia" || vertical === "atractivos";
   const tipos = vertical === "gastronomia" ? GASTRO_TIPOS : ATRACTIVO_TIPOS;
+  const hoy = todayISO();
 
   // Bloquear scroll del body mientras el panel está abierto + Escape para cerrar.
   React.useEffect(() => {
@@ -84,21 +94,20 @@ export function SearchPanel({
     };
   }, [open, onClose]);
 
+  // Sin texto, sugerimos los destinos (y regiones) habilitados; al tipear,
+  // filtramos. `destinos`/`regiones` ya vienen filtrados a publicados.
   const matches = React.useMemo(() => {
-    if (!donde || donde.length < 2) return [] as Array<
-      { type: "destino" | "region"; nombre: string; sub: string }
-    >;
-    const q = donde.toLowerCase();
+    const q = donde.trim().toLowerCase();
     const dRes = destinos
-      .filter((d) => d.nombre.toLowerCase().includes(q))
-      .slice(0, 4)
+      .filter((d) => !q || d.nombre.toLowerCase().includes(q))
+      .slice(0, 6)
       .map((d) => ({
         type: "destino" as const,
         nombre: d.nombre,
         sub: [d.region_label, d.pais].filter(Boolean).join(" · "),
       }));
     const rRes = regiones
-      .filter((r) => r.nombre.toLowerCase().includes(q))
+      .filter((r) => !q || r.nombre.toLowerCase().includes(q))
       .slice(0, 3)
       .map((r) => ({
         type: "region" as const,
@@ -328,6 +337,7 @@ export function SearchPanel({
                       <input
                         type="date"
                         value={fechaIn}
+                        min={hoy}
                         onChange={(e) => onChangeFechaIn(e.target.value)}
                         className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none"
                       />
@@ -338,7 +348,7 @@ export function SearchPanel({
                         <input
                           type="date"
                           value={fechaOut}
-                          min={fechaIn || undefined}
+                          min={fechaIn || hoy}
                           onChange={(e) => {
                             setFechaOut(e.target.value);
                             setCuando("");

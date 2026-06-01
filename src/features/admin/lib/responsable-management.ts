@@ -47,10 +47,9 @@ type ResponsabilidadDB = {
  *
  * - Super admin: ve todos los responsables (con todas sus entidades).
  * - Admin local: solo ve responsables que tengan al menos UNA entidad
- *   (hospedaje o gastronómico) en su destino. Para esos responsables,
- *   devolvemos TODAS sus entidades (no filtramos por destino dentro del row)
- *   para que el admin local vea el contexto completo aunque alguna esté
- *   fuera de su scope.
+ *   (hospedaje o gastronómico) en su destino, y de cada uno devolvemos
+ *   SOLO las entidades de su destino. Nunca exponemos las que el
+ *   responsable tenga en otros destinos (eso sería un read cross-tenant).
  *
  * También incluye responsables "sueltos" (sin entidades asignadas): solo
  * los ve el super admin, porque un admin local sin entidad en común no
@@ -157,7 +156,7 @@ export async function listResponsablesAction(): Promise<ResponsableListRow[]> {
 
   const rows: ResponsableListRow[] = [];
   for (const p of perfiles) {
-    const entidades = respsByPerfil.get(p.id) ?? [];
+    let entidades = respsByPerfil.get(p.id) ?? [];
 
     // Scope: admin local solo ve responsables con al menos una entidad en su destino.
     // Los "sueltos" (sin entidades) solo los ve el super admin.
@@ -165,6 +164,11 @@ export async function listResponsablesAction(): Promise<ResponsableListRow[]> {
       if (entidades.length === 0) continue;
       const hasInScope = entidades.some((e) => e.destinoId === me.destinoId);
       if (!hasInScope) continue;
+      // Recortamos a las entidades de SU destino: el admin local no debe ver
+      // (ni recibir en el payload) las que el responsable tenga en otros
+      // destinos. Como el row solo expone vínculos in-scope, mostrar su email
+      // es legítimo (gestiona ese negocio en este destino).
+      entidades = entidades.filter((e) => e.destinoId === me.destinoId);
     }
 
     const { data: u } = await sb.auth.admin.getUserById(p.id);

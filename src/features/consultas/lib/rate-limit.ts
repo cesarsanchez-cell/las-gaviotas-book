@@ -1,29 +1,16 @@
 /**
- * Rate limit en memoria por IP para el form público de consultas.
+ * Rate limit PERSISTENTE por IP para el form público de consultas.
  *
- * Límite: 5 consultas por IP en 10 minutos. Suficiente para usuarios reales
- * y bloquea bots que prueben en serie. En Vercel cada cold start del
- * serverless resetea el Map, así que un atacante persistente puede
- * exceder el límite haciendo requests espaciados — para esos casos sumar
- * Turnstile o un store persistente (Redis/Supabase) en una iteración futura.
+ * Límite: 5 consultas por IP en 10 minutos. La cuenta vive en la base
+ * (`public.consulta_rate_limit` + función `check_consulta_rate_limit`), no en
+ * memoria del serverless — así es efectivo entre cold starts e instancias de
+ * Vercel. Ver migración `20260601000000_consulta_rate_limit.sql`.
  */
 
-const WINDOW_MS = 10 * 60 * 1000;
+import { createAdminClient } from "@/lib/supabase/admin";
+
+const WINDOW_SECONDS = 10 * 60;
 const MAX_PER_WINDOW = 5;
-
-interface Entry {
-  count: number;
-  windowStart: number;
-}
-
-const buckets = new Map<string, Entry>();
-
-function cleanup(now: number) {
-  // Limpieza pasiva: borrar ventanas vencidas para no acumular memoria.
-  for (const [ip, entry] of buckets) {
-    if (now - entry.windowStart > WINDOW_MS) buckets.delete(ip);
-  }
-}
 
 export interface RateLimitResult {
   ok: boolean;
@@ -31,25 +18,39 @@ export interface RateLimitResult {
   retryAfter?: number;
 }
 
-export function checkRateLimit(ip: string | null): RateLimitResult {
-  if (!ip) return { ok: true }; // Sin IP no podemos limitar; dejamos pasar.
+export async function checkRateLimit(
+  ip: string | null
+): Promise<RateLimitResult> {
+  // Sin IP usamos una clave compartida "unknown" en vez de dejar pasar libre:
+  // así el caso sin IP no es un bypass per-atacante (es raro en Vercel, pero
+  // no queremos un agujero de fail-open).
+  const key = ip ?? "unknown";
 
-  const now = Date.now();
-  if (Math.random() < 0.05) cleanup(now); // GC ocasional sin overhead constante.
+  const sb = createAdminClient();
+  // La función RPC aún no está en los tipos generados de Database; tipamos la
+  // llamada localmente para no perder seguridad de tipos en el resto.
+  const rpc = sb.rpc.bind(sb) as unknown as (
+    fn: string,
+    args: Record<string, string | number>
+  ) => Promise<{
+    data: Array<{ allowed: boolean; retry_after: number }> | null;
+    error: { message: string } | null;
+  }>;
 
-  const entry = buckets.get(ip);
-  if (!entry || now - entry.windowStart > WINDOW_MS) {
-    buckets.set(ip, { count: 1, windowStart: now });
+  const { data, error } = await rpc("check_consulta_rate_limit", {
+    p_ip: key,
+    p_max: MAX_PER_WINDOW,
+    p_window_seconds: WINDOW_SECONDS,
+  });
+
+  // Fail-open ante error de infra: no bloqueamos leads legítimos si la función
+  // o la base fallan. Se loguea para visibilidad.
+  if (error) {
+    console.error("[rate-limit] rpc error:", error.message);
     return { ok: true };
   }
 
-  if (entry.count >= MAX_PER_WINDOW) {
-    const retryAfter = Math.ceil(
-      (entry.windowStart + WINDOW_MS - now) / 1000
-    );
-    return { ok: false, retryAfter };
-  }
-
-  entry.count += 1;
-  return { ok: true };
+  const row = data?.[0];
+  if (!row) return { ok: true };
+  return row.allowed ? { ok: true } : { ok: false, retryAfter: row.retry_after };
 }
