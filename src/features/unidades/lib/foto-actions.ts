@@ -118,21 +118,25 @@ export async function deleteUnidadTypeFotoAction(input: {
   }
   const sb = createAdminClient();
 
-  // Si la que se borra era la principal, asciendemos automáticamente a la
-  // siguiente por orden (si existe).
+  // Scope obligatorio: la foto tiene que pertenecer a ESTE tipo de unidad.
+  // Con service role (sin RLS) un fotoId ajeno se borraría igual sin este
+  // filtro. Tomamos storage_path desde la BD, no del input del cliente.
   const { data: foto } = await sb
     .from("unidad_type_fotos")
-    .select("es_principal")
+    .select("es_principal, storage_path")
     .eq("id", input.fotoId)
-    .maybeSingle<{ es_principal: boolean }>();
+    .eq("unidad_type_id", input.unidadTypeId)
+    .maybeSingle<{ es_principal: boolean; storage_path: string }>();
+  if (!foto) return { error: "La foto no pertenece a esta unidad." };
 
   // Borrado del blob — fallback silencioso si falla (puede ser que no exista).
-  await sb.storage.from("hospedajes").remove([input.storagePath]);
+  await sb.storage.from("hospedajes").remove([foto.storage_path]);
 
   const { error } = await sb
     .from("unidad_type_fotos")
     .delete()
-    .eq("id", input.fotoId);
+    .eq("id", input.fotoId)
+    .eq("unidad_type_id", input.unidadTypeId);
   if (error) return { error: error.message };
 
   if (foto?.es_principal) {
@@ -179,7 +183,8 @@ export async function setUnidadTypeFotoPrincipalAction(input: {
   const { error: e2 } = await sb
     .from("unidad_type_fotos")
     .update({ es_principal: true } as never)
-    .eq("id", input.fotoId);
+    .eq("id", input.fotoId)
+    .eq("unidad_type_id", input.unidadTypeId);
   if (e2) return { error: e2.message };
 
   revalidate(ctx.hospedajeId);
@@ -211,7 +216,8 @@ export async function updateUnidadTypeFotoAltAction(input: {
   const { error } = await sb
     .from("unidad_type_fotos")
     .update({ alt: parsed.data.alt || null } as never)
-    .eq("id", parsed.data.fotoId);
+    .eq("id", parsed.data.fotoId)
+    .eq("unidad_type_id", parsed.data.unidadTypeId);
   if (error) return { error: error.message };
 
   revalidate(ctx.hospedajeId);

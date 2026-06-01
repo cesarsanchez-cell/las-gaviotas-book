@@ -21,9 +21,14 @@ import type { CreateConsultaResult } from "@/features/consultas/lib/types";
  */
 async function getClientIp(): Promise<string | null> {
   const h = await headers();
+  // En Vercel `x-real-ip` es la IP del cliente seteada por la plataforma (un
+  // único valor confiable). Preferimos eso antes que el primer token de
+  // `x-forwarded-for`, que el cliente puede prependear (spoofing).
+  const realIp = h.get("x-real-ip");
+  if (realIp) return realIp.trim();
   const xff = h.get("x-forwarded-for");
   if (xff) return xff.split(",")[0]!.trim();
-  return h.get("x-real-ip");
+  return null;
 }
 
 export async function createConsultaUnidadAction(
@@ -45,7 +50,7 @@ export async function createConsultaUnidadAction(
   const h = await headers();
   const ip = await getClientIp();
   const userAgent = h.get("user-agent");
-  const rl = checkRateLimit(ip);
+  const rl = await checkRateLimit(ip);
   if (!rl.ok) {
     return {
       error: `Demasiadas consultas seguidas. Probá de nuevo en ${rl.retryAfter ?? 60} segundos.`,
@@ -54,14 +59,27 @@ export async function createConsultaUnidadAction(
 
   const sb = createAdminClient();
 
-  // Defensa anti-tampering: la unidad tiene que pertenecer al hospedaje.
+  // Defensa anti-tampering: la unidad tiene que pertenecer al hospedaje y
+  // estar activa.
   const { data: tipo } = await sb
     .from("unidad_types")
-    .select("hospedaje_id")
+    .select("hospedaje_id, activo")
     .eq("id", input.unidadTypeId)
-    .maybeSingle<{ hospedaje_id: string }>();
-  if (!tipo || tipo.hospedaje_id !== input.hospedajeId) {
+    .maybeSingle<{ hospedaje_id: string; activo: boolean }>();
+  if (!tipo || tipo.hospedaje_id !== input.hospedajeId || !tipo.activo) {
     return { error: "La unidad seleccionada ya no está disponible." };
+  }
+
+  // El hospedaje tiene que estar PUBLICADO. La policy RLS lo exige, pero el
+  // service role la saltea — revalidamos en código (mismo motivo que el form
+  // genérico): evita leads sobre hospedajes borrador/pausados/rechazados.
+  const { data: hosp } = await sb
+    .from("hospedajes")
+    .select("estado")
+    .eq("id", input.hospedajeId)
+    .maybeSingle<{ estado: string }>();
+  if (hosp?.estado !== "publicado") {
+    return { error: "Este hospedaje no está disponible para consultas." };
   }
 
   const { data, error } = await sb

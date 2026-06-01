@@ -138,21 +138,25 @@ export async function deleteLugarFotoAction(input: {
   }
   const sb = createAdminClient();
 
-  // Si la que se borra era la principal, asciendemos automáticamente a la
-  // siguiente por orden (si existe).
+  // Scope obligatorio: la foto tiene que pertenecer a ESTE lugar. Con service
+  // role (sin RLS) un fotoId ajeno se borraría igual sin este filtro. El
+  // storage_path se toma de la BD, nunca del input del cliente.
   const { data: foto } = await sb
     .from("lugar_fotos")
-    .select("es_principal")
+    .select("es_principal, storage_path")
     .eq("id", input.fotoId)
-    .maybeSingle<{ es_principal: boolean }>();
+    .eq("lugar_id", input.lugarId)
+    .maybeSingle<{ es_principal: boolean; storage_path: string }>();
+  if (!foto) return { error: "La foto no pertenece a este lugar." };
 
   // Borrado del blob — fallback silencioso si falla.
-  await sb.storage.from("hospedajes").remove([input.storagePath]);
+  await sb.storage.from("hospedajes").remove([foto.storage_path]);
 
   const { error } = await sb
     .from("lugar_fotos")
     .delete()
-    .eq("id", input.fotoId);
+    .eq("id", input.fotoId)
+    .eq("lugar_id", input.lugarId);
   if (error) return { error: error.message };
 
   if (foto?.es_principal) {
@@ -203,7 +207,8 @@ export async function setLugarFotoPrincipalAction(input: {
   const { error: e2 } = await sb
     .from("lugar_fotos")
     .update({ es_principal: true } as never)
-    .eq("id", input.fotoId);
+    .eq("id", input.fotoId)
+    .eq("lugar_id", input.lugarId);
   if (e2) return { error: e2.message };
 
   revalidate(ctx.lugarId);
@@ -239,7 +244,8 @@ export async function updateLugarFotoAltAction(input: {
   const { error } = await sb
     .from("lugar_fotos")
     .update({ alt: parsed.data.alt || null } as never)
-    .eq("id", parsed.data.fotoId);
+    .eq("id", parsed.data.fotoId)
+    .eq("lugar_id", parsed.data.lugarId);
   if (error) return { error: error.message };
 
   revalidate(ctx.lugarId);
