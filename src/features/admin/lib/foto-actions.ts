@@ -76,6 +76,14 @@ export async function registerFotoAction(input: z.infer<typeof insertFotoSchema>
     return { error: (e as Error).message };
   }
 
+  // Atar el storage_path a la entidad autorizada (convención `<hospedajeId>/…`).
+  // Sin esto, un caller con acceso a SU hospedaje podría registrar una fila que
+  // apunta al blob de OTRO y luego borrarlo vía deleteFotoAction (service role
+  // saltea la policy de Storage). Ver auditoría Etapa 4 (F-S2).
+  if (!parsed.data.storage_path.startsWith(`${parsed.data.hospedaje_id}/`)) {
+    return { error: "Ruta de archivo inválida." };
+  }
+
   // Service role para evitar problemas de RLS — ya validamos sesión arriba.
   const admin = createAdminClient();
 

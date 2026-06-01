@@ -70,6 +70,17 @@ export async function registerUnidadTypeFotoAction(
     return { error: (e as Error).message };
   }
 
+  // Atar el storage_path a la entidad autorizada (convención
+  // `unidad-types/<id>/…`) para que no se pueda registrar/borrar un blob ajeno.
+  // Ver auditoría Etapa 4 (F-S2).
+  if (
+    !parsed.data.storage_path.startsWith(
+      `unidad-types/${parsed.data.unidad_type_id}/`
+    )
+  ) {
+    return { error: "Ruta de archivo inválida." };
+  }
+
   const sb = createAdminClient();
 
   const { data: maxOrden } = await sb
