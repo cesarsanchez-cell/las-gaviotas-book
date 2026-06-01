@@ -84,6 +84,15 @@ export async function registerLugarFotoAction(
     return { error: (e as Error).message };
   }
 
+  // Atar el storage_path a la entidad autorizada (convención `lugares/<id>/…`)
+  // para que no se pueda registrar/borrar un blob ajeno. Ver auditoría Etapa 4
+  // (F-S2).
+  if (
+    !parsed.data.storage_path.startsWith(`lugares/${parsed.data.lugar_id}/`)
+  ) {
+    return { error: "Ruta de archivo inválida." };
+  }
+
   const sb = createAdminClient();
 
   // orden = max+1
