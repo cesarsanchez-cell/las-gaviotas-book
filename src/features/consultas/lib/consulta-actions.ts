@@ -10,9 +10,14 @@ import type { CreateConsultaResult } from "@/features/consultas/lib/types";
 
 async function getClientIp(): Promise<string | null> {
   const h = await headers();
+  // En Vercel `x-real-ip` es la IP del cliente seteada por la plataforma (un
+  // único valor confiable). Preferimos eso antes que el primer token de
+  // `x-forwarded-for`, que el cliente puede prependear (spoofing).
+  const realIp = h.get("x-real-ip");
+  if (realIp) return realIp.trim();
   const xff = h.get("x-forwarded-for");
   if (xff) return xff.split(",")[0]!.trim();
-  return h.get("x-real-ip");
+  return null;
 }
 
 /**
@@ -53,7 +58,7 @@ export async function createConsultaAction(
   const h = await headers();
   const ip = await getClientIp();
   const userAgent = h.get("user-agent");
-  const rl = checkRateLimit(ip);
+  const rl = await checkRateLimit(ip);
   if (!rl.ok) {
     return {
       error: `Demasiadas consultas seguidas. Probá de nuevo en ${rl.retryAfter ?? 60} segundos.`,
@@ -62,6 +67,20 @@ export async function createConsultaAction(
 
   // 4) Insert vía service role (auditoría completa)
   const sb = createAdminClient();
+
+  // Solo se aceptan consultas sobre hospedajes PUBLICADOS. La policy RLS lo
+  // exige, pero como insertamos con service role (para auditar ip/user_agent)
+  // RLS no aplica y hay que revalidarlo en código — si no, un anónimo con un
+  // UUID de hospedaje borrador/pausado/rechazado podría inyectar leads.
+  const { data: hosp } = await sb
+    .from("hospedajes")
+    .select("estado")
+    .eq("id", input.hospedajeId)
+    .maybeSingle<{ estado: string }>();
+  if (hosp?.estado !== "publicado") {
+    return { error: "Este hospedaje no está disponible para consultas." };
+  }
+
   const { data, error } = await sb
     .from("consultas")
     .insert({
