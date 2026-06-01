@@ -15,6 +15,21 @@ const wrap = (inner: string) =>
 const button = (href: string, label: string) =>
   `<p style="margin:24px 0;"><a href="${href}" style="background:#0f172a;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:600;display:inline-block;">${label}</a></p>`;
 
+/**
+ * Escapa texto controlado por el usuario antes de interpolarlo en el HTML del
+ * mail. Los campos del huésped (nombre/email/whatsapp) vienen de un form público
+ * anónimo: sin esto, un nombre como `<a href="phish">` se renderiza en el inbox
+ * del responsable (F-E2). El `mensaje` ya se escapa aparte por su tratamiento de
+ * saltos de línea.
+ */
+const esc = (s: string | null | undefined): string =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 export interface SubjectAndHtml {
   subject: string;
   html: string;
@@ -137,7 +152,7 @@ export function consultaNuevaTemplate(args: {
     ? `Hola ${args.responsableNombre},`
     : "Hola,";
   const whatsappLine = args.huespedWhatsapp
-    ? `<tr><td style="padding:4px 0;color:#64748b;">WhatsApp:</td><td style="padding:4px 0;color:#0f172a;"><a href="https://wa.me/${args.huespedWhatsapp.replace(/[^0-9]/g, "")}" style="color:#0f172a;text-decoration:underline;">${args.huespedWhatsapp}</a></td></tr>`
+    ? `<tr><td style="padding:4px 0;color:#64748b;">WhatsApp:</td><td style="padding:4px 0;color:#0f172a;"><a href="https://wa.me/${args.huespedWhatsapp.replace(/[^0-9]/g, "")}" style="color:#0f172a;text-decoration:underline;">${esc(args.huespedWhatsapp)}</a></td></tr>`
     : "";
   const huespedes = huespedesLine(args);
   const subjectUnidad = args.unidadNombre
@@ -151,8 +166,8 @@ export function consultaNuevaTemplate(args: {
         disponibilidadBanner(args.disponibilidad ?? null) +
         `<table style="width:100%;font-size:14px;border-collapse:collapse;margin:16px 0;">` +
         unidadLine(args.unidadNombre) +
-        `<tr><td style="padding:4px 0;color:#64748b;width:140px;">Nombre:</td><td style="padding:4px 0;color:#0f172a;"><strong>${args.huespedNombre}</strong></td></tr>` +
-        `<tr><td style="padding:4px 0;color:#64748b;">Email:</td><td style="padding:4px 0;color:#0f172a;"><a href="mailto:${args.huespedEmail}" style="color:#0f172a;text-decoration:underline;">${args.huespedEmail}</a></td></tr>` +
+        `<tr><td style="padding:4px 0;color:#64748b;width:140px;">Nombre:</td><td style="padding:4px 0;color:#0f172a;"><strong>${esc(args.huespedNombre)}</strong></td></tr>` +
+        `<tr><td style="padding:4px 0;color:#64748b;">Email:</td><td style="padding:4px 0;color:#0f172a;"><a href="mailto:${esc(args.huespedEmail)}" style="color:#0f172a;text-decoration:underline;">${esc(args.huespedEmail)}</a></td></tr>` +
         whatsappLine +
         canalLine(args.canalPreferido) +
         `<tr><td style="padding:4px 0;color:#64748b;">Check-in:</td><td style="padding:4px 0;color:#0f172a;">${args.checkInFmt}</td></tr>` +
@@ -193,7 +208,7 @@ export function consultaNuevaSinResponsableTemplate(args: {
 }): SubjectAndHtml {
   const saludo = args.adminNombre ? `Hola ${args.adminNombre},` : "Hola,";
   const whatsappLine = args.huespedWhatsapp
-    ? `<tr><td style="padding:4px 0;color:#64748b;">WhatsApp:</td><td style="padding:4px 0;color:#0f172a;"><a href="https://wa.me/${args.huespedWhatsapp.replace(/[^0-9]/g, "")}" style="color:#0f172a;text-decoration:underline;">${args.huespedWhatsapp}</a></td></tr>`
+    ? `<tr><td style="padding:4px 0;color:#64748b;">WhatsApp:</td><td style="padding:4px 0;color:#0f172a;"><a href="https://wa.me/${args.huespedWhatsapp.replace(/[^0-9]/g, "")}" style="color:#0f172a;text-decoration:underline;">${esc(args.huespedWhatsapp)}</a></td></tr>`
     : "";
   const huespedes = huespedesLine(args);
   return {
@@ -205,8 +220,8 @@ export function consultaNuevaSinResponsableTemplate(args: {
         disponibilidadBanner(args.disponibilidad ?? null) +
         `<table style="width:100%;font-size:14px;border-collapse:collapse;margin:16px 0;">` +
         unidadLine(args.unidadNombre) +
-        `<tr><td style="padding:4px 0;color:#64748b;width:140px;">Nombre:</td><td style="padding:4px 0;color:#0f172a;"><strong>${args.huespedNombre}</strong></td></tr>` +
-        `<tr><td style="padding:4px 0;color:#64748b;">Email:</td><td style="padding:4px 0;color:#0f172a;"><a href="mailto:${args.huespedEmail}" style="color:#0f172a;text-decoration:underline;">${args.huespedEmail}</a></td></tr>` +
+        `<tr><td style="padding:4px 0;color:#64748b;width:140px;">Nombre:</td><td style="padding:4px 0;color:#0f172a;"><strong>${esc(args.huespedNombre)}</strong></td></tr>` +
+        `<tr><td style="padding:4px 0;color:#64748b;">Email:</td><td style="padding:4px 0;color:#0f172a;"><a href="mailto:${esc(args.huespedEmail)}" style="color:#0f172a;text-decoration:underline;">${esc(args.huespedEmail)}</a></td></tr>` +
         whatsappLine +
         canalLine(args.canalPreferido) +
         `<tr><td style="padding:4px 0;color:#64748b;">Check-in:</td><td style="padding:4px 0;color:#0f172a;">${args.checkInFmt}</td></tr>` +

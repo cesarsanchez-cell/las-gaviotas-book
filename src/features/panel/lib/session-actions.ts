@@ -2,9 +2,11 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit } from "@/features/consultas/lib/rate-limit";
 
 export interface AuthResult {
   error?: string;
@@ -12,6 +14,36 @@ export interface AuthResult {
   pendingConfirmation?: boolean;
   needsConfirmation?: boolean;
   email?: string;
+}
+
+async function getClientIp(): Promise<string | null> {
+  const h = await headers();
+  const realIp = h.get("x-real-ip");
+  if (realIp) return realIp.trim();
+  const xff = h.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0]!.trim();
+  return null;
+}
+
+/**
+ * Rate-limit por IP para los flujos de auth que MANDAN MAIL (signup,
+ * forgot-password, resend). Sin esto, cualquiera puede automatizar POSTs y
+ * bombardear una casilla / consumir cuota de Resend+Supabase (F-E1). Comparte
+ * la infra persistida del form de consultas con clave namespaceada "auth".
+ * Devuelve un AuthResult con error si está limitado, o null si puede seguir.
+ */
+async function authEmailRateLimited(): Promise<AuthResult | null> {
+  const rl = await checkRateLimit(await getClientIp(), {
+    key: "auth",
+    max: 5,
+    windowSeconds: 600,
+  });
+  if (!rl.ok) {
+    return {
+      error: `Demasiados intentos seguidos. Esperá ${rl.retryAfter ?? 600} segundos y probá de nuevo.`,
+    };
+  }
+  return null;
 }
 
 const signUpSchema = z.object({
@@ -36,6 +68,9 @@ export async function signUpResponsableAction(
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   }
 
+  const limited = await authEmailRateLimited();
+  if (limited) return limited;
+
   const supabase = await createClient();
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.misescapadas.com.ar";
@@ -59,10 +94,11 @@ export async function signUpResponsableAction(
   // id que NO existe en auth.users. Si seguimos, el insert de perfiles falla
   // con FK violation. Detectarlo y devolver un mensaje claro.
   if (!data.user.identities || data.user.identities.length === 0) {
-    return {
-      error:
-        "Ya existe una cuenta con ese email. Iniciá sesión desde /login o usá otro email.",
-    };
+    // Anti-enumeration (F-E3): el email ya existe (Supabase devuelve identities
+    // vacío). NO lo revelamos — devolvemos la MISMA respuesta que un alta
+    // exitosa pendiente de confirmación. Si la cuenta ya existía, Supabase no
+    // manda mail de alta, así que el dueño real no recibe ruido.
+    return { ok: true, pendingConfirmation: true };
   }
 
   // Crear perfil con service role (bypasea RLS y funciona aunque no haya sesión por email confirmation).
@@ -210,6 +246,9 @@ export async function forgotPasswordAction(
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Email inválido." };
   }
+
+  const limited = await authEmailRateLimited();
+  if (limited) return limited;
 
   const supabase = await createClient();
   const siteUrl =
@@ -368,6 +407,9 @@ export async function resendConfirmationAction(
   if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
     return { error: "Email inválido." };
   }
+
+  const limited = await authEmailRateLimited();
+  if (limited) return limited;
 
   const supabase = await createClient();
   const siteUrl =

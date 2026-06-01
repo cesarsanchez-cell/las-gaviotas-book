@@ -19,12 +19,19 @@ export interface RateLimitResult {
 }
 
 export async function checkRateLimit(
-  ip: string | null
+  ip: string | null,
+  opts?: { key?: string; max?: number; windowSeconds?: number }
 ): Promise<RateLimitResult> {
   // Sin IP usamos una clave compartida "unknown" en vez de dejar pasar libre:
   // así el caso sin IP no es un bypass per-atacante (es raro en Vercel, pero
   // no queremos un agujero de fail-open).
-  const key = ip ?? "unknown";
+  const base = ip ?? "unknown";
+  // `key` namespacea el contador (p. ej. "auth:<ip>") para que distintos flujos
+  // no compartan presupuesto. Sin prefijo, conserva el comportamiento original
+  // del form de consultas (clave = la IP pelada).
+  const key = opts?.key ? `${opts.key}:${base}` : base;
+  const max = opts?.max ?? MAX_PER_WINDOW;
+  const windowSeconds = opts?.windowSeconds ?? WINDOW_SECONDS;
 
   const sb = createAdminClient();
   // La función RPC aún no está en los tipos generados de Database; tipamos la
@@ -39,8 +46,8 @@ export async function checkRateLimit(
 
   const { data, error } = await rpc("check_consulta_rate_limit", {
     p_ip: key,
-    p_max: MAX_PER_WINDOW,
-    p_window_seconds: WINDOW_SECONDS,
+    p_max: max,
+    p_window_seconds: windowSeconds,
   });
 
   // Fail-open ante error de infra: no bloqueamos leads legítimos si la función
