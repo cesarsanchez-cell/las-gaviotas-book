@@ -78,17 +78,18 @@ export function UnidadResultCard({
 
       <div className="flex flex-1 flex-col gap-3 p-5">
         <div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="secondary" className="text-[10px]">
-              {TIPO_HOSPEDAJE_LABEL[r.hospedaje.tipo]}
-            </Badge>
-            <span className="line-clamp-1">{r.hospedaje.nombre}</span>
-          </div>
-          <h3 className="mt-1 font-display text-xl leading-tight tracking-tight">
+          <Badge variant="secondary" className="text-[10px]">
+            {TIPO_HOSPEDAJE_LABEL[r.hospedaje.tipo]}
+          </Badge>
+          <h3 className="mt-2 font-display text-xl leading-tight tracking-tight">
             {r.nombre}
           </h3>
+          <p className="mt-1.5 inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+            <Building2 className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+            <span className="line-clamp-1">{r.hospedaje.nombre}</span>
+          </p>
           <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
-            <MapPin className="h-3.5 w-3.5" aria-hidden />
+            <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
             <span className="line-clamp-1">{r.hospedaje.direccion}</span>
           </p>
         </div>

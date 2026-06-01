@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { UnidadGallery } from "@/features/unidades/components/UnidadGallery";
 import { UnidadAmenitiesList } from "@/features/unidades/components/UnidadAmenitiesList";
 import { AmenitiesList } from "@/features/hospedajes/components/AmenitiesList";
-import { DisponibilidadPublica } from "@/features/disponibilidad/components/DisponibilidadPublica";
+import { BuscadorBar } from "@/features/busqueda/components/BuscadorBar";
 import { ConsultaUnidadForm } from "@/features/consultas/components/ConsultaUnidadForm";
 import {
   listDiasBloqueados,
@@ -371,23 +371,6 @@ export default async function UnidadDetallePage({
                 </section>
               )}
 
-              <section>
-                <h2 className="font-display text-2xl tracking-tight">
-                  Disponibilidad
-                </h2>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Próximos 3 meses. En rojo, las fechas sin ninguna unidad libre
-                  para este tipo.
-                </p>
-                <div className="mt-5 rounded-xl border border-border bg-card p-5 sm:p-6">
-                  <DisponibilidadPublica
-                    diasBloqueados={Array.from(fullBlock).map((fecha) => ({
-                      fecha,
-                    }))}
-                  />
-                </div>
-              </section>
-
               {hospedaje.google_maps_url && (
                 <section>
                   <h2 className="font-display text-2xl tracking-tight">
@@ -411,23 +394,26 @@ export default async function UnidadDetallePage({
 
             <aside className="lg:sticky lg:top-20 lg:self-start">
               <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-                <p className="text-sm text-muted-foreground">Tu consulta</p>
-                <p className="mt-1 font-display text-lg tracking-tight">
-                  {checkIn} → {checkOut}
+                <p className="text-sm font-medium">Tu estadía</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Son las fechas que elegiste. Cambialas acá si querés — la
+                  disponibilidad y el precio se actualizan.
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  {adultos} {adultos === 1 ? "adulto" : "adultos"}
-                  {ninos > 0 && (
-                    <>
-                      , {ninos} {ninos === 1 ? "niño" : "niños"}
-                    </>
-                  )}
-                  {bebes > 0 && (
-                    <>
-                      , {bebes} {bebes === 1 ? "bebé" : "bebés"}
-                    </>
-                  )}
-                </p>
+                <div className="mt-3">
+                  <BuscadorBar
+                    destinoSlug={destinoSlug}
+                    basePath={`/${destinoSlug}/hospedajes/${slug}/unidades/${unidadTypeId}`}
+                    defaultCheckIn={checkIn}
+                    defaultCheckOut={checkOut}
+                    defaultAdultos={adultos}
+                    defaultNinos={ninos}
+                    defaultBebes={bebes}
+                    layout="stack"
+                    submitLabel="Actualizar"
+                    variant="inline"
+                    className="border-0 bg-transparent p-0 shadow-none"
+                  />
+                </div>
 
                 {!cumpleCapacidad && (
                   <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
