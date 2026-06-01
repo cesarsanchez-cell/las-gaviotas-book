@@ -186,9 +186,25 @@ export async function getHospedajeBySlug(
   slug: string
 ): Promise<HospedajeWithFotos | null> {
   const supabase = await createClient();
+  // Proyección explícita (data minimization): NO traemos PII del responsable
+  // (responsable_documento/email/whatsapp) ni campos internos de moderación
+  // (validado_por/validado_at/responsable_validado/pausado_por) a una query
+  // que alimenta páginas públicas. `responsable_nombre` sí se muestra como
+  // nombre de contacto. Ver auditoría Etapa 3 (F-C1).
   const { data } = await supabase
     .from("hospedajes")
-    .select("*, hospedaje_fotos(*)")
+    .select(
+      `
+      id, destino_id, localidad_id, slug, nombre, tipo,
+      descripcion_corta, descripcion_larga, capacidad_min, capacidad_max,
+      cantidad_unidades, direccion, lat, lng, google_maps_url,
+      whatsapp, email, telefono, instagram, website,
+      amenities, amenities_operational, meta_title, meta_description,
+      estado, destacado, orden_listado, responsable_nombre,
+      created_at, updated_at,
+      hospedaje_fotos(*)
+    `
+    )
     .eq("destino_id", destinoId)
     .eq("slug", slug)
     .eq("estado", "publicado")
