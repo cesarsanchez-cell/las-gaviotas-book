@@ -17,7 +17,14 @@ const FALLBACK_ICON: Record<VerticalKey, LucideIcon> = {
  * (`/{destino}/{kind}/{slug}`); `kind` coincide 1:1 con el segmento de ruta
  * (hospedajes/gastronomia/atractivos). Volver = back del navegador a la home.
  */
-export function ItemCard({ item }: { item: VerticalItem }) {
+export function ItemCard({
+  item,
+  query,
+}: {
+  item: VerticalItem;
+  /** Query string (sin '?') a propagar al link, ej. fechas/pax de la búsqueda. */
+  query?: string;
+}) {
   const primary = item.biomas[0] ?? "playa";
   const secondary = item.biomas[1] ?? primary;
   const FallbackIcon = FALLBACK_ICON[item.kind];
@@ -25,8 +32,8 @@ export function ItemCard({ item }: { item: VerticalItem }) {
 
   return (
     <Link
-      href={`/${item.destino.slug}/${item.kind}/${item.slug}`}
-      className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      href={`/${item.destino.slug}/${item.kind}/${item.slug}${query ? `?${query}` : ""}`}
+      className="group flex w-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         {item.fotoUrl ? (

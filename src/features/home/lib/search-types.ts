@@ -1,7 +1,7 @@
 import type { VerticalKey } from "./queries";
 
-/** Tabs del hub: las 3 verticales de comercios + Promos (resultado, no comercio). */
-export type HubTab = "promos" | VerticalKey;
+/** Tabs del hub: las 3 verticales de comercios. (Las promos viven en el hero.) */
+export type HubTab = VerticalKey;
 
 /** Estado del buscador de la home, compartido entre AirbnbTop y SearchPanel. */
 export interface SearchState {

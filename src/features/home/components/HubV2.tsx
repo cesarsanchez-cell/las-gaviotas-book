@@ -2,12 +2,21 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowRight, Store, LocateFixed, MapPinOff, Tag } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowRight,
+  Store,
+  LocateFixed,
+  MapPinOff,
+  Sparkles,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AirbnbTop } from "./AirbnbTop";
+import { HeroCarousel, type HeroSlide } from "@/features/destinos/components/HeroCarousel";
+import { PromosHero } from "@/features/promos/components/PromosHero";
 import { SearchPanel } from "./SearchPanel";
 import { ItemCard } from "./ItemCard";
-import { PromoCard } from "./PromoCard";
+import { PromoDetailModal } from "@/features/promos/components/PromoDetailModal";
 import { DestinoMiniCard, type DestinoMini } from "./DestinoMiniCard";
 import { ComboCard } from "@/features/combos/components/ComboCard";
 import { ComboDetailModal } from "@/features/combos/components/ComboDetailModal";
@@ -29,6 +38,9 @@ import type {
 } from "@/features/home/lib/queries";
 import type { HeaderSession } from "@/features/home/lib/header-session";
 
+// Umbral de promos para que el hero sea de promos; con menos, cae a destacados.
+const PROMO_HERO_MIN = 3;
+
 interface HubV2Props {
   verticalData: Record<VerticalKey, VerticalItem[]>;
   destinos: DestinoPublicadoLite[];
@@ -36,6 +48,17 @@ interface HubV2Props {
   promos: PromoPublic[];
   combos: ComboPublic[];
   session: HeaderSession;
+  /** Slides del hero de destacados (fallback cuando no hay suficientes promos). */
+  heroSlides?: HeroSlide[];
+  heroTitle?: string;
+  heroEyebrow?: string | null;
+  heroSubtitle?: string | null;
+  /**
+   * Si está, el hub queda scopeado a este destino: oculta chips de región y la
+   * banda "Cerca tuyo", el logo/volver navega a la red (`/`), y el contenido es
+   * una grilla (no filas por destino).
+   */
+  scopedDestino?: { slug: string; nombre: string } | null;
 }
 
 type GeoState = "idle" | "granted" | "denied";
@@ -62,27 +85,37 @@ export function HubV2({
   promos,
   combos,
   session,
+  heroSlides = [],
+  heroTitle,
+  heroEyebrow,
+  heroSubtitle,
+  scopedDestino = null,
 }: HubV2Props) {
-  // La tab "Promos" mezcla combos (promociones combinadas) + promos individuales.
-  const hasOfertas = promos.length > 0 || combos.length > 0;
-  const defaultTab: HubTab = hasOfertas ? "promos" : "hospedajes";
-  const [tab, setTab] = React.useState<HubTab>(defaultTab);
+  const router = useRouter();
+  // null = landing (hero + promos + combos, sin grilla). Una vertical = vista
+  // enfocada: SOLO esa vertical, sin hero ni promos.
+  const [tab, setTab] = React.useState<HubTab | null>(null);
   const [search, setSearch] = React.useState<SearchState>(EMPTY_SEARCH);
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [regionFilter, setRegionFilter] = React.useState<string | null>(null);
   const [geo, setGeo] = React.useState<GeoState>("idle");
   const [coords, setCoords] = React.useState<{ lat: number; lng: number } | null>(null);
   const [comboSel, setComboSel] = React.useState<ComboPublic | null>(null);
+  const [promoSel, setPromoSel] = React.useState<PromoPublic | null>(null);
 
-  // Persistimos la tab activa en la URL (?v=) con history.replaceState — sin
-  // disparar navegación de Next. Así, al entrar a un comercio y volver con el
-  // back del navegador, la home reabre en la misma vertical donde estabas.
+  // Persistimos la vertical en la URL (?v=) con history.replaceState — sin
+  // navegación de Next. Tocar la vertical activa de nuevo vuelve al landing.
   const changeTab = React.useCallback(
     (next: HubTab) => {
-      setTab(next);
+      // Toggle: tocar la vertical activa vuelve al landing.
+      const nextTab = tab === next ? null : next;
+      setTab(nextTab);
+      // El replaceState va en el handler (no en el updater de setState): Next
+      // intercepta replaceState como update del Router, y hacerlo durante el
+      // render dispara "setState in render".
       const params = new URLSearchParams(window.location.search);
-      if (next === defaultTab) params.delete("v");
-      else params.set("v", next);
+      if (nextTab) params.set("v", nextTab);
+      else params.delete("v");
       const qs = params.toString();
       window.history.replaceState(
         null,
@@ -90,14 +123,15 @@ export function HubV2({
         qs ? `${window.location.pathname}?${qs}` : window.location.pathname
       );
     },
-    [defaultTab]
+    [tab]
   );
 
-  // Al montar (incluido el back del navegador), recuperamos la tab de la URL.
+  // Al montar (incluido back del navegador / ?v= de la barra interna),
+  // enfocamos la vertical de la URL; sin ?v= queda en landing.
   React.useEffect(() => {
     const v = new URLSearchParams(window.location.search).get("v");
-    if (v === "promos" || v === "hospedajes" || v === "gastronomia" || v === "atractivos") {
-      setTab(v as HubTab);
+    if (v === "hospedajes" || v === "gastronomia" || v === "atractivos") {
+      setTab(v);
     }
   }, []);
 
@@ -134,30 +168,29 @@ export function HubV2({
     return set;
   }, [regionFilter, dondeSlugs, regiones]);
 
-  // Grilla de la vertical activa (cuando no es la tab Promos).
+  // Vertical que se muestra en la grilla: la enfocada, o hospedajes en landing.
+  const activeVertical: VerticalKey = tab ?? "hospedajes";
+
+  // Grilla de la vertical activa, filtrada por región + dónde + tipo.
   const items = React.useMemo(() => {
-    if (tab === "promos") return [];
-    let all = verticalData[tab] ?? [];
+    let all = verticalData[activeVertical] ?? [];
     if (allowedSlugs) all = all.filter((it) => allowedSlugs.has(it.destino.slug));
-    if (tab !== "hospedajes" && search.tipo) {
+    if (activeVertical !== "hospedajes" && search.tipo) {
       all = all.filter((it) => it.tipoLabel === search.tipo);
     }
     return all;
-  }, [verticalData, tab, allowedSlugs, search.tipo]);
+  }, [verticalData, activeVertical, allowedSlugs, search.tipo]);
 
-  // Promos visibles (tab Promos), filtradas por región + dónde.
-  const promosVisibles = React.useMemo(() => {
-    if (!allowedSlugs) return promos;
-    return promos.filter((p) => allowedSlugs.has(p.destino.slug));
-  }, [promos, allowedSlugs]);
-
-  // Combos visibles (mismos filtros). Van arriba de las promos en la tab Promos.
-  const combosVisibles = React.useMemo(() => {
-    if (!allowedSlugs) return combos;
-    return combos.filter((c) => allowedSlugs.has(c.destinoSlug));
-  }, [combos, allowedSlugs]);
-
-  const ofertasCount = combosVisibles.length + promosVisibles.length;
+  // En la home (varios destinos), agrupamos los items por destino para las filas.
+  const itemsByDestino = React.useMemo(() => {
+    const map = new Map<string, VerticalItem[]>();
+    for (const it of items) {
+      const arr = map.get(it.destino.slug) ?? [];
+      arr.push(it);
+      map.set(it.destino.slug, arr);
+    }
+    return map;
+  }, [items]);
 
   // Destinos cercanos por distancia (solo con geo concedida).
   const nearby: DestinoMini[] = React.useMemo(() => {
@@ -195,18 +228,72 @@ export function HubV2({
   }
 
   function goHub() {
-    changeTab(defaultTab);
+    // Scopeado a un destino: el logo lleva a la red completa.
+    if (scopedDestino) {
+      router.push("/");
+      return;
+    }
+    // En la red: volver al landing (hero + promos), sin vertical enfocada.
+    setTab(null);
     setRegionFilter(null);
     setSearch(EMPTY_SEARCH);
+    window.history.replaceState(null, "", window.location.pathname);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  const showNearby = geo === "granted" && nearby.length > 0;
-  const showRegionChips = regiones.length > 1;
-  // Armador es por-destino: con un solo destino tenemos target claro. Con
-  // varios, el CTA vive en cada página de destino (TODO multi-destino: elegir
-  // destino antes de armar).
+  // Resuelve el destino al que mandar la búsqueda de disponibilidad: en el hub
+  // scopeado es ese; en la red, solo si el "dónde" matchea un único destino
+  // (una región o ambigüedad → null y queda en la grilla).
+  function resolveDestinoSlug(state: SearchState): string | null {
+    if (scopedDestino) return scopedDestino.slug;
+    const q = state.donde.trim().toLowerCase();
+    if (!q) return null;
+    const exact = destinos.find((d) => d.nombre.toLowerCase() === q);
+    if (exact) return exact.slug;
+    const matches = destinos.filter((d) => d.nombre.toLowerCase().includes(q));
+    return matches.length === 1 ? matches[0].slug : null;
+  }
+
+  // Búsqueda inteligente: con fechas en Hospedajes y un destino resolvible,
+  // "Buscar" salta al motor de disponibilidad (/[destino]/buscar) con el
+  // contexto en la URL — ahí abajo se precarga todo, sin recargar fechas/pax.
+  // En cualquier otro caso, filtra la grilla en el lugar (todas las opciones).
+  function handleApplySearch(state: SearchState) {
+    setSearch(state);
+    // Landing (null) o Hospedajes: con fechas + destino → motor de disponibilidad.
+    if ((tab === null || tab === "hospedajes") && state.fechas.in) {
+      const slug = resolveDestinoSlug(state);
+      if (slug) {
+        const params = new URLSearchParams({
+          check_in: state.fechas.in,
+          adultos: String(state.pax.adultos),
+          ninos: String(state.pax.menores),
+          bebes: String(state.pax.bebes),
+        });
+        if (state.fechas.out) params.set("check_out", state.fechas.out);
+        router.push(`/${slug}/buscar?${params.toString()}`);
+      }
+    }
+  }
+
+  // Landing: ninguna vertical enfocada. Hero + promos + combos viven solo acá;
+  // la grilla se muestra siempre (en landing con la vertical por defecto).
+  const isLanding = tab === null;
+  const showNearby = !scopedDestino && geo === "granted" && nearby.length > 0;
+  const showRegionChips = !scopedDestino && regiones.length > 1;
+  // Filas por destino en la home (varios destinos); grilla en el destino scopeado.
+  const useRows = !scopedDestino && destinos.length > 1;
+  // Armador es por-destino: con un solo destino tenemos target claro.
   const singleDestino = destinos.length === 1 ? destinos[0] : null;
+
+  // Hero: promos si hay suficientes; si no, destacados.
+  const showPromoHero = promos.length >= PROMO_HERO_MIN;
+  const promoHeroEyebrow = scopedDestino
+    ? `Promos en ${scopedDestino.nombre}`
+    : "Promos";
+  const promoHeroSubtitle = scopedDestino
+    ? null
+    : "Ofertas vigentes en los destinos de la red.";
 
   return (
     <>
@@ -217,22 +304,80 @@ export function HubV2({
         search={search}
         onOpenSearch={() => setSearchOpen(true)}
         session={session}
-        showPromos={hasOfertas}
       />
 
       <SearchPanel
         open={searchOpen}
         onClose={() => setSearchOpen(false)}
         search={search}
-        onApply={setSearch}
+        onApply={handleApplySearch}
         destinos={destinos}
         regiones={regiones}
         vertical={tab}
         onUseGeo={askGeo}
       />
 
+      {/* Hero (solo landing): promos o destacados como fallback. */}
+      {isLanding &&
+        (showPromoHero ? (
+          <PromosHero
+            promos={promos}
+            eyebrow={promoHeroEyebrow}
+            title="Lo que conviene ahora"
+            subtitle={promoHeroSubtitle}
+            onOpen={setPromoSel}
+          />
+        ) : (
+          heroSlides.length > 0 &&
+          heroTitle && (
+            <HeroCarousel
+              eyebrow={heroEyebrow}
+              title={heroTitle}
+              subtitle={heroSubtitle}
+              slides={heroSlides}
+            />
+          )
+        ))}
+
       <main className="pb-16">
-        {/* Cercanos (geolocalización). El resto del contenido es el de la tab. */}
+        {/* Combos (escapadas armadas) — banda propia, solo en landing. */}
+        {isLanding && combos.length > 0 && (
+          <section className="border-b border-border py-10 md:py-14">
+            <div className="container">
+              <header className="mb-6 max-w-2xl">
+                <p className="eyebrow flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" aria-hidden />
+                  Escapadas armadas
+                </p>
+                <h2 className="mt-2 font-display text-2xl tracking-tight text-foreground md:text-3xl">
+                  Lo que sólo conseguís acá
+                </h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Hospedaje, mesa y experiencia en una sola propuesta, con
+                  beneficios que no existen por separado.
+                </p>
+              </header>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {combos.map((c) => (
+                  <ComboCard key={c.id} combo={c} onOpen={setComboSel} />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Armá la tuya — landing, con un solo destino (target directo). */}
+        {isLanding && singleDestino && (
+          <section className="container pt-10">
+            <ArmadorCTA
+              compact
+              destinoSlug={singleDestino.slug}
+              destinoNombre={singleDestino.nombre}
+            />
+          </section>
+        )}
+
+        {/* Cercanos (geolocalización). */}
         {showNearby && (
           <Band
             icon={<LocateFixed className="h-4 w-4" aria-hidden />}
@@ -274,98 +419,57 @@ export function HubV2({
           </div>
         )}
 
-        {/* Contenido de la tab activa */}
-        {tab === "promos" ? (
-          <section className="py-8">
-            <div className="container">
-              <header className="mb-5 flex items-end justify-between gap-4">
-                <div>
-                  <p className="eyebrow flex items-center gap-2">
-                    <Tag className="h-4 w-4" aria-hidden />
-                    Promos
-                  </p>
-                  <h2 className="mt-1 font-display text-xl tracking-tight text-foreground sm:text-2xl md:text-3xl">
-                    Lo que conviene ahora
-                    {hasDonde ? ` en ${search.donde}` : ""}
-                  </h2>
-                </div>
-                <span className="shrink-0 text-sm text-muted-foreground">
-                  {ofertasCount} promo{ofertasCount === 1 ? "" : "s"}
-                </span>
-              </header>
+        {/* Contenido: grilla de la vertical activa. En landing se muestra
+            igual (con hero/promos arriba); al enfocar una vertical, sola. */}
+        <section className="py-8">
+          <div className="container">
+            <header className="mb-5 flex items-end justify-between gap-4">
+              <h2 className="font-display text-xl tracking-tight text-foreground sm:text-2xl md:text-3xl">
+                {VERTICAL_TITLE[activeVertical]}
+                {hasDonde ? ` en ${search.donde}` : ""}
+              </h2>
+              <span className="shrink-0 text-sm text-muted-foreground">
+                {items.length} resultado{items.length === 1 ? "" : "s"}
+              </span>
+            </header>
 
-              {ofertasCount === 0 ? (
-                <EmptyState
-                  noun="promos"
-                  onClear={() => {
-                    setRegionFilter(null);
-                    setSearch(EMPTY_SEARCH);
-                  }}
-                />
-              ) : (
-                <div className="space-y-6">
-                  {/* Combos (promociones combinadas) primero — el plus "solo acá". */}
-                  {combosVisibles.length > 0 && (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      {combosVisibles.map((c) => (
-                        <ComboCard key={c.id} combo={c} onOpen={setComboSel} />
-                      ))}
-                    </div>
-                  )}
-                  {/* Promos individuales debajo. */}
-                  {promosVisibles.length > 0 && (
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      {promosVisibles.map((p) => (
-                        <PromoCard key={p.id} promo={p} widthClass="w-full" />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Armá la tuya — con un solo destino, target directo. */}
-              {singleDestino && (
-                <div className="mt-6">
-                  <ArmadorCTA
-                    compact
-                    destinoSlug={singleDestino.slug}
-                    destinoNombre={singleDestino.nombre}
+            {items.length === 0 ? (
+              <EmptyState
+                noun={VERTICAL_NOUN[activeVertical]}
+                onClear={() => {
+                  setRegionFilter(null);
+                  setSearch(EMPTY_SEARCH);
+                }}
+              />
+            ) : useRows ? (
+              // Home: una fila horizontal por destino.
+              <div className="space-y-8">
+                {destinos.map((d) => {
+                  const rowItems = itemsByDestino.get(d.slug);
+                  if (!rowItems || rowItems.length === 0) return null;
+                  return (
+                    <DestinoRow
+                      key={d.slug}
+                      slug={d.slug}
+                      nombre={d.nombre}
+                      items={rowItems}
+                    />
+                  );
+                })}
+              </div>
+            ) : (
+              // Destino scopeado: grilla.
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                {items.map((it) => (
+                  <ItemCard
+                    key={`${it.kind}-${it.destino.slug}-${it.slug}`}
+                    item={it}
                   />
-                </div>
-              )}
-            </div>
-          </section>
-        ) : (
-          <section className="py-8">
-            <div className="container">
-              <header className="mb-5 flex items-end justify-between gap-4">
-                <h2 className="font-display text-xl tracking-tight text-foreground sm:text-2xl md:text-3xl">
-                  {VERTICAL_TITLE[tab as VerticalKey]}
-                  {hasDonde ? ` en ${search.donde}` : ""}
-                </h2>
-                <span className="shrink-0 text-sm text-muted-foreground">
-                  {items.length} resultado{items.length === 1 ? "" : "s"}
-                </span>
-              </header>
-
-              {items.length === 0 ? (
-                <EmptyState
-                  noun={VERTICAL_NOUN[tab as VerticalKey]}
-                  onClear={() => {
-                    setRegionFilter(null);
-                    setSearch(EMPTY_SEARCH);
-                  }}
-                />
-              ) : (
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                  {items.map((it) => (
-                    <ItemCard key={`${it.kind}-${it.destino.slug}-${it.slug}`} item={it} />
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-        )}
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
 
         {/* CTA comerciante → registro */}
         <section className="container">
@@ -390,7 +494,48 @@ export function HubV2({
       {comboSel && (
         <ComboDetailModal combo={comboSel} onClose={() => setComboSel(null)} />
       )}
+
+      {promoSel && (
+        <PromoDetailModal promo={promoSel} onClose={() => setPromoSel(null)} />
+      )}
     </>
+  );
+}
+
+/** Fila horizontal de comercios de un destino (home con varios destinos). */
+function DestinoRow({
+  slug,
+  nombre,
+  items,
+}: {
+  slug: string;
+  nombre: string;
+  items: VerticalItem[];
+}) {
+  return (
+    <section>
+      <header className="mb-3 flex items-end justify-between gap-3">
+        <h3 className="font-display text-lg tracking-tight text-foreground sm:text-xl">
+          {nombre}
+        </h3>
+        <Link
+          href={`/${slug}`}
+          className="shrink-0 text-sm font-medium text-primary hover:underline"
+        >
+          Ver destino →
+        </Link>
+      </header>
+      <div className="flex gap-4 overflow-x-auto pb-2 [scrollbar-width:thin] sm:gap-5">
+        {items.map((it) => (
+          <div
+            key={`${it.kind}-${it.slug}`}
+            className="w-44 shrink-0 sm:w-48 lg:w-52"
+          >
+            <ItemCard item={it} />
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { Section } from "@/components/layout/Section";
-import { Header } from "@/components/layout/Header";
+import { DestinoHeader } from "@/components/layout/DestinoHeader";
 import { Footer } from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
 import { UnidadGallery } from "@/features/unidades/components/UnidadGallery";
@@ -186,7 +186,7 @@ export default async function UnidadDetallePage({
 
   return (
     <>
-      <Header destinoSlug={destinoSlug} destinoNombre={destino.nombre} />
+      <DestinoHeader destinoSlug={destinoSlug} destinoNombre={destino.nombre} />
 
       <main>
         <Container size="xl" as="article">

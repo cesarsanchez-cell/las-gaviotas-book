@@ -35,6 +35,7 @@ interface ComercioInfo {
   slug: string;
   nombre: string;
   fotoUrl: string | null;
+  whatsapp: string | null;
   estado: string;
   destino: { id: string; slug: string; nombre: string };
 }
@@ -59,7 +60,7 @@ async function resolveComercios(
     const { data } = (await sb
       .from("hospedajes")
       .select(
-        "id, slug, nombre, estado, destinos!inner(id, slug, nombre), hospedaje_fotos(storage_path, es_principal, orden)"
+        "id, slug, nombre, estado, whatsapp, destinos!inner(id, slug, nombre), hospedaje_fotos(storage_path, es_principal, orden)"
       )
       .in("id", hospedajeIds)) as {
       data:
@@ -68,6 +69,7 @@ async function resolveComercios(
             slug: string;
             nombre: string;
             estado: string;
+            whatsapp: string | null;
             destinos: { id: string; slug: string; nombre: string } | null;
             hospedaje_fotos: FotoJoin[] | null;
           }>
@@ -81,6 +83,7 @@ async function resolveComercios(
         slug: h.slug,
         nombre: h.nombre,
         fotoUrl: pickFotoUrl(h.hospedaje_fotos),
+        whatsapp: h.whatsapp,
         estado: h.estado,
         destino: h.destinos,
       });
@@ -91,7 +94,7 @@ async function resolveComercios(
     const { data } = (await sb
       .from("lugares")
       .select(
-        "id, slug, nombre, tipo, estado, destinos!inner(id, slug, nombre), lugar_fotos(storage_path, es_principal, orden)"
+        "id, slug, nombre, tipo, estado, whatsapp, destinos!inner(id, slug, nombre), lugar_fotos(storage_path, es_principal, orden)"
       )
       .in("id", lugarIds)) as {
       data:
@@ -101,6 +104,7 @@ async function resolveComercios(
             nombre: string;
             tipo: "gastronomico" | "atractivo";
             estado: string;
+            whatsapp: string | null;
             destinos: { id: string; slug: string; nombre: string } | null;
             lugar_fotos: FotoJoin[] | null;
           }>
@@ -114,6 +118,7 @@ async function resolveComercios(
         slug: l.slug,
         nombre: l.nombre,
         fotoUrl: pickFotoUrl(l.lugar_fotos),
+        whatsapp: l.whatsapp,
         estado: l.estado,
         destino: l.destinos,
       });
@@ -133,7 +138,13 @@ export interface PromoPublic {
   bajada: string | null;
   beneficio: string;
   pct: number | null;
-  comercio: { tipo: ComercioTipo; slug: string; nombre: string; fotoUrl: string | null };
+  comercio: {
+    tipo: ComercioTipo;
+    slug: string;
+    nombre: string;
+    fotoUrl: string | null;
+    whatsapp: string | null;
+  };
   destino: { slug: string; nombre: string };
 }
 
@@ -156,7 +167,13 @@ async function toPublicPromos(promos: PromoRow[]): Promise<PromoPublic[]> {
       bajada: p.bajada,
       beneficio: p.beneficio,
       pct: p.pct,
-      comercio: { tipo: c.tipo, slug: c.slug, nombre: c.nombre, fotoUrl: c.fotoUrl },
+      comercio: {
+        tipo: c.tipo,
+        slug: c.slug,
+        nombre: c.nombre,
+        fotoUrl: c.fotoUrl,
+        whatsapp: c.whatsapp,
+      },
       destino: { slug: c.destino.slug, nombre: c.destino.nombre },
     });
   }

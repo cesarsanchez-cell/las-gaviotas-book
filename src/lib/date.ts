@@ -20,6 +20,13 @@ export function tomorrowISO(): string {
   return addDaysISO(todayISO(), 1);
 }
 
+/** YYYY-MM-DD → DD/MM/YYYY, sin pasar por Date para evitar TZ shift. */
+export function formatDateISO(iso: string): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
+
 export function addDaysISO(iso: string, days: number): string {
   if (!iso) return "";
   const [y, m, d] = iso.split("-").map(Number);

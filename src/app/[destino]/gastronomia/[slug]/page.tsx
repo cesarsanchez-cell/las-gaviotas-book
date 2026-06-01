@@ -10,7 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { Container } from "@/components/layout/Container";
-import { Header } from "@/components/layout/Header";
+import { DestinoHeader } from "@/components/layout/DestinoHeader";
 import { Footer } from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
 import { HospedajeGallery } from "@/features/hospedajes/components/HospedajeGallery";
@@ -112,7 +112,7 @@ export default async function GastronomicoDetailPage({ params }: PageProps) {
         ])}
       />
 
-      <Header destinoSlug={destinoSlug} destinoNombre={destino.nombre} />
+      <DestinoHeader destinoSlug={destinoSlug} destinoNombre={destino.nombre} />
 
       <main>
         <Container size="xl" as="article">

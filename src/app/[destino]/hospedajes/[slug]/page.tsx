@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { MapPin, ExternalLink } from "lucide-react";
 import { Container } from "@/components/layout/Container";
-import { Header } from "@/components/layout/Header";
+import { DestinoHeader } from "@/components/layout/DestinoHeader";
 import { Footer } from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
 import { AmenitiesList } from "@/features/hospedajes/components/AmenitiesList";
@@ -29,9 +29,18 @@ import {
 } from "@/lib/seo/jsonld";
 import { siteConfig } from "@/config/site";
 import { getFotoUrl } from "@/lib/storage";
+import { formatDateISO } from "@/lib/date";
 
 interface PageProps {
   params: Promise<{ destino: string; slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+function pickStr(v: string | string[] | undefined): string | undefined {
+  return Array.isArray(v) ? v[0] : v;
+}
+function isISO(s: string | undefined): s is string {
+  return !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -62,12 +71,46 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function HospedajeDetailPage({ params }: PageProps) {
+export default async function HospedajeDetailPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { destino: destinoSlug, slug } = await params;
   const destino = await getDestinoBySlug(destinoSlug);
   if (!destino) notFound();
   const hospedaje = await getHospedajeBySlug(destino.id, slug);
   if (!hospedaje) notFound();
+
+  // Contexto heredado del buscador principal (vía URL): prellena la consulta y
+  // viaja a las unidades, para no recargar fechas/pax al consultar.
+  const sp = await searchParams;
+  const ctxCheckIn = isISO(pickStr(sp.check_in)) ? pickStr(sp.check_in) : undefined;
+  const ctxCheckOut = isISO(pickStr(sp.check_out)) ? pickStr(sp.check_out) : undefined;
+  const ctxAdultos = Number(pickStr(sp.adultos));
+  const ctxNinos = Number(pickStr(sp.ninos));
+  const ctxBebes = Number(pickStr(sp.bebes));
+  const huespedes =
+    Number.isFinite(ctxAdultos) && ctxAdultos > 0
+      ? ctxAdultos + (Number.isFinite(ctxNinos) ? ctxNinos : 0)
+      : undefined;
+  const unidadQuery = ctxCheckIn
+    ? new URLSearchParams({
+        check_in: ctxCheckIn,
+        ...(ctxCheckOut ? { check_out: ctxCheckOut } : {}),
+        adultos: String(Number.isFinite(ctxAdultos) && ctxAdultos > 0 ? ctxAdultos : 2),
+        ninos: String(Number.isFinite(ctxNinos) ? ctxNinos : 0),
+        bebes: String(Number.isFinite(ctxBebes) ? ctxBebes : 0),
+      }).toString()
+    : "";
+
+  // Mensaje prefill de WhatsApp: si venimos del buscador con fechas, las
+  // incluimos para que el responsable reciba el contexto sin pedirlo de nuevo.
+  const waMensaje = ctxCheckIn
+    ? `Hola, vi ${hospedaje.nombre} en Mis Escapadas y quería consultar disponibilidad para el ${formatDateISO(ctxCheckIn)}` +
+      (ctxCheckOut ? ` al ${formatDateISO(ctxCheckOut)}` : "") +
+      (huespedes ? ` para ${huespedes} ${huespedes === 1 ? "persona" : "personas"}` : "") +
+      "."
+    : undefined;
 
   const url = `${siteConfig.url}/${destinoSlug}/hospedajes/${slug}`;
 
@@ -107,7 +150,7 @@ export default async function HospedajeDetailPage({ params }: PageProps) {
         ])}
       />
 
-      <Header destinoSlug={destinoSlug} destinoNombre={destino.nombre} />
+      <DestinoHeader destinoSlug={destinoSlug} destinoNombre={destino.nombre} />
 
       <main>
         <Container size="xl" as="article">
@@ -246,6 +289,7 @@ export default async function HospedajeDetailPage({ params }: PageProps) {
                         tipo={tipo}
                         destinoSlug={destinoSlug}
                         hospedajeSlug={slug}
+                        query={unidadQuery}
                       />
                     ))}
                   </div>
@@ -285,6 +329,9 @@ export default async function HospedajeDetailPage({ params }: PageProps) {
                     hospedajeId={hospedaje.id}
                     hospedajeNombre={hospedaje.nombre}
                     capacidadMax={hospedaje.capacidad_max ?? null}
+                    initialCheckIn={ctxCheckIn}
+                    initialCheckOut={ctxCheckOut}
+                    initialHuespedes={huespedes}
                   />
                 </div>
               </section>
@@ -303,6 +350,7 @@ export default async function HospedajeDetailPage({ params }: PageProps) {
                 <WhatsAppButton
                   whatsapp={hospedaje.whatsapp}
                   hospedajeNombre={hospedaje.nombre}
+                  mensaje={waMensaje}
                   size="lg"
                   fullWidth
                   className="mt-5"

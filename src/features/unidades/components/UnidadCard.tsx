@@ -25,9 +25,11 @@ interface Props {
   /** Si se pasa, la card linkea al detalle de unidad. Browse sin fechas. */
   destinoSlug?: string;
   hospedajeSlug?: string;
+  /** Query string (sin '?') a propagar al link de la unidad (fechas/pax). */
+  query?: string;
 }
 
-export function UnidadCard({ tipo, destinoSlug, hospedajeSlug }: Props) {
+export function UnidadCard({ tipo, destinoSlug, hospedajeSlug, query }: Props) {
   const principal =
     tipo.foto_principal ??
     (tipo.fotos
@@ -134,7 +136,7 @@ export function UnidadCard({ tipo, destinoSlug, hospedajeSlug }: Props) {
         {destinoSlug && hospedajeSlug && (
           <div className="mt-auto pt-3">
             <Link
-              href={`/${destinoSlug}/hospedajes/${hospedajeSlug}/unidades/${tipo.id}`}
+              href={`/${destinoSlug}/hospedajes/${hospedajeSlug}/unidades/${tipo.id}${query ? `?${query}` : ""}`}
               className="block"
             >
               <Button size="sm" variant="outline" className="w-full">

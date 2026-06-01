@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Container } from "@/components/layout/Container";
 import { Section } from "@/components/layout/Section";
-import { Header } from "@/components/layout/Header";
+import { DestinoHeader } from "@/components/layout/DestinoHeader";
 import { Footer } from "@/components/layout/Footer";
 import { BuscadorBar } from "@/features/busqueda/components/BuscadorBar";
 import { UnidadResultCard } from "@/features/busqueda/components/UnidadResultCard";
@@ -129,7 +129,7 @@ export default async function BuscarPage({ params, searchParams }: PageProps) {
 
   return (
     <>
-      <Header destinoSlug={slug} destinoNombre={destino.nombre} />
+      <DestinoHeader destinoSlug={slug} destinoNombre={destino.nombre} />
 
       <main>
         <Section spacing="md" tone="sand">

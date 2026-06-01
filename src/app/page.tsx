@@ -10,6 +10,7 @@ import {
   type VerticalKey,
 } from "@/features/home/lib/queries";
 import { HubV2 } from "@/features/home/components/HubV2";
+import { buildHeroSlides } from "@/features/home/lib/hero-slides";
 import { listPromosRed } from "@/features/promos/lib/queries";
 import { listCombosRed } from "@/features/combos/lib/queries";
 import { siteConfig } from "@/config/site";
@@ -58,6 +59,8 @@ export default async function HubPage() {
     atractivos,
   };
 
+  const heroSlides = buildHeroSlides(verticalData);
+
   return (
     <>
       <HubV2
@@ -67,6 +70,10 @@ export default async function HubPage() {
         promos={promos}
         combos={combos}
         session={session}
+        heroSlides={heroSlides}
+        heroEyebrow="Mis Escapadas"
+        heroTitle="Descubrí tu próxima escapada"
+        heroSubtitle="Hospedajes, gastronomía y atractivos verificados por la comunidad de cada destino."
       />
       <Footer />
     </>
