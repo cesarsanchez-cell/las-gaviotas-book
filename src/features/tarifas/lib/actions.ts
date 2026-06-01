@@ -39,17 +39,25 @@ async function authorizeUnidadType(
 
   const { data: perfil } = await admin
     .from("perfiles")
-    .select("rol, destino_id, hospedajes_ids")
+    .select("rol, destino_id")
     .eq("id", user.id)
     .maybeSingle<{
       rol: string;
       destino_id: string | null;
-      hospedajes_ids: string[] | null;
     }>();
   if (!perfil) return null;
 
   if (perfil.rol === "responsable") {
-    if (!(perfil.hospedajes_ids ?? []).includes(tipo.hospedaje_id)) return null;
+    // Ownership vía `responsabilidades` (fuente de verdad), no por el array
+    // legacy `perfiles.hospedajes_ids[]` — que puede quedar desincronizado.
+    const { data: resp } = await admin
+      .from("responsabilidades")
+      .select("entidad_id")
+      .eq("perfil_id", user.id)
+      .eq("entidad_tipo", "hospedaje")
+      .eq("entidad_id", tipo.hospedaje_id)
+      .maybeSingle<{ entidad_id: string }>();
+    if (!resp) return null;
     return { hospedajeId: tipo.hospedaje_id };
   }
 
