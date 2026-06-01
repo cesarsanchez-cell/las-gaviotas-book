@@ -3,10 +3,11 @@
 > Anexo para el auditor externo. Mapea cada hallazgo de la Etapa 1 a su fix, commit y archivos, con pasos de verificación. Pensado para una **re-revisión acotada** (solo lo que cambió), no un barrido nuevo.
 
 **Estado:** F-01..F-04 remediados, mergeados a `master` y **deployados a producción** (2026-06-01).
-**F-05** (capa Storage de F-01, surgido del dump de prod): policy aplicada y verificada en la
-base de prod; la migración queda por commitear.
-**Commits:** PR #15 `Seguridad: remediar auditoria Etapa 1 (F-01..F-04)` (`2494d32`) + migración
-`20260601000001_storage_fotos_scope.sql`.
+**F-05** (capa Storage de F-01, surgido del dump): policy aplicada y verificada en prod (PR #17).
+**F-06** (RLS de promos/combos sin scope, surgido del dump + prueba con cuentas): policy aplicada
+y verificada en prod; migración por commitear.
+**Commits:** PR #15 (`2494d32`) + PR #17 (Storage, `20260601000001`) + migración
+`20260601000002_promos_combos_admin_scope.sql`.
 **Verificación previa:** `tsc --noEmit` ✅ · `npm run build` ✅ · migración aplicada y verificada en Supabase.
 
 ---
@@ -70,6 +71,21 @@ review de solo-código no podía ver.)*
   `can_manage_hospedajes_object(name)` y no quedó ninguna `is_admin() OR is_responsable()`.
   Prueba con cuentas: como Responsable del hospedaje A, `storage.from('hospedajes')
   .remove(['<hospedajeB_id>/foto.jpg'])` debe **fallar** (RLS), y el blob de B seguir intacto.
+
+### F-06 — NO-GO · RLS de promos/combos/combo_items sin scope de destino → **CERRADO**
+*(Hallazgo surgido del dump + prueba con cuentas — las policies de admin de estas
+tablas usaban `is_admin()` pelado pese a tener `destino_id`.)*
+- **Problema:** un Admin Local podía leer/escribir promos y combos de **cualquier**
+  destino pegándole directo a Supabase con su JWT (REST/JS, fuera de la UI). Las server
+  actions validan scope, pero la RLS —última línea— estaba abierta.
+- **Archivo:** `supabase/migrations/20260601000002_promos_combos_admin_scope.sql`.
+- **Fix:** las policies de admin de `promos`/`combos` pasan a `admin_owns_destino(destino_id)`
+  (cubre super admin); `combo_items` se scopea por el combo padre vía `exists(... combos c
+  ... admin_owns_destino(c.destino_id))` en USING y WITH CHECK.
+- **Verificación (hecha en prod):** las 6 policies de admin muestran `admin_owns_destino`;
+  ninguna quedó con `is_admin()` pelado. Prueba con cuentas: Admin Local del destino A,
+  vía JS client con su JWT, `select`/`update` sobre una promo/combo del destino B debe
+  devolver **0 filas / fallar**.
 
 ---
 
