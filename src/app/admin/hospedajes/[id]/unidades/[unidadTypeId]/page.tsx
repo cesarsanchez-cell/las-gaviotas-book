@@ -15,6 +15,11 @@ import { assertAdminCanAccessHospedaje } from "@/features/admin/lib/scope";
 import { getUnidadType } from "@/features/unidades/lib/queries";
 import { TarifasManager } from "@/features/tarifas/components/TarifasManager";
 import { listTarifasByUnidadType } from "@/features/tarifas/lib/queries";
+import { RestriccionesManager } from "@/features/restricciones/components/RestriccionesManager";
+import {
+  isRestriccionesHabilitadas,
+  listRestriccionesByUnidadType,
+} from "@/features/restricciones/lib/queries";
 import { getFotoUrl } from "@/lib/storage";
 import {
   UNIDAD_AMENITIES,
@@ -39,15 +44,20 @@ export default async function AdminUnidadTypeDetailPage({ params }: PageProps) {
   const sb = createAdminClient();
   const { data: hospedaje } = await sb
     .from("hospedajes")
-    .select("id, nombre")
+    .select("id, nombre, destino_id")
     .eq("id", id)
-    .maybeSingle<{ id: string; nombre: string }>();
+    .maybeSingle<{ id: string; nombre: string; destino_id: string }>();
   if (!hospedaje) notFound();
 
   const unidadType = await getUnidadType(unidadTypeId);
   if (!unidadType || unidadType.hospedaje_id !== id) notFound();
 
   const tarifas = await listTarifasByUnidadType(unidadTypeId);
+
+  const restriccionesOn = await isRestriccionesHabilitadas(hospedaje.destino_id);
+  const restricciones = restriccionesOn
+    ? await listRestriccionesByUnidadType(unidadTypeId)
+    : [];
 
   // Filtrar amenities que existen en el catálogo actual (defensa contra data
   // zombie por cambios de catálogo). Igual que el form del responsable.
@@ -258,6 +268,15 @@ export default async function AdminUnidadTypeDetailPage({ params }: PageProps) {
         tarifas={tarifas}
         readOnly
       />
+
+      {/* Restricciones (read-only) — solo si el destino las tiene habilitadas */}
+      {restriccionesOn && (
+        <RestriccionesManager
+          unidadTypeId={unidadType.id}
+          restricciones={restricciones}
+          readOnly
+        />
+      )}
     </div>
   );
 }

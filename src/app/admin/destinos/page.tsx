@@ -32,7 +32,12 @@ export default async function AdminDestinosPage() {
         )}
       </header>
 
-      <DestinosList destinos={destinos} canEdit={me.isSuperAdmin} />
+      <DestinosList
+        destinos={destinos}
+        canEdit={me.isSuperAdmin}
+        isSuperAdmin={me.isSuperAdmin}
+        currentDestinoId={me.destinoId}
+      />
     </div>
   );
 }

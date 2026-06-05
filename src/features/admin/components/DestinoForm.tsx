@@ -410,6 +410,25 @@ export function DestinoForm({ initial, submitLabel, action }: Props) {
             </label>
           </div>
         </div>
+
+        <div className="mt-4 border-t border-border pt-4">
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              name="restricciones_habilitadas"
+              defaultChecked={initial?.restricciones_habilitadas ?? false}
+              className="mt-0.5 h-4 w-4 rounded border-input"
+            />
+            <span>
+              Habilitar restricciones de reserva en este destino
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Permite a los responsables exigir estadía mínima o día fijo de
+                ingreso/egreso por temporada. Si está apagado, esas reglas no se
+                aplican ni se muestran.
+              </span>
+            </span>
+          </label>
+        </div>
       </section>
 
       <div className="flex justify-end">

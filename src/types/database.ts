@@ -39,6 +39,8 @@ export interface DestinoRow {
   /** Storage path (bucket `destinos`) de la foto del destino subida por Super Admin. Si es null, las cards caen al gradient pintado con los biomas heredados de la región. */
   foto_path: string | null;
   activo: boolean;
+  /** Feature-flag opt-in: si true, las restricciones de unidad (estadía mínima, día fijo de ingreso/egreso) se aplican en la búsqueda y se muestran en la ficha pública. Nace en false. */
+  restricciones_habilitadas: boolean;
   orden: number;
   created_at: string;
   updated_at: string;

@@ -5,6 +5,14 @@ import type {
   UnidadRow,
   HospedajeRow,
 } from "@/types/database";
+import {
+  isRestriccionesHabilitadas,
+  listRestriccionesByUnidadTypes,
+} from "@/features/restricciones/lib/queries";
+import {
+  evaluarRestricciones,
+  type RestriccionMin,
+} from "@/features/restricciones/lib/logic";
 import type { UnidadResultado } from "./types";
 
 /**
@@ -15,9 +23,12 @@ import type { UnidadResultado } from "./types";
  *
  * checkOut es exclusivo (la noche del checkOut ya no se cuenta).
  *
- * Restricciones (estadía mínima, día de ingreso/egreso) y tarifas se aplican
- * en Etapas 6 y 7. Hoy todos los tipos que pasen capacidad+disponibilidad
- * se devuelven.
+ * Restricciones (estadía mínima, día de ingreso/egreso): solo se aplican si el
+ * destino tiene el feature-flag `restricciones_habilitadas` encendido. Una
+ * restricción aplica cuando el check-in cae dentro de su rango [desde, hasta]
+ * (la llegada gobierna); si la estadía la viola, el tipo se descarta. Si más
+ * de una restricción aplica, se cumplen todas (AND). Las tarifas se resuelven
+ * aparte (Etapa 6).
  *
  * Devuelve tipos ordenados por: hospedaje destacado primero, después por
  * capacidad ascendente (primero el match más ajustado), después por nombre.
@@ -92,6 +103,13 @@ export async function searchUnidadesPorDestino(
   );
   if (tiposConCapacidad.length === 0) return [];
 
+  // 2.b) Restricciones (estadía mínima / día fijo) — solo si el destino las
+  // tiene habilitadas. Se evalúan por tipo más abajo, al armar el resultado.
+  const restriccionesOn = await isRestriccionesHabilitadas(destinoId);
+  const restriccionesPorTipo: Map<string, RestriccionMin[]> = restriccionesOn
+    ? await listRestriccionesByUnidadTypes(tiposConCapacidad.map((t) => t.id))
+    : new Map();
+
   // 3) Unidades físicas activas de esos tipos.
   const unidadesActivas: { id: string; tipoId: string }[] = [];
   for (const t of tiposConCapacidad) {
@@ -124,6 +142,15 @@ export async function searchUnidadesPorDestino(
     const activas = t.unidades.filter((u) => u.activa);
     const libres = activas.filter((u) => !unidadesBloqueadas.has(u.id));
     if (libres.length === 0) continue;
+
+    // Descartar el tipo si alguna restricción aplicable se viola.
+    if (restriccionesOn) {
+      const reglas = restriccionesPorTipo.get(t.id) ?? [];
+      if (reglas.length > 0) {
+        const { ok } = evaluarRestricciones(reglas, checkIn, checkOut);
+        if (!ok) continue;
+      }
+    }
     const fotosOrdenadas = [...t.fotos]
       .sort((a, b) => {
         if (a.es_principal && !b.es_principal) return -1;

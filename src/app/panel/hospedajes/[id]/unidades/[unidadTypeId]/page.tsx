@@ -10,6 +10,11 @@ import { UnidadInstancesManager } from "@/features/unidades/components/UnidadIns
 import { updateUnidadTypeAction } from "@/features/unidades/lib/actions";
 import { TarifasManager } from "@/features/tarifas/components/TarifasManager";
 import { listTarifasByUnidadType } from "@/features/tarifas/lib/queries";
+import { RestriccionesManager } from "@/features/restricciones/components/RestriccionesManager";
+import {
+  isRestriccionesHabilitadas,
+  listRestriccionesByUnidadType,
+} from "@/features/restricciones/lib/queries";
 
 interface PageProps {
   params: Promise<{ id: string; unidadTypeId: string }>;
@@ -24,15 +29,20 @@ export default async function EditUnidadTypePage({ params }: PageProps) {
   const sb = createAdminClient();
   const { data: hospedaje } = await sb
     .from("hospedajes")
-    .select("id, nombre")
+    .select("id, nombre, destino_id")
     .eq("id", id)
-    .maybeSingle<{ id: string; nombre: string }>();
+    .maybeSingle<{ id: string; nombre: string; destino_id: string }>();
   if (!hospedaje) notFound();
 
   const unidadType = await getUnidadType(unidadTypeId);
   if (!unidadType || unidadType.hospedaje_id !== id) notFound();
 
   const tarifas = await listTarifasByUnidadType(unidadTypeId);
+
+  const restriccionesOn = await isRestriccionesHabilitadas(hospedaje.destino_id);
+  const restricciones = restriccionesOn
+    ? await listRestriccionesByUnidadType(unidadTypeId)
+    : [];
 
   const updateAction = updateUnidadTypeAction.bind(null, unidadTypeId);
 
@@ -76,6 +86,13 @@ export default async function EditUnidadTypePage({ params }: PageProps) {
         unidadTypeId={unidadType.id}
         tarifas={tarifas}
       />
+
+      {restriccionesOn && (
+        <RestriccionesManager
+          unidadTypeId={unidadType.id}
+          restricciones={restricciones}
+        />
+      )}
     </div>
   );
 }

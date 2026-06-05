@@ -11,7 +11,7 @@ Estado consolidado del proyecto. Visión y reglas detalladas en [CLAUDE.md](CLAU
 
 | Item              | Valor                                                                            |
 |-------------------|----------------------------------------------------------------------------------|
-| Etapa vigente     | **Core cerrado en prod**: rediseño multi-unidad Etapas 1-6 + verticales gastro/atractivos + roles múltiples + regiones + autogestión password + **Home v2 / hub Airbnb (bloques 1-11)** + **auditoría de seguridad Etapas 1-5 completa (0 No-Go/0 Major)**. Pendiente técnico chico: Etapa 7 restricciones (UI). Siguiente foco: **Visión de producto** (home emocional + sinergia comercial) — ver sección final |
+| Etapa vigente     | **Core cerrado en prod**: rediseño multi-unidad Etapas 1-7 + verticales gastro/atractivos + roles múltiples + regiones + autogestión password + **Home v2 / hub Airbnb (bloques 1-11)** + **auditoría de seguridad Etapas 1-5 completa (0 No-Go/0 Major)**. Etapa 7 (restricciones con flag por destino) cerrada en local 2026-06-05 — falta aplicar migración + deploy. Siguiente foco: **Visión de producto** (home emocional + sinergia comercial) — ver sección final |
 | Último commit     | `7781653` — Auditoría Etapa 5: rate-limit auth + escape HTML mails + anti-enumeration signup (#23) |
 | Fecha             | 2026-06-05                                                                       |
 | Entorno local     | PM2 → `las-gaviotas-book` en `http://localhost:3005`                             |
@@ -104,7 +104,7 @@ Bloque D — Validación end-to-end:
 - [ ] Copy del email de confirmación de signup (verificar si sigue el default de Supabase o ya se ajustó en Resend)
 - [ ] Considerar trigger BEFORE UPDATE en hospedajes que valide transiciones de estado por rol (defensa en profundidad, opcional — RLS + asserts TS ya cubren)
 - [ ] Decisión de producto: el `ConsultaForm` genérico al hospedaje convive con el `ConsultaUnidadForm` del flow del buscador. Definir si se deja (consulta sin fechas decididas) o se fuerza el flow nuevo.
-- [ ] Etapa 7 restricciones (ver arriba) — único gap técnico abierto del rediseño.
+- [x] Etapa 7 restricciones — cerrada 2026-06-05 (ver sección del rediseño). Falta aplicar migración `20260605000000` en prod + deploy.
 
 **Resueltos desde la versión anterior del roadmap:** autogestión password ✅, gestión de zonas (resuelto vía Regiones+destinos, no se hace `/admin/localidades`) ✅, disponibilidad multi-unidad por capacidad ✅ (rediseño Etapas 1-6), bug visual del form en incógnito ✅, mail de confirmación al hospedaje ✅ (Resend), landing de clientes ✅.
 
@@ -218,10 +218,15 @@ Reescritura mayor del modelo: la disponibilidad pasa de estar atada al `hospedaj
 - [x] Display de precio en página pública (fallback "Precio a consultar" si no hay tarifa)
 - [x] fieldErrors específicos en el form de tarifas
 
-### Etapa 7 rediseño — Restricciones ⏳ pendiente (único gap técnico del rediseño)
-- [ ] UI alta de restricciones opt-in por temporada (estadía mínima, días fijos de ingreso/egreso). `RestriccionRow` ya existe en BD, falta el panel.
-- [ ] Aplicar en `searchUnidadesPorDestino`: descartar unidades cuyo rango pedido no cumpla la restricción
-- [ ] Mostrar "Estadía mínima N noches" como info en el detalle de unidad
+### Etapa 7 rediseño — Restricciones ✅ cerrada (2026-06-05)
+
+Reglas opt-in por temporada (estadía mínima, día fijo de ingreso/egreso) sobre el tipo de unidad, con **feature-flag por destino**.
+
+- [x] **Feature-flag por destino** (`destinos.restricciones_habilitadas`, migración `20260605000000`, nace en `false`). Lo prende/apaga el super admin (cualquier destino) o el admin local (su destino) vía toggle en `/admin/destinos` (`toggleRestriccionesHabilitadasAction`, scope en código). Apagado = no se aplica ni se muestra.
+- [x] Módulo `src/features/restricciones/` (espejo de `tarifas`): `validation.ts` (Zod, al menos una regla), `logic.ts` (helpers puros compartidos), `queries.ts`, `actions.ts` (CRUD scopeado por responsable/admin), `RestriccionesManager.tsx`.
+- [x] UI alta/edición/borrado en el panel del responsable (`/panel/hospedajes/[id]/unidades/[unidadTypeId]`), read-only en la vista admin. Solo aparece si el destino tiene el flag ON.
+- [x] Aplicado en `searchUnidadesPorDestino`: si el flag está ON, descarta el tipo cuyo rango pedido viole una restricción aplicable (check-in dentro de `[desde, hasta]`; reglas en AND).
+- [x] Sección "Condiciones de reserva" en el detalle público de unidad (estadía mínima / día fijo), informativa, solo con el flag ON.
 
 ### Verticales MisEscapadas — Gastronomía + Atractivos ✅ cerrada (`e628c12`)
 - [x] Tabla `lugares` unificada (tipo discriminador) + `lugar_fotos` + `responsabilidades` (many-to-many) + RLS scoped

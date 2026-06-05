@@ -10,9 +10,9 @@ import {
   Building2,
   MapPin,
   ExternalLink,
+  CalendarClock,
 } from "lucide-react";
 import { Container } from "@/components/layout/Container";
-import { Section } from "@/components/layout/Section";
 import { DestinoHeader } from "@/components/layout/DestinoHeader";
 import { Footer } from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,11 @@ import {
   OPERATIONAL_AMENITY_GROUPS,
 } from "@/config/amenities-operational";
 import { resolvePrecioPorRango } from "@/features/tarifas/lib/queries";
+import { listRestriccionesByUnidadType } from "@/features/restricciones/lib/queries";
+import {
+  describirRestriccion,
+  evaluarRestricciones,
+} from "@/features/restricciones/lib/logic";
 import { todayISO, tomorrowISO, addDaysISO as addDays } from "@/lib/date";
 
 interface PageProps {
@@ -66,6 +71,16 @@ function parseIntInRange(
 
 function isValidISO(s: string | undefined): boolean {
   return !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+
+/** Fecha corta con día de semana en es-AR, ej. "sáb 3/1". Sin drift de TZ. */
+function formatFechaCorta(iso: string): string {
+  const d = new Date(iso + "T00:00:00Z");
+  const wd = new Intl.DateTimeFormat("es-AR", {
+    weekday: "short",
+    timeZone: "UTC",
+  }).format(d);
+  return `${wd} ${d.getUTCDate()}/${d.getUTCMonth() + 1}`;
 }
 
 export async function generateMetadata({
@@ -156,6 +171,29 @@ export default async function UnidadDetallePage({
   const calefaccionLabel = tipo.calefaccion_tipo
     ? CALEFACCION_TIPO_LABEL[tipo.calefaccion_tipo as CalefaccionTipo]
     : null;
+
+  // Restricciones (estadía mínima, día fijo) — solo si el destino tiene el
+  // feature-flag encendido. La ficha nunca bloquea: informa y avisa.
+  const restriccionesRaw = destino.restricciones_habilitadas
+    ? await listRestriccionesByUnidadType(tipo.id)
+    : [];
+  // Vigentes/futuras, para la sección informativa "Condiciones de reserva".
+  const restricciones = restriccionesRaw
+    .filter((r) => r.hasta >= today)
+    .map((r) => ({
+      id: r.id,
+      nombre: r.nombre,
+      desde: r.desde,
+      hasta: r.hasta,
+      chips: describirRestriccion(r),
+    }))
+    .filter((r) => r.chips.length > 0);
+  // ¿Las fechas elegidas cumplen con las restricciones que aplican? Si no,
+  // mostramos un aviso amable cerca del form de consulta (sin trabar el envío).
+  const restriccionEval =
+    restriccionesRaw.length > 0
+      ? evaluarRestricciones(restriccionesRaw, checkIn, checkOut)
+      : { ok: true, motivos: [] };
 
   const precio = await resolvePrecioPorRango(tipo.id, checkIn, checkOut);
   const formatPrecio = (n: number, m: string) =>
@@ -303,6 +341,43 @@ export default async function UnidadDetallePage({
                 </dl>
               </section>
 
+              {restricciones.length > 0 && (
+                <section>
+                  <h2 className="font-display text-2xl tracking-tight">
+                    Condiciones de reserva
+                  </h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    En ciertas temporadas esta unidad pide una estadía mínima o
+                    un día fijo de ingreso/egreso. Consultá al responsable por
+                    las fechas que te interesan.
+                  </p>
+                  <ul className="mt-4 space-y-3">
+                    {restricciones.map((r) => (
+                      <li
+                        key={r.id}
+                        className="rounded-lg border border-border bg-card p-4"
+                      >
+                        <p className="text-sm font-medium">{r.nombre}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {r.desde.split("-").reverse().join("/")} →{" "}
+                          {r.hasta.split("-").reverse().join("/")}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {r.chips.map((c) => (
+                            <span
+                              key={c}
+                              className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-medium text-sky-800"
+                            >
+                              {c}
+                            </span>
+                          ))}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
               {tipo.amenities.length > 0 && (
                 <section>
                   <h2 className="font-display text-2xl tracking-tight">
@@ -432,21 +507,27 @@ export default async function UnidadDetallePage({
 
                 {precio.total !== null && precio.moneda ? (
                   <div className="mt-5 border-t border-border pt-4">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <p className="font-display text-2xl tracking-tight">
-                        {formatPrecio(precio.total, precio.moneda)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {precio.noches}{" "}
-                        {precio.noches === 1 ? "noche" : "noches"}
-                      </p>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {formatPrecio(
-                        precio.total / precio.noches,
-                        precio.moneda
-                      )}{" "}
-                      / noche · valor por la unidad entera
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Presupuesto estimado
+                    </p>
+                    <p className="mt-1 font-display text-3xl tracking-tight">
+                      {formatPrecio(precio.total, precio.moneda)}
+                    </p>
+                    <p className="mt-1 text-sm text-foreground">
+                      Total por {precio.noches}{" "}
+                      {precio.noches === 1 ? "noche" : "noches"}
+                      <span className="text-muted-foreground">
+                        {" "}
+                        · {formatFechaCorta(checkIn)} → {formatFechaCorta(checkOut)}
+                      </span>
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {formatPrecio(precio.total / precio.noches, precio.moneda)}{" "}
+                      por noche · la unidad entera
+                    </p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Valor estimado según las tarifas cargadas. El responsable
+                      confirma el total final según fechas y huéspedes.
                     </p>
                   </div>
                 ) : (
@@ -466,6 +547,31 @@ export default async function UnidadDetallePage({
                   Sin intermediarios. Recibís respuesta del alojamiento
                   directamente.
                 </p>
+
+                {!restriccionEval.ok && (
+                  <div className="mt-4 flex gap-2.5 rounded-lg border border-amber-200 bg-amber-50/70 p-3">
+                    <CalendarClock
+                      className="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
+                      aria-hidden
+                    />
+                    <div className="text-xs text-amber-900">
+                      <p className="font-medium">
+                        Para esas fechas, este alojamiento trabaja con estas
+                        condiciones:
+                      </p>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                        {restriccionEval.motivos.map((m) => (
+                          <li key={m}>{m}</li>
+                        ))}
+                      </ul>
+                      <p className="mt-1.5">
+                        Escribile igual al responsable y te ayuda a ajustar las
+                        fechas.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-4">
                   <ConsultaUnidadForm
                     hospedajeId={hospedaje.id}

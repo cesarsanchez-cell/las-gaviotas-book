@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { Pencil, Trash2, ExternalLink, Power } from "lucide-react";
+import { Pencil, Trash2, ExternalLink, Power, SlidersHorizontal } from "lucide-react";
 import {
   deleteDestinoAction,
   toggleDestinoActivoAction,
+  toggleRestriccionesHabilitadasAction,
   type DestinoListRow,
 } from "@/features/admin/lib/destino-management";
 import { cn } from "@/lib/utils";
@@ -13,9 +14,18 @@ import { cn } from "@/lib/utils";
 interface Props {
   destinos: DestinoListRow[];
   canEdit: boolean;
+  /** True si el admin logueado es super admin (puede togglear cualquier destino). */
+  isSuperAdmin: boolean;
+  /** Destino del admin local (null para super admin). Habilita el toggle de restricciones sobre su propio destino. */
+  currentDestinoId: string | null;
 }
 
-export function DestinosList({ destinos, canEdit }: Props) {
+export function DestinosList({
+  destinos,
+  canEdit,
+  isSuperAdmin,
+  currentDestinoId,
+}: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -25,6 +35,18 @@ export function DestinosList({ destinos, canEdit }: Props) {
       const res = await toggleDestinoActivoAction(d.id);
       if (res.error) setError(res.error);
     });
+  }
+
+  function handleToggleRestricciones(d: DestinoListRow) {
+    setError(null);
+    startTransition(async () => {
+      const res = await toggleRestriccionesHabilitadasAction(d.id);
+      if (res.error) setError(res.error);
+    });
+  }
+
+  function canToggleRestricciones(d: DestinoListRow): boolean {
+    return isSuperAdmin || currentDestinoId === d.id;
   }
 
   function handleDelete(d: DestinoListRow) {
@@ -69,6 +91,7 @@ export function DestinosList({ destinos, canEdit }: Props) {
               <th className="px-4 py-2 text-right font-medium">Hospedajes</th>
               <th className="px-4 py-2 text-center font-medium">Orden</th>
               <th className="px-4 py-2 text-center font-medium">Activo</th>
+              <th className="px-4 py-2 text-center font-medium">Restricciones</th>
               <th className="px-4 py-2 text-right font-medium">Acciones</th>
             </tr>
           </thead>
@@ -99,6 +122,40 @@ export function DestinosList({ destinos, canEdit }: Props) {
                   >
                     {d.activo ? "Activo" : "Inactivo"}
                   </span>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  {canToggleRestricciones(d) ? (
+                    <button
+                      type="button"
+                      onClick={() => handleToggleRestricciones(d)}
+                      disabled={pending}
+                      title={
+                        d.restricciones_habilitadas
+                          ? "Restricciones activadas — clic para desactivar"
+                          : "Restricciones desactivadas — clic para activar"
+                      }
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition disabled:opacity-50",
+                        d.restricciones_habilitadas
+                          ? "bg-sky-100 text-sky-800 hover:bg-sky-200"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      )}
+                    >
+                      <SlidersHorizontal className="h-3 w-3" />
+                      {d.restricciones_habilitadas ? "Activadas" : "Desactivadas"}
+                    </button>
+                  ) : (
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-xs font-medium",
+                        d.restricciones_habilitadas
+                          ? "bg-sky-100 text-sky-800"
+                          : "bg-slate-100 text-slate-600"
+                      )}
+                    >
+                      {d.restricciones_habilitadas ? "Activadas" : "Desactivadas"}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-1.5">

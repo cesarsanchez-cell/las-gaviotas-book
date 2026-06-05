@@ -16,6 +16,7 @@ export interface DestinoListRow {
   provincia: string | null;
   pais: string | null;
   activo: boolean;
+  restricciones_habilitadas: boolean;
   orden: number;
   hospedajesCount: number;
 }
@@ -31,7 +32,9 @@ export async function listDestinosAdmin(): Promise<DestinoListRow[]> {
 
   const { data: destinos } = await sb
     .from("destinos")
-    .select("id, slug, nombre, region, provincia, pais, activo, orden")
+    .select(
+      "id, slug, nombre, region, provincia, pais, activo, restricciones_habilitadas, orden"
+    )
     .order("orden", { ascending: true })
     .order("nombre", { ascending: true })
     .returns<
@@ -43,6 +46,7 @@ export async function listDestinosAdmin(): Promise<DestinoListRow[]> {
         provincia: string | null;
         pais: string | null;
         activo: boolean;
+        restricciones_habilitadas: boolean;
         orden: number;
       }>
     >();
@@ -125,6 +129,7 @@ const destinoSchema = z.object({
     .optional()
     .or(z.literal("").transform(() => null)),
   activo: z.coerce.boolean().default(true),
+  restricciones_habilitadas: z.coerce.boolean().default(false),
   orden: z.coerce.number().int().min(0).max(10000).default(0),
 });
 
@@ -133,16 +138,17 @@ export type DestinoInput = z.infer<typeof destinoSchema>;
 function parseFormData(formData: FormData): unknown {
   const raw: Record<string, unknown> = {};
   for (const [k, v] of formData.entries()) {
-    if (k === "activo") {
-      raw.activo = v === "on" || v === "true";
+    if (k === "activo" || k === "restricciones_habilitadas") {
+      raw[k] = v === "on" || v === "true";
     } else if (typeof v === "string" && v.trim() === "") {
       // skip empty strings to avoid coercion issues
     } else {
       raw[k] = v;
     }
   }
-  // El checkbox no aparece en FormData si no está marcado.
+  // Los checkbox no aparecen en FormData si no están marcados.
   if (!("activo" in raw)) raw.activo = false;
+  if (!("restricciones_habilitadas" in raw)) raw.restricciones_habilitadas = false;
   return raw;
 }
 
@@ -245,6 +251,41 @@ export async function toggleDestinoActivoAction(
 
   revalidatePath("/admin/destinos");
   revalidatePath("/");
+  return { ok: true };
+}
+
+/**
+ * Toggle del feature-flag `restricciones_habilitadas` desde el listado.
+ * A diferencia del resto de las mutaciones de destino (super admin only),
+ * acá el **admin local del destino** también puede prender/apagar las
+ * restricciones de SU destino. Super admin puede sobre cualquiera.
+ */
+export async function toggleRestriccionesHabilitadasAction(
+  id: string
+): Promise<ActionResult> {
+  const me = await requireAdmin();
+  if (!me.isSuperAdmin && me.destinoId !== id) {
+    return {
+      error:
+        "Solo el super admin o el admin local de este destino puede cambiar las restricciones.",
+    };
+  }
+
+  const sb = createAdminClient();
+  const { data: actual } = await sb
+    .from("destinos")
+    .select("restricciones_habilitadas")
+    .eq("id", id)
+    .maybeSingle<{ restricciones_habilitadas: boolean }>();
+  if (!actual) return { error: "Destino no encontrado." };
+
+  const { error } = await sb
+    .from("destinos")
+    .update({ restricciones_habilitadas: !actual.restricciones_habilitadas } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/destinos");
   return { ok: true };
 }
 
