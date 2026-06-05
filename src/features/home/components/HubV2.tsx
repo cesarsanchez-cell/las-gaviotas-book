@@ -18,7 +18,7 @@ import { SearchPanel } from "./SearchPanel";
 import { ItemCard } from "./ItemCard";
 import { PromoDetailModal } from "@/features/promos/components/PromoDetailModal";
 import { DestinoMiniCard, type DestinoMini } from "./DestinoMiniCard";
-import { ComboCard } from "@/features/combos/components/ComboCard";
+import { CombosCarousel } from "@/features/combos/components/CombosCarousel";
 import { ComboDetailModal } from "@/features/combos/components/ComboDetailModal";
 import { ArmadorCTA } from "@/features/armador/components/ArmadorCTA";
 import type { ComboPublic } from "@/features/combos/lib/queries";
@@ -344,7 +344,7 @@ export function HubV2({
         {isLanding && combos.length > 0 && (
           <section className="border-b border-border py-10 md:py-14">
             <div className="container">
-              <header className="mb-6 max-w-2xl">
+              <header className="max-w-2xl">
                 <p className="eyebrow flex items-center gap-2">
                   <Sparkles className="h-4 w-4" aria-hidden />
                   Escapadas armadas
@@ -357,12 +357,8 @@ export function HubV2({
                   beneficios que no existen por separado.
                 </p>
               </header>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {combos.map((c) => (
-                  <ComboCard key={c.id} combo={c} onOpen={setComboSel} />
-                ))}
-              </div>
             </div>
+            <CombosCarousel combos={combos} onOpen={setComboSel} />
           </section>
         )}
 
