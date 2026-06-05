@@ -26,22 +26,41 @@ async function getClientIp(): Promise<string | null> {
 }
 
 /**
- * Rate-limit por IP para los flujos de auth que MANDAN MAIL (signup,
- * forgot-password, resend). Sin esto, cualquiera puede automatizar POSTs y
- * bombardear una casilla / consumir cuota de Resend+Supabase (F-E1). Comparte
- * la infra persistida del form de consultas con clave namespaceada "auth".
+ * Rate-limit para los flujos de auth que MANDAN MAIL (signup, forgot-password,
+ * resend). Sin esto, cualquiera puede automatizar POSTs y bombardear una
+ * casilla / consumir cuota de Resend+Supabase (F-E1). Dos barreras persistidas
+ * (comparten la infra del form de consultas, con claves namespaceadas):
+ *   - por IP    → 5 req / 10 min (frena el flood de un mismo origen).
+ *   - por email → 3 req / 60 min (protege a una casilla aunque el atacante
+ *     rote IPs; el contador sube en cada intento, exista o no la cuenta, así
+ *     que no es un vector de enumeración).
  * Devuelve un AuthResult con error si está limitado, o null si puede seguir.
  */
-async function authEmailRateLimited(): Promise<AuthResult | null> {
-  const rl = await checkRateLimit(await getClientIp(), {
+async function authEmailRateLimited(email?: string): Promise<AuthResult | null> {
+  const byIp = await checkRateLimit(await getClientIp(), {
     key: "auth",
     max: 5,
     windowSeconds: 600,
   });
-  if (!rl.ok) {
+  if (!byIp.ok) {
     return {
-      error: `Demasiados intentos seguidos. Esperá ${rl.retryAfter ?? 600} segundos y probá de nuevo.`,
+      error: `Demasiados intentos seguidos. Esperá ${byIp.retryAfter ?? 600} segundos y probá de nuevo.`,
     };
+  }
+
+  const normalized = email?.trim().toLowerCase();
+  if (normalized) {
+    const byEmail = await checkRateLimit(normalized, {
+      key: "auth-mail",
+      max: 3,
+      windowSeconds: 3600,
+    });
+    if (!byEmail.ok) {
+      return {
+        error:
+          "Se enviaron demasiados mails a esa dirección. Esperá un rato y volvé a intentar.",
+      };
+    }
   }
   return null;
 }
@@ -68,7 +87,7 @@ export async function signUpResponsableAction(
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   }
 
-  const limited = await authEmailRateLimited();
+  const limited = await authEmailRateLimited(parsed.data.email);
   if (limited) return limited;
 
   const supabase = await createClient();
@@ -247,7 +266,7 @@ export async function forgotPasswordAction(
     return { error: parsed.error.issues[0]?.message ?? "Email inválido." };
   }
 
-  const limited = await authEmailRateLimited();
+  const limited = await authEmailRateLimited(parsed.data.email);
   if (limited) return limited;
 
   const supabase = await createClient();
@@ -408,7 +427,7 @@ export async function resendConfirmationAction(
     return { error: "Email inválido." };
   }
 
-  const limited = await authEmailRateLimited();
+  const limited = await authEmailRateLimited(trimmed);
   if (limited) return limited;
 
   const supabase = await createClient();

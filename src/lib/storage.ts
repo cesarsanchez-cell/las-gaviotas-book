@@ -43,3 +43,44 @@ export function getDestinoFotoUrl(storagePath: string): string {
   if (!baseUrl) return FALLBACK_PLACEHOLDER;
   return `${baseUrl}/storage/v1/object/public/destinos/${storagePath}`;
 }
+
+// -----------------------------------------------------------------------------
+// Validación de imágenes en el cliente (UX + defensa en profundidad)
+// -----------------------------------------------------------------------------
+// El enforcement REAL es server-side a nivel bucket (allowed_mime_types +
+// file_size_limit, migración 20260605000001). Esto es para dar un error claro
+// ANTES de pegarle a Storage y evitar uploads obviamente inválidos. Mantener en
+// sync con la lista del bucket.
+
+/** 10 MB — mismo tope que el bucket. */
+export const MAX_FOTO_BYTES = 10 * 1024 * 1024;
+
+const ALLOWED_FOTO_MIME = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+  "image/heic",
+  "image/heif",
+]);
+
+/**
+ * Valida tipo y tamaño de una imagen antes de subirla. Devuelve un mensaje de
+ * error en español si no pasa, o null si es válida.
+ */
+export function validateImageFile(file: File): string | null {
+  // Algunos navegadores no setean `type` para HEIC; en ese caso caemos a la
+  // extensión. El bucket igual rechaza lo que no corresponda.
+  const type = file.type?.toLowerCase() ?? "";
+  const extOk = /\.(jpe?g|png|webp|avif|heic|heif)$/i.test(file.name);
+  if (type && !ALLOWED_FOTO_MIME.has(type)) {
+    return "Formato no permitido. Subí una imagen JPG, PNG, WEBP, AVIF o HEIC.";
+  }
+  if (!type && !extOk) {
+    return "Formato no permitido. Subí una imagen JPG, PNG, WEBP, AVIF o HEIC.";
+  }
+  if (file.size > MAX_FOTO_BYTES) {
+    return "La imagen supera el máximo de 10 MB. Comprimila o reducí su tamaño.";
+  }
+  return null;
+}

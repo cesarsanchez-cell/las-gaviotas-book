@@ -5,7 +5,7 @@ import Image from "next/image";
 import { Trash2, Star, StarOff, Upload, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getFotoUrl } from "@/lib/storage";
+import { getFotoUrl, validateImageFile } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 import {
   registerUnidadTypeFotoAction,
@@ -55,7 +55,11 @@ export function UnidadTypeFotosManager({ unidadTypeId, fotos }: Props) {
     const supabase = createClient();
 
     for (const file of Array.from(files)) {
-      if (!file.type.startsWith("image/")) continue;
+      const invalid = validateImageFile(file);
+      if (invalid) {
+        setError(invalid);
+        continue;
+      }
       try {
         const { width, height } = await readImageDimensions(file);
         const safeName = cleanFilename(file.name);

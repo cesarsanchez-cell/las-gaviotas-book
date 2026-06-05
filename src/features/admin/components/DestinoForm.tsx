@@ -6,7 +6,7 @@ import type { DestinoRow } from "@/types/database";
 import type { ActionResult } from "@/features/admin/lib/hospedaje-actions";
 import { slugify } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { getDestinoFotoUrl } from "@/lib/storage";
+import { getDestinoFotoUrl, validateImageFile } from "@/lib/storage";
 import {
   setDestinoFotoAction,
   deleteDestinoFotoAction,
@@ -50,8 +50,9 @@ export function DestinoForm({ initial, submitLabel, action }: Props) {
       );
       return;
     }
-    if (!file.type.startsWith("image/")) {
-      setFotoError("El archivo debe ser una imagen.");
+    const invalid = validateImageFile(file);
+    if (invalid) {
+      setFotoError(invalid);
       return;
     }
     setFotoError(null);
