@@ -11,9 +11,9 @@ Estado consolidado del proyecto. Visión y reglas detalladas en [CLAUDE.md](CLAU
 
 | Item              | Valor                                                                            |
 |-------------------|----------------------------------------------------------------------------------|
-| Etapa vigente     | **Rediseño multi-unidad Etapas 1-6 cerradas + verticales gastro/atractivos + roles múltiples + regiones + autogestión password, todo en prod**. Pendiente técnico chico: Etapa 7 restricciones (UI). Siguiente foco: **Visión de producto** (home emocional + sinergia comercial) — ver sección final |
-| Último commit     | `d28d124` — Destinos: foto del destino con upload a Storage                       |
-| Fecha             | 2026-05-27                                                                       |
+| Etapa vigente     | **Core cerrado en prod**: rediseño multi-unidad Etapas 1-6 + verticales gastro/atractivos + roles múltiples + regiones + autogestión password + **Home v2 / hub Airbnb (bloques 1-11)** + **auditoría de seguridad Etapas 1-5 completa (0 No-Go/0 Major)**. Pendiente técnico chico: Etapa 7 restricciones (UI). Siguiente foco: **Visión de producto** (home emocional + sinergia comercial) — ver sección final |
+| Último commit     | `7781653` — Auditoría Etapa 5: rate-limit auth + escape HTML mails + anti-enumeration signup (#23) |
+| Fecha             | 2026-06-05                                                                       |
 | Entorno local     | PM2 → `las-gaviotas-book` en `http://localhost:3005`                             |
 | **Deploy producción** | ✅ https://www.misescapadas.com.ar (canónico) + redirects desde apex y vercel.app |
 | Repo remoto       | https://github.com/cesarsanchez-cell/las-gaviotas-book (privado)                 |
@@ -249,6 +249,32 @@ Reescritura mayor del modelo: la disponibilidad pasa de estar atada al `hospedaj
 - [x] Menú hamburguesa con drawer slide-in
 - [x] Binding desde/hasta en todo el sitio + fix de bug TZ en `addDays`
 
+### Home v2 / Hub estilo Airbnb ✅ cerrada (en prod, 2026-05-29 → 2026-06-01)
+
+Reescritura de la home y el hub a un formato emocional estilo Airbnb + capa comercial de promos/combos. Detalle en memorias `project-home-v2-airbnb` y `project-rediseno-hub-landing-busqueda`.
+
+- [x] **Bloques 1-8** (en prod 2026-05-29): home Airbnb + promos + `DestinoPromos` + `HeroCarousel` + combos. Combos: el responsable arma → admin aprueba. El hub se muestra siempre con 1+ destinos; el hero del destino es un carrusel emocional.
+- [x] **Bloques 9-11**: Armador de combos + reglas de publicación + página de región.
+- [x] **Rediseño hub landing+hero+búsqueda** (`2d37774`, 2026-06-01): hub landing/vertical, hero de promos, filas por destino, búsqueda inteligente, herencia buscador→fichas cerrada.
+
+### Auditoría de seguridad Etapas 1-5 ✅ COMPLETA — VEREDICTO GO (2026-06-01)
+
+Auditoría externa por etapas (rúbrica No-Go/Major/Minor) + remediación. **0 No-Go / 0 Major abiertos.** Detalle exhaustivo en memoria `project-auditoria-seguridad-etapa1` y carpeta `auditoria/`. Lección transversal: los No-Go vivían en capas que el review de código NO ve (RLS, Storage policies) — sólo aparecieron con dump de prod + agentes independientes por superficie + prueba empírica en prod.
+
+- [x] **Etapa 1** (F-01..F-06): mutaciones de fotos scopeadas por FK del padre, listado de responsables recortado a destino, leads revalidan estado publicado, rate-limit persistido en Supabase, Storage del bucket con scope de propiedad, RLS de promos/combos scopeada por destino. PRs #15-#18.
+- [x] **Hardening grants**: `REVOKE TRUNCATE/TRIGGER/REFERENCES` a anon/authenticated. PR #19.
+- [x] **Etapa 2** (F-A1/F-B1): authz del responsable unificada en `responsabilidades` (SoT) + limpieza de debug log. Sin drift de esquema (prod == repo). PR #20.
+- [x] **Etapa 3** (F-C1): proyección explícita en `getHospedajeBySlug` (data minimization). Frontera de auth sin hallazgos (30/30 páginas admin con guard). PR #21.
+- [x] **Etapa 4 Storage** (F-S1 No-Go + F-S2 Major): cerrada la enumeración anónima del bucket + path-binding en register de fotos. PR #22.
+- [x] **Etapa 5** (F-E1 Major + F-E2/F-E3 Minor): rate-limit en flujos de auth + escape HTML en mails + anti-enumeration en signup. PR #23.
+
+**Backlog de seguridad pendiente (decisiones de diseño, NO bloqueante):**
+- [ ] F-S1b — bucket privado + signed URLs (contenido despublicado deja de ser descargable por path filtrado; afecta OG/SEO).
+- [ ] F-S3 — validación MIME/tamaño server-side en upload de fotos.
+- [ ] Rate-limit por email (además de por IP) en forgot/resend.
+
+**Invariante de seguridad clave** (vale para toda mutación futura): como `createAdminClient()` (service role) bypassea RLS, toda mutación debe (a) chequear rol+scope en código antes y (b) scopear la query por la FK del padre, nunca por el id del hijo solo.
+
 ### Etapa post-rediseño — Reservas online (planeada)
 - [ ] Motor de reservas con bloqueo de fechas
 - [ ] Confirmación por email al huésped + responsable
@@ -312,7 +338,9 @@ Backlog de mejoras pensadas con el operador para desarrollar cuando haya tokens.
 2. **Fotos en regiones** — replicar el upload a Storage que ya tienen destinos.
 3. **Navegación con passthrough inteligente** — mostrar solo regiones/destinos con datos cargados (hospedajes y/o gastro y/o atractivos) y saltar directo al que tenga contenido (1 destino con datos → entro directo; varios en una región → entro a la región). La **desactivación manual siempre gana**: desactivado no se muestra aunque tenga datos.
 4. **Bajar el protagonismo del buscador** en la home del destino. Reemplazar el hero-buscador por un **carrousel de imperdibles** (mezcla de paisajes, hospedajes y gastronómicos atractivos).
-5. **Tours y sinergia comercial** — combos hospedaje + gastronomía + atractivo, promos cruzadas (hospedate en X, cená en Y con % de descuento, y viceversa). Diferencial exclusivo de la plataforma.
-6. **Guía útil del destino** — paseos, ferias, actividades culturales, y **servicios esenciales** (asistencia médica, farmacias, policía, bomberos). Que el visitante esté cómodo, entretenido y seguro.
+5. **Tours y sinergia comercial** — combos hospedaje + gastronomía + atractivo, promos cruzadas (hospedate en X, cená en Y con % de descuento, y viceversa). Diferencial exclusivo de la plataforma. **La infra ya está construida y auditada** (Home v2 bloques 1-11: promos, combos con flujo responsable-arma → admin-aprueba); falta terminar la capa de producto/UX.
+6. **Guía útil del destino** — paseos, ferias, actividades culturales, y **servicios esenciales** (asistencia médica, farmacias, policía, bomberos). Que el visitante esté cómodo, entretenido y seguro. (Vertical nuevo, sin construir.)
+
+> Nota: el bloque 2 (fotos en regiones) y el bloque 4 (bajar protagonismo del buscador) están **parcialmente cubiertos** por el hub redesign — falta el upload a Storage en regiones y afinar el carrousel de imperdibles.
 
 Filosofía rectora: **experiencia útil para el prospecto → valora → recomienda**. Para el comerciante: herramienta para mostrarse y sentirla propia.
