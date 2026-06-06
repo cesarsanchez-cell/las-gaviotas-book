@@ -93,6 +93,9 @@ const destinoSchema = z.object({
   // el hub y su página). `region` (texto) queda como label legacy y se sincroniza
   // server-side desde la región elegida — ver resolveRegionLabel.
   region_id: z.string().uuid().optional().nullable(),
+  // Ciudad: nivel intermedio opcional (agrupa destinos cercanos dentro de la
+  // región, ej. Villa Gesell). El form la filtra por la región elegida.
+  ciudad_id: z.string().uuid().optional().nullable(),
   region: z.string().trim().max(120).optional().or(z.literal("").transform(() => undefined)),
   provincia: z
     .string()
@@ -185,6 +188,9 @@ async function buildDestinoPayload(
   } else {
     payload.region_id = null;
   }
+  // Ciudad: opcional. Siempre seteamos explícito (null si no se eligió) para
+  // que al desvincularla en una edición quede en null, no sin tocar.
+  payload.ciudad_id = data.ciudad_id ?? null;
   return payload;
 }
 

@@ -18,6 +18,8 @@ interface Props {
   action: (formData: FormData) => Promise<ActionResult>;
   /** Regiones disponibles para vincular el destino (las carga el super admin). */
   regiones: Array<{ id: string; nombre: string }>;
+  /** Ciudades disponibles; el form las filtra por la región elegida. */
+  ciudades: Array<{ id: string; nombre: string; region_id: string | null }>;
 }
 
 function cleanFilename(name: string): string {
@@ -30,7 +32,13 @@ function cleanFilename(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
-export function DestinoForm({ initial, submitLabel, action, regiones }: Props) {
+export function DestinoForm({
+  initial,
+  submitLabel,
+  action,
+  regiones,
+  ciudades,
+}: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -39,6 +47,13 @@ export function DestinoForm({ initial, submitLabel, action, regiones }: Props) {
   // Si estamos editando, no auto-sugerimos slug (el usuario ya tiene uno fijo).
   // Si es alta, auto-sugerimos hasta que el usuario edite el slug manualmente.
   const [slugDirty, setSlugDirty] = useState<boolean>(Boolean(initial?.slug));
+  // Región y ciudad controladas: al cambiar región, la ciudad se filtra y se
+  // resetea si la elegida ya no pertenece a esa región.
+  const [regionId, setRegionId] = useState<string>(initial?.region_id ?? "");
+  const [ciudadId, setCiudadId] = useState<string>(initial?.ciudad_id ?? "");
+  const ciudadesDeRegion = ciudades.filter(
+    (c) => regionId && c.region_id === regionId
+  );
   const [fotoPath, setFotoPath] = useState<string | null>(
     initial?.foto_path ?? null
   );
@@ -185,7 +200,14 @@ export function DestinoForm({ initial, submitLabel, action, regiones }: Props) {
             <select
               id="region_id"
               name="region_id"
-              defaultValue={initial?.region_id ?? ""}
+              value={regionId}
+              onChange={(e) => {
+                const next = e.target.value;
+                setRegionId(next);
+                // Si la ciudad elegida no es de la nueva región, la limpiamos.
+                const c = ciudades.find((x) => x.id === ciudadId);
+                if (!c || c.region_id !== next) setCiudadId("");
+              }}
               className={cls("region_id")}
             >
               <option value="">— Sin región —</option>
@@ -200,6 +222,38 @@ export function DestinoForm({ initial, submitLabel, action, regiones }: Props) {
             </p>
             {fe("region_id") && (
               <p className="mt-1 text-xs text-rose-600">{fe("region_id")}</p>
+            )}
+          </div>
+          <div>
+            <label className="text-sm font-medium" htmlFor="ciudad_id">
+              Ciudad
+            </label>
+            <select
+              id="ciudad_id"
+              name="ciudad_id"
+              value={ciudadId}
+              onChange={(e) => setCiudadId(e.target.value)}
+              disabled={!regionId || ciudadesDeRegion.length === 0}
+              className={cls("ciudad_id")}
+            >
+              <option value="">
+                {!regionId
+                  ? "— Elegí una región primero —"
+                  : ciudadesDeRegion.length === 0
+                    ? "— Sin ciudades en esta región —"
+                    : "— Sin ciudad —"}
+              </option>
+              {ciudadesDeRegion.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Opcional. Agrupa destinos cercanos (ej. Villa Gesell).
+            </p>
+            {fe("ciudad_id") && (
+              <p className="mt-1 text-xs text-rose-600">{fe("ciudad_id")}</p>
             )}
           </div>
           <div>

@@ -78,6 +78,7 @@ export default async function DestinoPage({ params }: PageProps) {
     nombre: destino.nombre,
     region_label: destino.region ?? destino.provincia,
     region_slug: null,
+    ciudad_label: null,
     pais: destino.pais,
     biomas: [],
     lat: destino.lat,

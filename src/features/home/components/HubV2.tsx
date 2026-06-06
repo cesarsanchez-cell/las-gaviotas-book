@@ -146,7 +146,14 @@ export function HubV2({
     const q = search.donde.toLowerCase();
     const set = new Set<string>();
     for (const d of destinos) {
-      if (d.nombre.toLowerCase().includes(q)) set.add(d.slug);
+      // Matchea por nombre del destino o por su ciudad (ej. "Villa Gesell"
+      // trae Las Gaviotas, Mar Azul…). La región va por el loop de abajo.
+      if (
+        d.nombre.toLowerCase().includes(q) ||
+        (d.ciudad_label?.toLowerCase().includes(q) ?? false)
+      ) {
+        set.add(d.slug);
+      }
     }
     for (const r of regiones) {
       if (r.nombre.toLowerCase().includes(q)) {
