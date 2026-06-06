@@ -312,7 +312,6 @@ export function HubV2({
         search={search}
         onApply={handleApplySearch}
         destinos={destinos}
-        regiones={regiones}
         vertical={tab}
         onUseGeo={askGeo}
       />

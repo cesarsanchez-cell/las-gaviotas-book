@@ -44,6 +44,17 @@ export function getDestinoFotoUrl(storagePath: string): string {
   return `${baseUrl}/storage/v1/object/public/destinos/${storagePath}`;
 }
 
+/**
+ * URL pública para la foto de una región. Reusa el bucket `destinos` (mismas
+ * policies: lectura pública + escritura solo super admin); las fotos de región
+ * viven bajo el prefijo `regiones/<regionId>/…` para separarlas de los destinos.
+ */
+export function getRegionFotoUrl(storagePath: string): string {
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!baseUrl) return FALLBACK_PLACEHOLDER;
+  return `${baseUrl}/storage/v1/object/public/destinos/${storagePath}`;
+}
+
 // -----------------------------------------------------------------------------
 // Validación de imágenes en el cliente (UX + defensa en profundidad)
 // -----------------------------------------------------------------------------

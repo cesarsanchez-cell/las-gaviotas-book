@@ -15,6 +15,7 @@ import {
   biomaLabel,
 } from "@/features/home/components/BiomaIcon";
 import { DestinoCard } from "@/features/home/components/DestinoCard";
+import { getRegionFotoUrl } from "@/lib/storage";
 import { siteConfig } from "@/config/site";
 
 interface PageProps {
@@ -89,14 +90,26 @@ export default async function RegionPage({ params }: PageProps) {
       </header>
 
       <main>
-        {/* Hero pintado con gradient de los biomas dominantes */}
+        {/* Hero: foto de la región si hay; si no, gradient de biomas dominantes. */}
         <section
           className="relative overflow-hidden text-white"
           style={{
             background: `linear-gradient(135deg, ${biomaColor(primary)} 0%, ${biomaColor(secondary)} 100%)`,
           }}
         >
-          <div className="container py-14 md:py-20">
+          {region.foto_path && (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={getRegionFotoUrl(region.foto_path)}
+                alt={`Paisaje de ${region.nombre}`}
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              {/* Overlay para mantener legible el texto blanco sobre la foto. */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/30" />
+            </>
+          )}
+          <div className="relative container py-14 md:py-20">
             <Link
               href="/"
               className="inline-flex items-center gap-1 text-xs text-white/80 transition hover:text-white"

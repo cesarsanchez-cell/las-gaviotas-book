@@ -259,14 +259,18 @@ export async function listDestinosMini(): Promise<DestinoMiniRow[]> {
     new Set(destinos.map((d) => d.region_id).filter((x): x is string => !!x))
   );
   const biomasByRegion = new Map<string, Bioma[]>();
+  // Regiones inactivas: sus destinos no se muestran (la desactivación de una
+  // región apaga toda su zona, igual que en el buscador / listDestinosPublicados).
+  const inactiveRegions = new Set<string>();
   if (regionIds.length > 0) {
     const { data: regs } = await sb
       .from("regiones")
-      .select("id, biomas")
+      .select("id, biomas, activo")
       .in("id", regionIds)
-      .returns<Array<{ id: string; biomas: string[] }>>();
+      .returns<Array<{ id: string; biomas: string[]; activo: boolean }>>();
     for (const r of regs ?? []) {
       biomasByRegion.set(r.id, sanitizeBiomas(r.biomas));
+      if (!r.activo) inactiveRegions.add(r.id);
     }
   }
 
@@ -295,8 +299,9 @@ export async function listDestinosMini(): Promise<DestinoMiniRow[]> {
   }
 
   // Regla de publicación: solo destinos publicados (activo + ≥1 hospedaje
-  // publicado) aparecen en el mapa / carousels.
+  // publicado) y cuya región (si tiene) esté activa aparecen en mapa / carousels.
   return destinos
+    .filter((d) => !(d.region_id && inactiveRegions.has(d.region_id)))
     .map((d) => ({
       slug: d.slug,
       nombre: d.nombre,

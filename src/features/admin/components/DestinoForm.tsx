@@ -16,6 +16,8 @@ interface Props {
   initial?: DestinoRow;
   submitLabel: string;
   action: (formData: FormData) => Promise<ActionResult>;
+  /** Regiones disponibles para vincular el destino (las carga el super admin). */
+  regiones: Array<{ id: string; nombre: string }>;
 }
 
 function cleanFilename(name: string): string {
@@ -28,7 +30,7 @@ function cleanFilename(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
-export function DestinoForm({ initial, submitLabel, action }: Props) {
+export function DestinoForm({ initial, submitLabel, action, regiones }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -177,19 +179,27 @@ export function DestinoForm({ initial, submitLabel, action }: Props) {
 
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <div>
-            <label className="text-sm font-medium" htmlFor="region">
+            <label className="text-sm font-medium" htmlFor="region_id">
               Región
             </label>
-            <input
-              id="region"
-              name="region"
-              type="text"
-              defaultValue={initial?.region ?? ""}
-              placeholder="Costa Atlántica"
-              className={cls("region")}
-            />
-            {fe("region") && (
-              <p className="mt-1 text-xs text-rose-600">{fe("region")}</p>
+            <select
+              id="region_id"
+              name="region_id"
+              defaultValue={initial?.region_id ?? ""}
+              className={cls("region_id")}
+            >
+              <option value="">— Sin región —</option>
+              {regiones.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.nombre}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Agrupa el destino en el hub y habilita su página de región.
+            </p>
+            {fe("region_id") && (
+              <p className="mt-1 text-xs text-rose-600">{fe("region_id")}</p>
             )}
           </div>
           <div>

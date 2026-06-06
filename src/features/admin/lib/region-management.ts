@@ -259,10 +259,93 @@ export async function deleteRegionAction(id: string): Promise<ActionResult> {
     };
   }
 
+  // Borrar la foto del bucket si tenía una cargada (no dejar huérfanos).
+  const { data: actual } = await sb
+    .from("regiones")
+    .select("foto_path")
+    .eq("id", id)
+    .maybeSingle<{ foto_path: string | null }>();
+  if (actual?.foto_path) {
+    await sb.storage.from("destinos").remove([actual.foto_path]);
+  }
+
   const { error } = await sb.from("regiones").delete().eq("id", id);
   if (error) return { error: error.message };
 
   revalidatePath("/admin/regiones");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/**
+ * Persiste el `foto_path` de una región tras un upload exitoso al bucket
+ * `destinos` (compartido con destinos; las regiones van bajo `regiones/<id>/…`).
+ * Si había una foto previa, borra el objeto viejo. Solo super admin.
+ */
+export async function setRegionFotoAction(
+  id: string,
+  fotoPath: string
+): Promise<ActionResult> {
+  const me = await requireAdmin();
+  if (!me.isSuperAdmin) {
+    return { error: "Solo super admin puede modificar la foto de la región." };
+  }
+  if (!fotoPath || fotoPath.length > 500) {
+    return { error: "Path inválido." };
+  }
+
+  const sb = createAdminClient();
+  const { data: actual } = await sb
+    .from("regiones")
+    .select("foto_path")
+    .eq("id", id)
+    .maybeSingle<{ foto_path: string | null }>();
+  if (!actual) return { error: "Región no encontrada." };
+
+  const { error } = await sb
+    .from("regiones")
+    .update({ foto_path: fotoPath } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  if (actual.foto_path && actual.foto_path !== fotoPath) {
+    await sb.storage.from("destinos").remove([actual.foto_path]);
+  }
+
+  revalidatePath("/admin/regiones");
+  revalidatePath(`/admin/regiones/${id}`);
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/** Borra la foto de la región (objeto en bucket + limpia la columna). */
+export async function deleteRegionFotoAction(
+  id: string
+): Promise<ActionResult> {
+  const me = await requireAdmin();
+  if (!me.isSuperAdmin) {
+    return { error: "Solo super admin puede borrar la foto de la región." };
+  }
+
+  const sb = createAdminClient();
+  const { data: actual } = await sb
+    .from("regiones")
+    .select("foto_path")
+    .eq("id", id)
+    .maybeSingle<{ foto_path: string | null }>();
+  if (!actual) return { error: "Región no encontrada." };
+  if (!actual.foto_path) return { ok: true };
+
+  await sb.storage.from("destinos").remove([actual.foto_path]);
+
+  const { error } = await sb
+    .from("regiones")
+    .update({ foto_path: null } as never)
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/regiones");
+  revalidatePath(`/admin/regiones/${id}`);
   revalidatePath("/");
   return { ok: true };
 }

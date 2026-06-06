@@ -1,16 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Search, LocateFixed, X, Map, MapPin, Minus, Plus } from "lucide-react";
+import { Search, LocateFixed, X, MapPin, Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   CATEGORIAS_GASTRONOMICO,
   CATEGORIAS_ATRACTIVO,
 } from "@/config/categorias-lugar";
-import type {
-  DestinoPublicadoLite,
-  RegionVisible,
-} from "@/features/home/lib/queries";
+import type { DestinoPublicadoLite } from "@/features/home/lib/queries";
 import type { SearchState, HubTab } from "@/features/home/lib/search-types";
 
 const GASTRO_TIPOS = Object.values(CATEGORIAS_GASTRONOMICO).map((c) => c.label);
@@ -33,7 +30,6 @@ interface SearchPanelProps {
   search: SearchState;
   onApply: (s: SearchState) => void;
   destinos: DestinoPublicadoLite[];
-  regiones: RegionVisible[];
   /** Vertical activa; null = landing (busca hospedajes por defecto). */
   vertical: HubTab | null;
   onUseGeo: () => void;
@@ -60,7 +56,6 @@ export function SearchPanel({
   search,
   onApply,
   destinos,
-  regiones,
   vertical,
   onUseGeo,
 }: SearchPanelProps) {
@@ -94,28 +89,27 @@ export function SearchPanel({
     };
   }, [open, onClose]);
 
-  // Sin texto, sugerimos los destinos (y regiones) habilitados; al tipear,
-  // filtramos. `destinos`/`regiones` ya vienen filtrados a publicados.
+  // El buscador sugiere SOLO destinos (la región es contexto, no una opción).
+  // Sin texto, listamos los destinos habilitados; al tipear, matcheamos por
+  // nombre del destino O por su región — así escribir la zona ("Córdoba",
+  // "Costa") encuentra sus destinos. `destinos` ya viene filtrado a publicados.
   const matches = React.useMemo(() => {
     const q = donde.trim().toLowerCase();
-    const dRes = destinos
-      .filter((d) => !q || d.nombre.toLowerCase().includes(q))
-      .slice(0, 6)
+    return destinos
+      .filter(
+        (d) =>
+          !q ||
+          d.nombre.toLowerCase().includes(q) ||
+          (d.region_label?.toLowerCase().includes(q) ?? false)
+      )
+      .slice(0, 8)
       .map((d) => ({
-        type: "destino" as const,
         nombre: d.nombre,
-        sub: [d.region_label, d.pais].filter(Boolean).join(" · "),
+        // Contexto de orientación: la región (ej. "Costa Atlántica Bonaerense").
+        // País como fallback solo si el destino no tiene región vinculada.
+        sub: d.region_label ?? d.pais ?? "",
       }));
-    const rRes = regiones
-      .filter((r) => !q || r.nombre.toLowerCase().includes(q))
-      .slice(0, 3)
-      .map((r) => ({
-        type: "region" as const,
-        nombre: r.nombre,
-        sub: "Región",
-      }));
-    return [...dRes, ...rRes];
-  }, [donde, destinos, regiones]);
+  }, [donde, destinos]);
 
   if (!open) return null;
 
@@ -238,18 +232,14 @@ export function SearchPanel({
                 {matches.length > 0 && (
                   <ul className="mt-2 flex flex-col gap-1">
                     {matches.map((m) => (
-                      <li key={m.type + m.nombre}>
+                      <li key={m.nombre}>
                         <button
                           type="button"
                           onClick={() => setDonde(m.nombre)}
                           className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-secondary"
                         >
                           <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
-                            {m.type === "region" ? (
-                              <Map className="h-4 w-4" aria-hidden />
-                            ) : (
-                              <MapPin className="h-4 w-4" aria-hidden />
-                            )}
+                            <MapPin className="h-4 w-4" aria-hidden />
                           </span>
                           <span className="min-w-0">
                             <span className="block truncate text-sm font-medium text-foreground">
