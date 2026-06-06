@@ -41,6 +41,9 @@ import type { HeaderSession } from "@/features/home/lib/header-session";
 // Umbral de promos para que el hero sea de promos; con menos, cae a destacados.
 const PROMO_HERO_MIN = 3;
 
+// Orden de las verticales en las bandas de la home (cuando no hay una enfocada).
+const VERTICAL_KEYS: VerticalKey[] = ["hospedajes", "gastronomia", "atractivos"];
+
 interface HubV2Props {
   verticalData: Record<VerticalKey, VerticalItem[]>;
   destinos: DestinoPublicadoLite[];
@@ -181,16 +184,36 @@ export function HubV2({
     return all;
   }, [verticalData, activeVertical, allowedSlugs, search.tipo]);
 
-  // En la home (varios destinos), agrupamos los items por destino para las filas.
-  const itemsByDestino = React.useMemo(() => {
-    const map = new Map<string, VerticalItem[]>();
-    for (const it of items) {
-      const arr = map.get(it.destino.slug) ?? [];
-      arr.push(it);
-      map.set(it.destino.slug, arr);
+  // Sin vertical enfocada mostramos una banda por vertical. Cada una con sus
+  // items filtrados por región/dónde (allowedSlugs) + el tipo si aplica.
+  const itemsByVertical = React.useMemo(() => {
+    const r = {} as Record<VerticalKey, VerticalItem[]>;
+    for (const k of VERTICAL_KEYS) {
+      let all = verticalData[k] ?? [];
+      if (allowedSlugs) all = all.filter((it) => allowedSlugs.has(it.destino.slug));
+      if (k !== "hospedajes" && search.tipo) {
+        all = all.filter((it) => it.tipoLabel === search.tipo);
+      }
+      r[k] = all;
     }
-    return map;
-  }, [items]);
+    return r;
+  }, [verticalData, allowedSlugs, search.tipo]);
+
+  // Promos y combos acotados al destino/región elegido (o todos si no hay filtro).
+  const promosVisibles = React.useMemo(
+    () =>
+      allowedSlugs
+        ? promos.filter((p) => allowedSlugs.has(p.destino.slug))
+        : promos,
+    [promos, allowedSlugs]
+  );
+  const combosVisibles = React.useMemo(
+    () =>
+      allowedSlugs
+        ? combos.filter((c) => allowedSlugs.has(c.destinoSlug))
+        : combos,
+    [combos, allowedSlugs]
+  );
 
   // Destinos cercanos por distancia (solo con geo concedida).
   const nearby: DestinoMini[] = React.useMemo(() => {
@@ -281,13 +304,17 @@ export function HubV2({
   const isLanding = tab === null;
   const showNearby = !scopedDestino && geo === "granted" && nearby.length > 0;
   const showRegionChips = !scopedDestino && regiones.length > 1;
-  // Filas por destino en la home (varios destinos); grilla en el destino scopeado.
-  const useRows = !scopedDestino && destinos.length > 1;
+  // Sin vertical enfocada: bandas por vertical (solo las que tienen contenido).
+  const verticalesConContenido = VERTICAL_KEYS.filter(
+    (k) => itemsByVertical[k].length > 0
+  );
   // Armador es por-destino: con un solo destino tenemos target claro.
   const singleDestino = destinos.length === 1 ? destinos[0] : null;
 
-  // Hero: promos si hay suficientes; si no, destacados.
-  const showPromoHero = promos.length >= PROMO_HERO_MIN;
+  // Hero: promos si hay suficientes; si no, destacados. Con un destino/región
+  // elegido basta 1 promo (es contexto acotado); sin filtro pedimos el mínimo.
+  const showPromoHero =
+    promosVisibles.length >= (allowedSlugs ? 1 : PROMO_HERO_MIN);
   const promoHeroEyebrow = scopedDestino
     ? `Promos en ${scopedDestino.nombre}`
     : "Promos";
@@ -316,17 +343,19 @@ export function HubV2({
         onUseGeo={askGeo}
       />
 
-      {/* Hero (solo landing): promos o destacados como fallback. */}
+      {/* Hero (solo landing): promos del destino/red; destacados como fallback
+          únicamente sin destino elegido (los destacados son de toda la red). */}
       {isLanding &&
         (showPromoHero ? (
           <PromosHero
-            promos={promos}
+            promos={promosVisibles}
             eyebrow={promoHeroEyebrow}
             title="Lo que conviene ahora"
             subtitle={promoHeroSubtitle}
             onOpen={setPromoSel}
           />
         ) : (
+          !allowedSlugs &&
           heroSlides.length > 0 &&
           heroTitle && (
             <HeroCarousel
@@ -340,7 +369,7 @@ export function HubV2({
 
       <main className="pb-16">
         {/* Combos (escapadas armadas) — banda propia, solo en landing. */}
-        {isLanding && combos.length > 0 && (
+        {isLanding && combosVisibles.length > 0 && (
           <section className="border-b border-border py-10 md:py-14">
             <div className="container">
               <header className="max-w-2xl">
@@ -357,7 +386,7 @@ export function HubV2({
                 </p>
               </header>
             </div>
-            <CombosCarousel combos={combos} onOpen={setComboSel} />
+            <CombosCarousel combos={combosVisibles} onOpen={setComboSel} />
           </section>
         )}
 
@@ -414,57 +443,65 @@ export function HubV2({
           </div>
         )}
 
-        {/* Contenido: grilla de la vertical activa. En landing se muestra
-            igual (con hero/promos arriba); al enfocar una vertical, sola. */}
-        <section className="py-8">
-          <div className="container">
-            <header className="mb-5 flex items-end justify-between gap-4">
-              <h2 className="font-display text-xl tracking-tight text-foreground sm:text-2xl md:text-3xl">
-                {VERTICAL_TITLE[activeVertical]}
-                {hasDonde ? ` en ${search.donde}` : ""}
-              </h2>
-              <span className="shrink-0 text-sm text-muted-foreground">
-                {items.length} resultado{items.length === 1 ? "" : "s"}
-              </span>
-            </header>
-
-            {items.length === 0 ? (
-              <EmptyState
-                noun={VERTICAL_NOUN[activeVertical]}
-                onClear={() => {
-                  setRegionFilter(null);
-                  setSearch(EMPTY_SEARCH);
-                }}
+        {/* Contenido. Sin vertical enfocada: una banda por vertical (con su fila
+            horizontal). Con vertical enfocada: grilla profunda de esa vertical. */}
+        {isLanding ? (
+          verticalesConContenido.length === 0 ? (
+            <section className="py-8">
+              <div className="container">
+                <EmptyState
+                  noun="lugares"
+                  onClear={() => {
+                    setRegionFilter(null);
+                    setSearch(EMPTY_SEARCH);
+                  }}
+                />
+              </div>
+            </section>
+          ) : (
+            verticalesConContenido.map((k) => (
+              <VerticalBand
+                key={k}
+                title={`${VERTICAL_TITLE[k]}${hasDonde ? ` en ${search.donde}` : ""}`}
+                items={itemsByVertical[k]}
+                onVerTodos={() => changeTab(k)}
               />
-            ) : useRows ? (
-              // Home: una fila horizontal por destino.
-              <div className="space-y-8">
-                {destinos.map((d) => {
-                  const rowItems = itemsByDestino.get(d.slug);
-                  if (!rowItems || rowItems.length === 0) return null;
-                  return (
-                    <DestinoRow
-                      key={d.slug}
-                      slug={d.slug}
-                      nombre={d.nombre}
-                      items={rowItems}
+            ))
+          )
+        ) : (
+          <section className="py-8">
+            <div className="container">
+              <header className="mb-5 flex items-end justify-between gap-4">
+                <h2 className="font-display text-xl tracking-tight text-foreground sm:text-2xl md:text-3xl">
+                  {VERTICAL_TITLE[activeVertical]}
+                  {hasDonde ? ` en ${search.donde}` : ""}
+                </h2>
+                <span className="shrink-0 text-sm text-muted-foreground">
+                  {items.length} resultado{items.length === 1 ? "" : "s"}
+                </span>
+              </header>
+
+              {items.length === 0 ? (
+                <EmptyState
+                  noun={VERTICAL_NOUN[activeVertical]}
+                  onClear={() => {
+                    setRegionFilter(null);
+                    setSearch(EMPTY_SEARCH);
+                  }}
+                />
+              ) : (
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+                  {items.map((it) => (
+                    <ItemCard
+                      key={`${it.kind}-${it.destino.slug}-${it.slug}`}
+                      item={it}
                     />
-                  );
-                })}
-              </div>
-            ) : (
-              // Destino scopeado: grilla.
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                {items.map((it) => (
-                  <ItemCard
-                    key={`${it.kind}-${it.destino.slug}-${it.slug}`}
-                    item={it}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* CTA comerciante → registro */}
         <section className="container">
@@ -497,38 +534,45 @@ export function HubV2({
   );
 }
 
-/** Fila horizontal de comercios de un destino (home con varios destinos). */
-function DestinoRow({
-  slug,
-  nombre,
+/**
+ * Banda de una vertical: título + "ver todos" (enfoca la vertical) + fila
+ * horizontal scrolleable. En mobile las cards entran de a 2 (ancho ~46%, con la
+ * siguiente asomando para invitar al scroll); en pantallas grandes, fijas.
+ */
+function VerticalBand({
+  title,
   items,
+  onVerTodos,
 }: {
-  slug: string;
-  nombre: string;
+  title: string;
   items: VerticalItem[];
+  onVerTodos: () => void;
 }) {
   return (
-    <section>
-      <header className="mb-3 flex items-end justify-between gap-3">
-        <h3 className="font-display text-lg tracking-tight text-foreground sm:text-xl">
-          {nombre}
-        </h3>
-        <Link
-          href={`/${slug}`}
-          className="shrink-0 text-sm font-medium text-primary hover:underline"
-        >
-          Ver destino →
-        </Link>
-      </header>
-      <div className="flex gap-4 overflow-x-auto pb-2 [scrollbar-width:thin] sm:gap-5">
-        {items.map((it) => (
-          <div
-            key={`${it.kind}-${it.slug}`}
-            className="w-44 shrink-0 sm:w-48 lg:w-52"
+    <section className="py-6">
+      <div className="container">
+        <header className="mb-3 flex items-end justify-between gap-3">
+          <h2 className="font-display text-xl tracking-tight text-foreground sm:text-2xl">
+            {title}
+          </h2>
+          <button
+            type="button"
+            onClick={onVerTodos}
+            className="shrink-0 text-sm font-medium text-primary hover:underline"
           >
-            <ItemCard item={it} />
-          </div>
-        ))}
+            Ver todos →
+          </button>
+        </header>
+        <div className="flex gap-4 overflow-x-auto pb-2 [scrollbar-width:thin] sm:gap-5">
+          {items.map((it) => (
+            <div
+              key={`${it.kind}-${it.destino.slug}-${it.slug}`}
+              className="w-[46%] shrink-0 sm:w-52 lg:w-56"
+            >
+              <ItemCard item={it} />
+            </div>
+          ))}
+        </div>
       </div>
     </section>
   );
