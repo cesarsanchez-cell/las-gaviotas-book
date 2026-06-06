@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
-  ChevronLeft,
   Store,
   LocateFixed,
   MapPinOff,
@@ -283,7 +282,13 @@ export function HubV2({
   // (una región o ambigüedad → null y queda en la grilla).
   function resolveDestinoSlug(state: SearchState): string | null {
     if (scopedDestino) return scopedDestino.slug;
-    const q = state.donde.trim().toLowerCase();
+    return resolveDestinoFromQuery(state.donde);
+  }
+
+  // Resuelve el "dónde" a un único destino por nombre. Una ciudad o región que
+  // abarca varios destinos devuelve null → se filtra en el lugar (no navega).
+  function resolveDestinoFromQuery(donde: string): string | null {
+    const q = donde.trim().toLowerCase();
     if (!q) return null;
     const exact = destinos.find((d) => d.nombre.toLowerCase() === q);
     if (exact) return exact.slug;
@@ -309,7 +314,14 @@ export function HubV2({
         });
         if (state.fechas.out) params.set("check_out", state.fechas.out);
         router.push(`/${slug}/buscar?${params.toString()}`);
+        return;
       }
+    }
+    // Elegir un destino concreto → su home (hero + promos + combos), salvo que
+    // ya estemos en él. Una ciudad/región/ambigüedad no resuelve a uno: filtra.
+    const target = resolveDestinoFromQuery(state.donde);
+    if (target && target !== scopedDestino?.slug) {
+      router.push(`/${target}`);
     }
   }
 
@@ -342,6 +354,8 @@ export function HubV2({
         vertical={tab}
         onChangeVertical={changeTab}
         onGoHub={goHub}
+        scopedDestino={scopedDestino}
+        onResetDestino={goLanding}
         search={search}
         onOpenSearch={() => setSearchOpen(true)}
         session={session}
@@ -485,18 +499,6 @@ export function HubV2({
         ) : (
           <section className="py-8">
             <div className="container">
-              {/* Breadcrumb: dentro de un destino, vuelve a su home (promos +
-                  combos) sin salir a la red. */}
-              {scopedDestino && (
-                <button
-                  type="button"
-                  onClick={goLanding}
-                  className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition hover:text-foreground"
-                >
-                  <ChevronLeft className="h-4 w-4" aria-hidden />
-                  {scopedDestino.nombre}
-                </button>
-              )}
               <header className="mb-5 flex items-end justify-between gap-4">
                 <h2 className="font-display text-xl tracking-tight text-foreground sm:text-2xl md:text-3xl">
                   {VERTICAL_TITLE[activeVertical]}
