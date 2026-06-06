@@ -263,7 +263,13 @@ export function HubV2({
       router.push("/");
       return;
     }
-    // En la red: volver al landing (hero + promos), sin vertical enfocada.
+    goLanding();
+  }
+
+  // "Inicio": vuelve al landing del contexto actual (destino o red) con sus
+  // promos + combos, sin salir a `/`. Desmarca la vertical y limpia filtros,
+  // como si recién entraras al destino.
+  function goLanding() {
     setTab(null);
     setRegionFilter(null);
     setSearch(EMPTY_SEARCH);
@@ -335,6 +341,7 @@ export function HubV2({
         vertical={tab}
         onChangeVertical={changeTab}
         onGoHub={goHub}
+        onGoLanding={goLanding}
         search={search}
         onOpenSearch={() => setSearchOpen(true)}
         session={session}
