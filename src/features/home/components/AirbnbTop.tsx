@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, BedDouble, UtensilsCrossed, Compass, Search, type LucideIcon } from "lucide-react";
+import { Home, BedDouble, UtensilsCrossed, Compass, Search, X, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PinHeart } from "./PinHeart";
 import { UserMenu } from "./UserMenu";
@@ -103,19 +103,30 @@ export function AirbnbTop({
           </div>
         </div>
 
-        {/* Home del destino: chip fijo dentro del buscador. Resetea al home del
-            destino (desmarca la vertical, vuelve a sus promos + combos). */}
+        {/* Home del destino: tag de contexto activo dentro del buscador. Tocar
+            el nombre resetea al home del destino (desmarca la vertical, vuelve a
+            sus promos + combos); la ✕ cierra el destino y vuelve a la red. */}
         {scopedDestino && (
           <div className="pb-2">
-            <button
-              type="button"
-              onClick={onResetDestino}
-              aria-label={`Home de ${scopedDestino.nombre}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-sm font-medium text-foreground transition hover:bg-primary/10"
-            >
-              <Home className="h-4 w-4 text-primary" aria-hidden />
-              {scopedDestino.nombre}
-            </button>
+            <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/5 py-1 pl-3 pr-1 text-sm font-medium text-foreground">
+              <button
+                type="button"
+                onClick={onResetDestino}
+                aria-label={`Home de ${scopedDestino.nombre}`}
+                className="inline-flex items-center gap-1.5 transition hover:text-primary"
+              >
+                <Home className="h-4 w-4 text-primary" aria-hidden />
+                {scopedDestino.nombre}
+              </button>
+              <button
+                type="button"
+                onClick={onGoHub}
+                aria-label={`Salir de ${scopedDestino.nombre} y ver toda la red`}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition hover:bg-primary/10 hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            </span>
           </div>
         )}
 

@@ -282,7 +282,13 @@ export function HubV2({
   // (una región o ambigüedad → null y queda en la grilla).
   function resolveDestinoSlug(state: SearchState): string | null {
     if (scopedDestino) return scopedDestino.slug;
-    const q = state.donde.trim().toLowerCase();
+    return resolveDestinoFromQuery(state.donde);
+  }
+
+  // Resuelve el "dónde" a un único destino por nombre. Una ciudad o región que
+  // abarca varios destinos devuelve null → se filtra en el lugar (no navega).
+  function resolveDestinoFromQuery(donde: string): string | null {
+    const q = donde.trim().toLowerCase();
     if (!q) return null;
     const exact = destinos.find((d) => d.nombre.toLowerCase() === q);
     if (exact) return exact.slug;
@@ -308,7 +314,14 @@ export function HubV2({
         });
         if (state.fechas.out) params.set("check_out", state.fechas.out);
         router.push(`/${slug}/buscar?${params.toString()}`);
+        return;
       }
+    }
+    // Elegir un destino concreto → su home (hero + promos + combos), salvo que
+    // ya estemos en él. Una ciudad/región/ambigüedad no resuelve a uno: filtra.
+    const target = resolveDestinoFromQuery(state.donde);
+    if (target && target !== scopedDestino?.slug) {
+      router.push(`/${target}`);
     }
   }
 
