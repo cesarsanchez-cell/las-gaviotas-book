@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, BedDouble, UtensilsCrossed, Compass, Search, type LucideIcon } from "lucide-react";
+import { BedDouble, UtensilsCrossed, Compass, Search, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PinHeart } from "./PinHeart";
 import { UserMenu } from "./UserMenu";
@@ -19,8 +19,6 @@ interface AirbnbTopProps {
   vertical: HubTab | null;
   onChangeVertical: (v: HubTab) => void;
   onGoHub: () => void;
-  /** Vuelve al landing del contexto actual (destino o red), sin salir a `/`. */
-  onGoLanding: () => void;
   search: SearchState;
   onOpenSearch: () => void;
   session: HeaderSession;
@@ -30,7 +28,6 @@ export function AirbnbTop({
   vertical,
   onChangeVertical,
   onGoHub,
-  onGoLanding,
   search,
   onOpenSearch,
   session,
@@ -43,46 +40,28 @@ export function AirbnbTop({
       ? { b: search.tipo || (vertical === "gastronomia" ? "Tipo" : "Qué"), c: search.cuando || "Cuándo" }
       : { b: search.cuando || "Cuándo", c: search.quien || "Quién" };
 
-  const Verticales = ({ size }: { size: number }) => (
-    <>
-      {/* Inicio: vuelve al landing (promos + combos) del contexto actual. */}
-      <button
-        type="button"
-        onClick={onGoLanding}
-        aria-pressed={vertical === null}
-        className={cn(
-          "inline-flex shrink-0 items-center gap-2 border-b-2 px-1 pb-1 text-sm transition",
-          vertical === null
-            ? "border-primary font-semibold text-foreground"
-            : "border-transparent text-muted-foreground hover:text-foreground"
-        )}
-      >
-        <Home size={size} aria-hidden />
-        <span>Inicio</span>
-      </button>
-      {tabs.map((v) => {
-        const Icon = v.icon;
-        const active = vertical === v.key;
-        return (
-          <button
-            key={v.key}
-            type="button"
-            onClick={() => onChangeVertical(v.key)}
-            aria-pressed={active}
-            className={cn(
-              "inline-flex shrink-0 items-center gap-2 border-b-2 px-1 pb-1 text-sm transition",
-              active
-                ? "border-primary font-semibold text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Icon size={size} aria-hidden />
-            <span>{v.label}</span>
-          </button>
-        );
-      })}
-    </>
-  );
+  const Verticales = ({ size }: { size: number }) =>
+    tabs.map((v) => {
+      const Icon = v.icon;
+      const active = vertical === v.key;
+      return (
+        <button
+          key={v.key}
+          type="button"
+          onClick={() => onChangeVertical(v.key)}
+          aria-pressed={active}
+          className={cn(
+            "inline-flex shrink-0 items-center gap-2 border-b-2 px-1 pb-1 text-sm transition",
+            active
+              ? "border-primary font-semibold text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <Icon size={size} aria-hidden />
+          <span>{v.label}</span>
+        </button>
+      );
+    });
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70">

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
+  ChevronLeft,
   Store,
   LocateFixed,
   MapPinOff,
@@ -266,9 +267,9 @@ export function HubV2({
     goLanding();
   }
 
-  // "Inicio": vuelve al landing del contexto actual (destino o red) con sus
-  // promos + combos, sin salir a `/`. Desmarca la vertical y limpia filtros,
-  // como si recién entraras al destino.
+  // Vuelve al landing del contexto actual (destino o red) con sus promos +
+  // combos, sin salir a `/`. Desmarca la vertical y limpia filtros, como si
+  // recién entraras. La usan el logo (en la red) y el breadcrumb del destino.
   function goLanding() {
     setTab(null);
     setRegionFilter(null);
@@ -341,7 +342,6 @@ export function HubV2({
         vertical={tab}
         onChangeVertical={changeTab}
         onGoHub={goHub}
-        onGoLanding={goLanding}
         search={search}
         onOpenSearch={() => setSearchOpen(true)}
         session={session}
@@ -485,6 +485,18 @@ export function HubV2({
         ) : (
           <section className="py-8">
             <div className="container">
+              {/* Breadcrumb: dentro de un destino, vuelve a su home (promos +
+                  combos) sin salir a la red. */}
+              {scopedDestino && (
+                <button
+                  type="button"
+                  onClick={goLanding}
+                  className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-muted-foreground transition hover:text-foreground"
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden />
+                  {scopedDestino.nombre}
+                </button>
+              )}
               <header className="mb-5 flex items-end justify-between gap-4">
                 <h2 className="font-display text-xl tracking-tight text-foreground sm:text-2xl md:text-3xl">
                   {VERTICAL_TITLE[activeVertical]}
