@@ -1,6 +1,6 @@
 "use client";
 
-import { BedDouble, UtensilsCrossed, Compass, Search, type LucideIcon } from "lucide-react";
+import { Home, BedDouble, UtensilsCrossed, Compass, Search, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PinHeart } from "./PinHeart";
 import { UserMenu } from "./UserMenu";
@@ -19,6 +19,12 @@ interface AirbnbTopProps {
   vertical: HubTab | null;
   onChangeVertical: (v: HubTab) => void;
   onGoHub: () => void;
+  /**
+   * Si el buscador está scopeado a un destino, el chip "home del destino" que
+   * lo resetea (desmarca la vertical y vuelve a su home).
+   */
+  scopedDestino?: { slug: string; nombre: string } | null;
+  onResetDestino?: () => void;
   search: SearchState;
   onOpenSearch: () => void;
   session: HeaderSession;
@@ -28,6 +34,8 @@ export function AirbnbTop({
   vertical,
   onChangeVertical,
   onGoHub,
+  scopedDestino = null,
+  onResetDestino,
   search,
   onOpenSearch,
   session,
@@ -94,6 +102,22 @@ export function AirbnbTop({
             <UserMenu session={session} />
           </div>
         </div>
+
+        {/* Home del destino: chip fijo dentro del buscador. Resetea al home del
+            destino (desmarca la vertical, vuelve a sus promos + combos). */}
+        {scopedDestino && (
+          <div className="pb-2">
+            <button
+              type="button"
+              onClick={onResetDestino}
+              aria-label={`Home de ${scopedDestino.nombre}`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-sm font-medium text-foreground transition hover:bg-primary/10"
+            >
+              <Home className="h-4 w-4 text-primary" aria-hidden />
+              {scopedDestino.nombre}
+            </button>
+          </div>
+        )}
 
         {/* Search pill compacta — abre el panel expandido */}
         <div className="pb-3">
