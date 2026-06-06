@@ -30,6 +30,7 @@ export interface DestinoRow {
   region: string | null;
   /** FK opcional a la tabla `regiones` (agrupamiento geográfico-cultural curado). */
   region_id: string | null;
+  ciudad_id: string | null;
   provincia: string | null;
   pais: string | null;
   descripcion_corta: string | null;
@@ -138,6 +139,23 @@ export interface LocalidadRow {
   nombre: string;
   orden: number;
   created_at: string;
+}
+
+/**
+ * Ciudad: nivel intermedio opcional entre región y destino (ej. Villa Gesell
+ * agrupa Las Gaviotas, Mar Azul, Mar de las Pampas). NO confundir con
+ * LocalidadRow (zonas DENTRO de un destino).
+ */
+export interface CiudadRow {
+  id: string;
+  slug: string;
+  nombre: string;
+  region_id: string | null;
+  codigo_postal: string | null;
+  activo: boolean;
+  orden: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface PerfilRow {
@@ -464,6 +482,12 @@ export type Database = {
         Row: LocalidadRow;
         Insert: Insert<LocalidadRow>;
         Update: Update<LocalidadRow>;
+        Relationships: [];
+      };
+      ciudades: {
+        Row: CiudadRow;
+        Insert: Insert<CiudadRow>;
+        Update: Update<CiudadRow>;
         Relationships: [];
       };
       perfiles: {

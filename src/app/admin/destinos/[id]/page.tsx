@@ -8,6 +8,7 @@ import {
   updateDestinoAction,
 } from "@/features/admin/lib/destino-management";
 import { listRegionesAdmin } from "@/features/regiones/lib/queries";
+import { listCiudadesAdmin } from "@/features/admin/lib/ciudad-management";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -21,7 +22,15 @@ export default async function EditDestinoPage({ params }: PageProps) {
   const destino = await getDestino(id);
   if (!destino) notFound();
 
-  const regiones = await listRegionesAdmin();
+  const [regiones, ciudadesRaw] = await Promise.all([
+    listRegionesAdmin(),
+    listCiudadesAdmin(),
+  ]);
+  const ciudades = ciudadesRaw.map((c) => ({
+    id: c.id,
+    nombre: c.nombre,
+    region_id: c.regionId,
+  }));
   const updateWithId = updateDestinoAction.bind(null, id);
 
   return (
@@ -62,6 +71,7 @@ export default async function EditDestinoPage({ params }: PageProps) {
         submitLabel="Guardar cambios"
         action={updateWithId}
         regiones={regiones}
+        ciudades={ciudades}
       />
     </div>
   );

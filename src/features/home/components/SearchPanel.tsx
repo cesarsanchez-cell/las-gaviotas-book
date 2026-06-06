@@ -100,7 +100,8 @@ export function SearchPanel({
         (d) =>
           !q ||
           d.nombre.toLowerCase().includes(q) ||
-          (d.region_label?.toLowerCase().includes(q) ?? false)
+          (d.region_label?.toLowerCase().includes(q) ?? false) ||
+          (d.ciudad_label?.toLowerCase().includes(q) ?? false)
       )
       .slice(0, 8)
       .map((d) => ({

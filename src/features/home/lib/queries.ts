@@ -40,6 +40,9 @@ export interface DestinoPublicadoLite {
   nombre: string;
   region_label: string | null;
   region_slug: string | null;
+  /** Ciudad que agrupa el destino (ej. Villa Gesell), si tiene. Para orientar
+   *  y permitir buscar por zona. Null si no tiene ciudad o está inactiva. */
+  ciudad_label: string | null;
   pais: string | null;
   biomas: Bioma[];
   lat: number | null;
@@ -238,7 +241,7 @@ export async function listDestinosPublicados(): Promise<DestinoPublicadoLite[]> 
   const { data: destinos } = (await sb
     .from("destinos")
     .select(
-      "id, slug, nombre, region, region_id, pais, lat, lng, regiones(slug, nombre, biomas)"
+      "id, slug, nombre, region, region_id, pais, lat, lng, regiones(slug, nombre, biomas), ciudades(nombre)"
     )
     .eq("activo", true)
     .order("orden", { ascending: true })) as {
@@ -253,6 +256,7 @@ export async function listDestinosPublicados(): Promise<DestinoPublicadoLite[]> 
           lat: number | null;
           lng: number | null;
           regiones: { slug: string; nombre: string; biomas: string[] | null } | null;
+          ciudades: { nombre: string } | null;
         }>
       | null;
   };
@@ -294,6 +298,7 @@ export async function listDestinosPublicados(): Promise<DestinoPublicadoLite[]> 
       // region_id), no el texto legacy `region` (inconsistente/a mano).
       region_label: d.regiones?.nombre ?? null,
       region_slug: d.regiones?.slug ?? null,
+      ciudad_label: d.ciudades?.nombre ?? null,
       pais: d.pais,
       biomas: sanitizeBiomas(d.regiones?.biomas ?? []),
       lat: d.lat,
