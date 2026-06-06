@@ -72,16 +72,20 @@ interface DestinoJoin {
   slug: string;
   nombre: string;
   activo: boolean;
-  regiones: { biomas: string[] | null; activo: boolean } | null;
+  region_id: string | null;
+  regiones: { biomas: string[] | null } | null;
 }
 
 /**
  * ¿El destino es mostrable según su región? Si tiene región vinculada, esta
  * debe estar activa (desactivar una región apaga su zona). Los destinos sin
- * región (regiones null) no se ven afectados.
+ * región no se ven afectados. OJO: no se puede mirar `regiones.activo` del JOIN
+ * — la RLS de `regiones` oculta las inactivas al anónimo, devolviendo null, no
+ * `activo:false`. Por eso comparamos region_id contra el set de regiones que el
+ * visitante SÍ puede ver (solo activas).
  */
-function regionActiva(d: DestinoJoin | null): boolean {
-  return d?.regiones?.activo !== false;
+function regionActiva(d: DestinoJoin | null, activeRegionIds: Set<string>): boolean {
+  return !d?.region_id || activeRegionIds.has(d.region_id);
 }
 
 interface FotoJoin {
@@ -118,13 +122,20 @@ export async function listVerticalItemsRed(
 ): Promise<VerticalItem[]> {
   const sb = await createClient();
 
+  // Set de regiones visibles (RLS: solo activas). Un item cuyo destino apunte a
+  // una región fuera de este set tiene la región desactivada -> se oculta.
+  const { data: regionesActivas } = (await sb
+    .from("regiones")
+    .select("id")) as { data: Array<{ id: string }> | null };
+  const activeRegionIds = new Set((regionesActivas ?? []).map((r) => r.id));
+
   if (vertical === "hospedajes") {
     let q = sb
       .from("hospedajes")
       .select(
         `slug, nombre, tipo, destacado, descripcion_corta,
          hospedaje_fotos(storage_path, es_principal, orden),
-         destinos!inner(slug, nombre, activo, regiones(biomas, activo))`
+         destinos!inner(slug, nombre, activo, region_id, regiones(biomas))`
       )
       .eq("estado", "publicado")
       .eq("destinos.activo", true);
@@ -145,7 +156,7 @@ export async function listVerticalItemsRed(
         | null;
     };
     return (data ?? [])
-      .filter((h) => regionActiva(h.destinos))
+      .filter((h) => regionActiva(h.destinos, activeRegionIds))
       .map((h) => ({
       kind: "hospedajes" as const,
       slug: h.slug,
@@ -192,7 +203,7 @@ export async function listVerticalItemsRed(
       | null;
   };
   return (data ?? [])
-    .filter((l) => regionActiva(l.destinos))
+    .filter((l) => regionActiva(l.destinos, activeRegionIds))
     .map((l) => ({
     kind: vertical,
     slug: l.slug,
@@ -227,7 +238,7 @@ export async function listDestinosPublicados(): Promise<DestinoPublicadoLite[]> 
   const { data: destinos } = (await sb
     .from("destinos")
     .select(
-      "id, slug, nombre, region, region_id, pais, lat, lng, regiones(slug, nombre, biomas, activo)"
+      "id, slug, nombre, region, region_id, pais, lat, lng, regiones(slug, nombre, biomas)"
     )
     .eq("activo", true)
     .order("orden", { ascending: true })) as {
@@ -241,7 +252,7 @@ export async function listDestinosPublicados(): Promise<DestinoPublicadoLite[]> 
           pais: string | null;
           lat: number | null;
           lng: number | null;
-          regiones: { slug: string; nombre: string; biomas: string[] | null; activo: boolean } | null;
+          regiones: { slug: string; nombre: string; biomas: string[] | null } | null;
         }>
       | null;
   };
@@ -259,13 +270,22 @@ export async function listDestinosPublicados(): Promise<DestinoPublicadoLite[]> 
     countByDestino.set(h.destino_id, (countByDestino.get(h.destino_id) ?? 0) + 1);
   }
 
+  // Regiones que el visitante PUEDE ver: la RLS de `regiones` solo deja leer las
+  // activas, así que este set contiene únicamente activas. Un destino cuya
+  // region_id NO esté acá tiene la región desactivada (el JOIN devolvería null,
+  // no `activo:false`, justo por esa RLS) -> se oculta. Sin región -> se muestra.
+  const { data: regionesActivas } = (await sb
+    .from("regiones")
+    .select("id")) as { data: Array<{ id: string }> | null };
+  const activeRegionIds = new Set((regionesActivas ?? []).map((r) => r.id));
+
   return destinos
     // Regla de publicación: ≥1 hospedaje publicado Y la región (si tiene una)
-    // debe estar activa. Desactivar una región apaga toda su zona; los destinos
-    // sin región (region_id null) no se ven afectados.
+    // debe estar activa. Desactivar una región apaga toda su zona.
     .filter(
       (d) =>
-        (countByDestino.get(d.id) ?? 0) > 0 && d.regiones?.activo !== false
+        (countByDestino.get(d.id) ?? 0) > 0 &&
+        (!d.region_id || activeRegionIds.has(d.region_id))
     )
     .map((d) => ({
       slug: d.slug,

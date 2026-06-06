@@ -259,18 +259,20 @@ export async function listDestinosMini(): Promise<DestinoMiniRow[]> {
     new Set(destinos.map((d) => d.region_id).filter((x): x is string => !!x))
   );
   const biomasByRegion = new Map<string, Bioma[]>();
-  // Regiones inactivas: sus destinos no se muestran (la desactivación de una
-  // región apaga toda su zona, igual que en el buscador / listDestinosPublicados).
-  const inactiveRegions = new Set<string>();
+  // Regiones que el visitante puede ver (la RLS de `regiones` solo deja leer las
+  // activas). Un destino cuya region_id NO esté acá tiene la región desactivada
+  // -> se oculta (desactivar una región apaga su zona). No se puede mirar
+  // `regiones.activo`: la RLS oculta las inactivas, nunca llegan al cliente anón.
+  const activeRegionIds = new Set<string>();
   if (regionIds.length > 0) {
     const { data: regs } = await sb
       .from("regiones")
-      .select("id, biomas, activo")
+      .select("id, biomas")
       .in("id", regionIds)
-      .returns<Array<{ id: string; biomas: string[]; activo: boolean }>>();
+      .returns<Array<{ id: string; biomas: string[] }>>();
     for (const r of regs ?? []) {
       biomasByRegion.set(r.id, sanitizeBiomas(r.biomas));
-      if (!r.activo) inactiveRegions.add(r.id);
+      activeRegionIds.add(r.id);
     }
   }
 
@@ -301,7 +303,7 @@ export async function listDestinosMini(): Promise<DestinoMiniRow[]> {
   // Regla de publicación: solo destinos publicados (activo + ≥1 hospedaje
   // publicado) y cuya región (si tiene) esté activa aparecen en mapa / carousels.
   return destinos
-    .filter((d) => !(d.region_id && inactiveRegions.has(d.region_id)))
+    .filter((d) => !d.region_id || activeRegionIds.has(d.region_id))
     .map((d) => ({
       slug: d.slug,
       nombre: d.nombre,
