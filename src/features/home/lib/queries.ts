@@ -72,7 +72,16 @@ interface DestinoJoin {
   slug: string;
   nombre: string;
   activo: boolean;
-  regiones: { biomas: string[] | null } | null;
+  regiones: { biomas: string[] | null; activo: boolean } | null;
+}
+
+/**
+ * ¿El destino es mostrable según su región? Si tiene región vinculada, esta
+ * debe estar activa (desactivar una región apaga su zona). Los destinos sin
+ * región (regiones null) no se ven afectados.
+ */
+function regionActiva(d: DestinoJoin | null): boolean {
+  return d?.regiones?.activo !== false;
 }
 
 interface FotoJoin {
@@ -115,7 +124,7 @@ export async function listVerticalItemsRed(
       .select(
         `slug, nombre, tipo, destacado, descripcion_corta,
          hospedaje_fotos(storage_path, es_principal, orden),
-         destinos!inner(slug, nombre, activo, regiones(biomas))`
+         destinos!inner(slug, nombre, activo, regiones(biomas, activo))`
       )
       .eq("estado", "publicado")
       .eq("destinos.activo", true);
@@ -135,7 +144,9 @@ export async function listVerticalItemsRed(
           }>
         | null;
     };
-    return (data ?? []).map((h) => ({
+    return (data ?? [])
+      .filter((h) => regionActiva(h.destinos))
+      .map((h) => ({
       kind: "hospedajes" as const,
       slug: h.slug,
       nombre: h.nombre,
@@ -180,7 +191,9 @@ export async function listVerticalItemsRed(
         }>
       | null;
   };
-  return (data ?? []).map((l) => ({
+  return (data ?? [])
+    .filter((l) => regionActiva(l.destinos))
+    .map((l) => ({
     kind: vertical,
     slug: l.slug,
     nombre: l.nombre,
