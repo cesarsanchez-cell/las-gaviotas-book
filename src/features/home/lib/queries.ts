@@ -214,7 +214,7 @@ export async function listDestinosPublicados(): Promise<DestinoPublicadoLite[]> 
   const { data: destinos } = (await sb
     .from("destinos")
     .select(
-      "id, slug, nombre, region, region_id, pais, lat, lng, regiones(slug, biomas)"
+      "id, slug, nombre, region, region_id, pais, lat, lng, regiones(slug, nombre, biomas, activo)"
     )
     .eq("activo", true)
     .order("orden", { ascending: true })) as {
@@ -228,7 +228,7 @@ export async function listDestinosPublicados(): Promise<DestinoPublicadoLite[]> 
           pais: string | null;
           lat: number | null;
           lng: number | null;
-          regiones: { slug: string; biomas: string[] | null } | null;
+          regiones: { slug: string; nombre: string; biomas: string[] | null; activo: boolean } | null;
         }>
       | null;
   };
@@ -247,11 +247,19 @@ export async function listDestinosPublicados(): Promise<DestinoPublicadoLite[]> 
   }
 
   return destinos
-    .filter((d) => (countByDestino.get(d.id) ?? 0) > 0)
+    // Regla de publicación: ≥1 hospedaje publicado Y la región (si tiene una)
+    // debe estar activa. Desactivar una región apaga toda su zona; los destinos
+    // sin región (region_id null) no se ven afectados.
+    .filter(
+      (d) =>
+        (countByDestino.get(d.id) ?? 0) > 0 && d.regiones?.activo !== false
+    )
     .map((d) => ({
       slug: d.slug,
       nombre: d.nombre,
-      region_label: d.region,
+      // Label de orientación: el nombre REAL de la región vinculada (vía
+      // region_id), no el texto legacy `region` (inconsistente/a mano).
+      region_label: d.regiones?.nombre ?? null,
       region_slug: d.regiones?.slug ?? null,
       pais: d.pais,
       biomas: sanitizeBiomas(d.regiones?.biomas ?? []),

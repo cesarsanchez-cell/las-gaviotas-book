@@ -4,10 +4,13 @@ import { ArrowLeft } from "lucide-react";
 import { requireAdmin } from "@/features/admin/lib/auth";
 import { DestinoForm } from "@/features/admin/components/DestinoForm";
 import { createDestinoAction } from "@/features/admin/lib/destino-management";
+import { listRegionesAdmin } from "@/features/regiones/lib/queries";
 
 export default async function NuevoDestinoPage() {
   const me = await requireAdmin();
   if (!me.isSuperAdmin) notFound();
+
+  const regiones = await listRegionesAdmin();
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -26,7 +29,11 @@ export default async function NuevoDestinoPage() {
         </p>
       </header>
 
-      <DestinoForm submitLabel="Crear destino" action={createDestinoAction} />
+      <DestinoForm
+        submitLabel="Crear destino"
+        action={createDestinoAction}
+        regiones={regiones}
+      />
     </div>
   );
 }

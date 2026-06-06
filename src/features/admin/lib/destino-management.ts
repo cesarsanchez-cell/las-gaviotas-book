@@ -89,6 +89,10 @@ const destinoSchema = z.object({
     .max(60, "Slug muy largo")
     .regex(slugRegex, "Solo minúsculas, números y guiones (ej. mar-azul)"),
   nombre: z.string().trim().min(2, "Nombre requerido").max(120),
+  // `region_id` es el vínculo real con la tabla `regiones` (agrupa el destino en
+  // el hub y su página). `region` (texto) queda como label legacy y se sincroniza
+  // server-side desde la región elegida — ver resolveRegionLabel.
+  region_id: z.string().uuid().optional().nullable(),
   region: z.string().trim().max(120).optional().or(z.literal("").transform(() => undefined)),
   provincia: z
     .string()
@@ -161,6 +165,29 @@ function formatZodError(err: z.ZodError): ActionResult {
   return { error: "Hay errores en el formulario.", fieldErrors };
 }
 
+/**
+ * Construye el payload a persistir resolviendo la relación con la región: si se
+ * eligió una región, sincroniza el label legacy `region` (texto) con su nombre;
+ * si no, deja `region_id` en null (y no toca el texto legacy para no perderlo).
+ */
+async function buildDestinoPayload(
+  sb: ReturnType<typeof createAdminClient>,
+  data: DestinoInput
+): Promise<Record<string, unknown>> {
+  const payload: Record<string, unknown> = { ...data };
+  if (data.region_id) {
+    const { data: reg } = await sb
+      .from("regiones")
+      .select("nombre")
+      .eq("id", data.region_id)
+      .maybeSingle<{ nombre: string }>();
+    if (reg) payload.region = reg.nombre;
+  } else {
+    payload.region_id = null;
+  }
+  return payload;
+}
+
 export async function createDestinoAction(formData: FormData): Promise<ActionResult> {
   const me = await requireAdmin();
   if (!me.isSuperAdmin) {
@@ -171,9 +198,10 @@ export async function createDestinoAction(formData: FormData): Promise<ActionRes
   if (!parsed.success) return formatZodError(parsed.error);
 
   const sb = createAdminClient();
+  const payload = await buildDestinoPayload(sb, parsed.data);
   const { data, error } = await sb
     .from("destinos")
-    .insert(parsed.data as never)
+    .insert(payload as never)
     .select("id")
     .single<{ id: string }>();
   if (error) {
@@ -204,9 +232,10 @@ export async function updateDestinoAction(
   if (!parsed.success) return formatZodError(parsed.error);
 
   const sb = createAdminClient();
+  const payload = await buildDestinoPayload(sb, parsed.data);
   const { error } = await sb
     .from("destinos")
-    .update(parsed.data as never)
+    .update(payload as never)
     .eq("id", id);
   if (error) {
     if (error.code === "23505") {

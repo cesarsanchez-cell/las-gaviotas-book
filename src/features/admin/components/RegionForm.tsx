@@ -2,9 +2,25 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Loader2 } from "lucide-react";
+import { Save, Loader2, Upload, Trash2 } from "lucide-react";
 import type { Bioma, RegionRow } from "@/types/database";
 import type { ActionResult } from "@/features/admin/lib/hospedaje-actions";
+import { createClient } from "@/lib/supabase/client";
+import { getRegionFotoUrl, validateImageFile } from "@/lib/storage";
+import {
+  setRegionFotoAction,
+  deleteRegionFotoAction,
+} from "@/features/admin/lib/region-management";
+
+function cleanFilename(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9.]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
 
 const BIOMAS: Array<{ value: Bioma; label: string; color: string }> = [
   { value: "playa", label: "Playa", color: "hsl(var(--bioma-playa))" },
@@ -29,6 +45,59 @@ export function RegionForm({ region, action, submitLabel }: RegionFormProps) {
   const [selectedBiomas, setSelectedBiomas] = useState<Set<Bioma>>(
     new Set(region?.biomas ?? [])
   );
+  const [fotoPath, setFotoPath] = useState<string | null>(
+    region?.foto_path ?? null
+  );
+  const [uploading, setUploading] = useState(false);
+  const [fotoError, setFotoError] = useState<string | null>(null);
+
+  async function handleFotoUpload(file: File) {
+    if (!region?.id) {
+      setFotoError(
+        "Guardá la región primero (con nombre y slug) para poder subir la foto."
+      );
+      return;
+    }
+    const invalid = validateImageFile(file);
+    if (invalid) {
+      setFotoError(invalid);
+      return;
+    }
+    setFotoError(null);
+    setUploading(true);
+    try {
+      const sb = createClient();
+      const safeName = cleanFilename(file.name);
+      const path = `regiones/${region.id}/${Date.now()}-${safeName}`;
+      const { error: upErr } = await sb.storage
+        .from("destinos")
+        .upload(path, file, { cacheControl: "31536000", upsert: false });
+      if (upErr) {
+        setFotoError(`Error al subir: ${upErr.message}`);
+        return;
+      }
+      const res = await setRegionFotoAction(region.id, path);
+      if (res.error) {
+        setFotoError(res.error);
+        return;
+      }
+      setFotoPath(path);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleFotoDelete() {
+    if (!region?.id || !fotoPath) return;
+    if (!confirm("¿Borrar la foto de la región?")) return;
+    setFotoError(null);
+    const res = await deleteRegionFotoAction(region.id);
+    if (res.error) {
+      setFotoError(res.error);
+      return;
+    }
+    setFotoPath(null);
+  }
 
   function toggleBioma(b: Bioma) {
     setSelectedBiomas((prev) => {
@@ -211,6 +280,87 @@ export function RegionForm({ region, action, submitLabel }: RegionFormProps) {
             Destacada
           </label>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5">
+        <p className="text-sm font-medium">Foto de la región</p>
+        {!region?.id ? (
+          <p className="mt-3 text-sm text-muted-foreground">
+            Guardá la región primero y vas a poder subirle una foto desde acá.
+            Sin foto, el hero de la región usa el degradado de biomas.
+          </p>
+        ) : (
+          <div className="mt-3 space-y-3">
+            {fotoPath ? (
+              <div className="flex flex-wrap items-start gap-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={getRegionFotoUrl(fotoPath)}
+                  alt={`Foto de ${region.nombre || "la región"}`}
+                  className="h-40 w-60 rounded-lg border border-border object-cover"
+                />
+                <div className="flex flex-col gap-2">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm font-medium hover:bg-secondary">
+                    {uploading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                    Reemplazar foto
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploading}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void handleFotoUpload(f);
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleFotoDelete}
+                    disabled={uploading}
+                    className="inline-flex items-center gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Borrar foto
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-input bg-background/50 px-6 py-10 text-center text-sm text-muted-foreground transition hover:border-primary/40 hover:bg-secondary/40">
+                {uploading ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  <Upload className="h-6 w-6" />
+                )}
+                <span>
+                  {uploading
+                    ? "Subiendo…"
+                    : "Subí una foto de la región (JPG/PNG)"}
+                </span>
+                <span className="text-xs">
+                  Aparece como fondo del hero en la página de la región.
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  disabled={uploading}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void handleFotoUpload(f);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            )}
+            {fotoError && <p className="text-xs text-rose-600">{fotoError}</p>}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center gap-2 pt-2">

@@ -7,6 +7,7 @@ import {
   getDestino,
   updateDestinoAction,
 } from "@/features/admin/lib/destino-management";
+import { listRegionesAdmin } from "@/features/regiones/lib/queries";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -20,6 +21,7 @@ export default async function EditDestinoPage({ params }: PageProps) {
   const destino = await getDestino(id);
   if (!destino) notFound();
 
+  const regiones = await listRegionesAdmin();
   const updateWithId = updateDestinoAction.bind(null, id);
 
   return (
@@ -59,6 +61,7 @@ export default async function EditDestinoPage({ params }: PageProps) {
         initial={destino}
         submitLabel="Guardar cambios"
         action={updateWithId}
+        regiones={regiones}
       />
     </div>
   );
