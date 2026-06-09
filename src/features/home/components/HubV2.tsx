@@ -355,7 +355,6 @@ export function HubV2({
         onChangeVertical={changeTab}
         onGoHub={goHub}
         scopedDestino={scopedDestino}
-        onResetDestino={goLanding}
         search={search}
         onOpenSearch={() => setSearchOpen(true)}
         session={session}
