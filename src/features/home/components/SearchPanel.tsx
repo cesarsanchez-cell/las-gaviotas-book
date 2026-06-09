@@ -193,18 +193,13 @@ export function SearchPanel({
           </button>
         </header>
 
-        <p className="px-4 pt-3 text-xs text-muted-foreground">
-          Cada campo es opcional. Con solo el destino te mostramos sus lugares;
-          sin destino, podés ver lo que hay cerca tuyo.
-        </p>
-
-        <div className="flex flex-col gap-2 overflow-y-auto p-4">
+        <div className="flex flex-col gap-2 overflow-y-auto p-4 pt-3">
           {/* Dónde */}
           <section>
             <button type="button" className={secHeadClass} onClick={() => setStep("donde")}>
               <span className="text-sm font-medium text-foreground">Dónde</span>
               <span className="truncate text-sm text-muted-foreground">
-                {donde || "Ciudad, región o país"}
+                {donde || "Elegí destino"}
               </span>
             </button>
             {step === "donde" && (
