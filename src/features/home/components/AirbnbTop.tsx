@@ -20,10 +20,13 @@ interface AirbnbTopProps {
   onChangeVertical: (v: HubTab) => void;
   onGoHub: () => void;
   /**
-   * Si el buscador está scopeado a un destino, su nombre ocupa el renglón
-   * "Dónde" de la pill; la ✕ (onGoHub) lo limpia y vuelve a la red.
+   * Si el buscador está scopeado a un destino, su nombre (con 🏠) ocupa el
+   * inicio de la pill: tocarlo vuelve al home del destino (onResetDestino) y la
+   * ✕ (onGoHub) cierra el destino y vuelve a la red.
    */
   scopedDestino?: { slug: string; nombre: string } | null;
+  /** Vuelve al home del destino scopeado (limpia verticales y filtros). */
+  onResetDestino?: () => void;
   search: SearchState;
   onOpenSearch: () => void;
   session: HeaderSession;
@@ -34,6 +37,7 @@ export function AirbnbTop({
   onChangeVertical,
   onGoHub,
   scopedDestino = null,
+  onResetDestino,
   search,
   onOpenSearch,
   session,
@@ -101,46 +105,65 @@ export function AirbnbTop({
           </div>
         </div>
 
-        {/* Search pill compacta — abre el panel expandido. Si el buscador está
-            scopeado a un destino, su nombre ocupa el renglón "Dónde" (con ícono
-            de home) y la ✕ lo limpia para reiniciar la búsqueda de destino. */}
+        {/* Search pill compacta. Sin destino: un solo botón que abre el panel.
+            Scopeada a un destino: 🏠+nombre vuelve a su home (onResetDestino),
+            el resto abre el panel y la ✕ cierra el destino y vuelve a la red. */}
         <div className="pb-3">
           <div className="flex w-full max-w-2xl items-center gap-2 rounded-full border border-border bg-card py-2 pl-4 pr-2 text-sm shadow-sm transition hover:shadow-md md:mx-auto">
-            <button
-              type="button"
-              onClick={onOpenSearch}
-              className="flex min-w-0 flex-1 items-center gap-2 text-left"
-            >
-              <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-              {scopedDestino ? (
-                <span className="inline-flex min-w-0 items-center gap-1.5 font-medium text-foreground">
+            {scopedDestino ? (
+              <>
+                <button
+                  type="button"
+                  onClick={onResetDestino}
+                  aria-label={`Volver al inicio de ${scopedDestino.nombre}`}
+                  className="inline-flex min-w-0 items-center gap-1.5 font-medium text-foreground transition hover:text-primary"
+                >
                   <Home className="h-4 w-4 shrink-0 text-primary" aria-hidden />
                   <span className="truncate">{scopedDestino.nombre}</span>
-                </span>
-              ) : (
+                </button>
+                <span className="h-4 w-px shrink-0 bg-border" aria-hidden />
+                <button
+                  type="button"
+                  onClick={onOpenSearch}
+                  className="flex min-w-0 flex-1 items-center gap-2 text-left text-muted-foreground"
+                >
+                  <span className="truncate">{pill.b}</span>
+                  {pill.c && (
+                    <>
+                      <span className="hidden h-4 w-px shrink-0 bg-border sm:block" aria-hidden />
+                      <span className="hidden truncate sm:block">{pill.c}</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={onGoHub}
+                  aria-label={`Salir de ${scopedDestino.nombre} y ver toda la red`}
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+                >
+                  <X className="h-4 w-4" aria-hidden />
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={onOpenSearch}
+                className="flex min-w-0 flex-1 items-center gap-2 text-left"
+              >
+                <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                 <span className="truncate font-medium text-foreground">
                   {search.donde || "Dónde"}
                 </span>
-              )}
-              <span className="h-4 w-px shrink-0 bg-border" aria-hidden />
-              <span className="truncate text-muted-foreground">{pill.b}</span>
-              {pill.c && (
-                <>
-                  <span className="hidden h-4 w-px shrink-0 bg-border sm:block" aria-hidden />
-                  <span className="hidden truncate text-muted-foreground sm:block">
-                    {pill.c}
-                  </span>
-                </>
-              )}
-            </button>
-            {scopedDestino && (
-              <button
-                type="button"
-                onClick={onGoHub}
-                aria-label={`Limpiar ${scopedDestino.nombre} y reiniciar la búsqueda`}
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-secondary hover:text-foreground"
-              >
-                <X className="h-4 w-4" aria-hidden />
+                <span className="h-4 w-px shrink-0 bg-border" aria-hidden />
+                <span className="truncate text-muted-foreground">{pill.b}</span>
+                {pill.c && (
+                  <>
+                    <span className="hidden h-4 w-px shrink-0 bg-border sm:block" aria-hidden />
+                    <span className="hidden truncate text-muted-foreground sm:block">
+                      {pill.c}
+                    </span>
+                  </>
+                )}
               </button>
             )}
             <button

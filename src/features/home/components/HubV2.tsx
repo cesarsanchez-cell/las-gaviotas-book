@@ -268,7 +268,7 @@ export function HubV2({
 
   // Vuelve al landing del contexto actual (destino o red) con sus promos +
   // combos, sin salir a `/`. Desmarca la vertical y limpia filtros, como si
-  // recién entraras. La usan el logo (en la red) y el breadcrumb del destino.
+  // recién entraras. La usan el logo (en la red) y la 🏠 del destino en la pill.
   function goLanding() {
     setTab(null);
     setRegionFilter(null);
@@ -355,6 +355,7 @@ export function HubV2({
         onChangeVertical={changeTab}
         onGoHub={goHub}
         scopedDestino={scopedDestino}
+        onResetDestino={goLanding}
         search={search}
         onOpenSearch={() => setSearchOpen(true)}
         session={session}
