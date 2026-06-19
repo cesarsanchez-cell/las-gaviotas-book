@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Tag, MapPin, ArrowRight } from "lucide-react";
+import { Tag, MapPin } from "lucide-react";
 import { useCarousel } from "@/features/destinos/components/useCarousel";
 import type { PromoPublic } from "@/features/promos/lib/queries";
 
@@ -68,15 +68,15 @@ export function PromosHero({
             onKeyDown={(e) => {
               if (e.key === "Enter") onOpen(p);
             }}
-            className="group flex w-[85%] shrink-0 cursor-pointer snap-start flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-[22rem] lg:w-[24rem]"
+            className="group flex w-[46%] shrink-0 cursor-pointer snap-start flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-52 lg:w-56"
           >
-            <div className="relative aspect-[16/10] overflow-hidden bg-secondary">
+            <div className="relative aspect-[4/3] overflow-hidden bg-secondary">
               {p.comercio.fotoUrl ? (
                 <Image
                   src={p.comercio.fotoUrl}
                   alt={p.comercio.nombre}
                   fill
-                  sizes="(max-width: 640px) 85vw, 24rem"
+                  sizes="(max-width: 640px) 46vw, 14rem"
                   priority={i === 0}
                   className="object-cover transition duration-300 group-hover:scale-105"
                 />
@@ -85,34 +85,25 @@ export function PromosHero({
                   <Tag size={40} aria-hidden />
                 </div>
               )}
-              <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-semibold text-primary">
+              <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-0.5 text-[10px] font-semibold text-primary">
                 <Tag className="h-3 w-3" aria-hidden />
                 Promo
               </span>
               {p.pct && (
-                <span className="absolute right-3 top-3 inline-flex items-center rounded-full bg-primary px-2.5 py-1 text-xs font-bold text-primary-foreground">
+                <span className="absolute right-2 top-2 inline-flex items-center rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">
                   -{p.pct}%
                 </span>
               )}
             </div>
 
-            <div className="flex flex-1 flex-col p-5">
-              <h2 className="font-display text-2xl tracking-tight text-foreground">
+            <div className="flex flex-1 flex-col p-3">
+              <h2 className="font-display text-base leading-tight tracking-tight text-foreground">
                 {p.titulo}
               </h2>
-              <p className="mt-1 inline-flex items-center gap-1 text-sm text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5" aria-hidden />
+              <p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3" aria-hidden />
                 {p.comercio.nombre} · {p.destino.nombre}
               </p>
-              {p.bajada && (
-                <p className="mt-2 line-clamp-2 text-sm text-muted-foreground">
-                  {p.bajada}
-                </p>
-              )}
-              <span className="mt-auto pt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary">
-                Ver promo
-                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden />
-              </span>
             </div>
           </article>
         ))}
