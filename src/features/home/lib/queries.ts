@@ -67,6 +67,8 @@ export interface AtraccionHero {
   destacada: boolean;
   /** Slug de la zona a la que pertenece (la card linkea a su landing pública). */
   zonaSlug: string | null;
+  /** Nombre de la zona (marcador "está en la zona X" en la card del hero). */
+  zonaNombre: string | null;
   /** Destino al que está anclada, si tiene (metadato; el link va a la zona). */
   anclaSlug: string | null;
 }
@@ -138,14 +140,18 @@ export async function listAtraccionesHero(
   }
 
   const zonaSlugMap = new Map<string, string>();
+  const zonaNombreMap = new Map<string, string>();
   const zonaIdsAll = [...new Set(data.map((a) => a.zona_id))];
   if (zonaIdsAll.length) {
     const { data: zs } = await sb
       .from("zonas")
-      .select("id, slug")
+      .select("id, slug, nombre")
       .in("id", zonaIdsAll)
-      .returns<Array<{ id: string; slug: string }>>();
-    for (const z of zs ?? []) zonaSlugMap.set(z.id, z.slug);
+      .returns<Array<{ id: string; slug: string; nombre: string }>>();
+    for (const z of zs ?? []) {
+      zonaSlugMap.set(z.id, z.slug);
+      zonaNombreMap.set(z.id, z.nombre);
+    }
   }
 
   return data.map((a) => ({
@@ -156,6 +162,7 @@ export async function listAtraccionesHero(
     fotoUrl: a.foto_path ? getAtraccionFotoUrl(a.foto_path) : null,
     destacada: a.destacada,
     zonaSlug: zonaSlugMap.get(a.zona_id) ?? null,
+    zonaNombre: zonaNombreMap.get(a.zona_id) ?? null,
     anclaSlug: a.destino_ancla_id
       ? anclaSlug.get(a.destino_ancla_id) ?? null
       : null,

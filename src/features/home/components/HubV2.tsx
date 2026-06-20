@@ -20,8 +20,6 @@ import { DestinoMiniCard, type DestinoMini } from "./DestinoMiniCard";
 import { ImperdiblesCarousel } from "./ImperdiblesCarousel";
 import { ComboDetailModal } from "@/features/combos/components/ComboDetailModal";
 import { ArmadorCTA } from "@/features/armador/components/ArmadorCTA";
-import { ConoceLaZonaBand } from "@/features/zonas/components/ConoceLaZonaBand";
-import type { ZonaCard } from "@/features/zonas/lib/queries";
 import type { ComboPublic } from "@/features/combos/lib/queries";
 import type { PromoPublic } from "@/features/promos/lib/queries";
 import {
@@ -48,8 +46,6 @@ interface HubV2Props {
   regiones: RegionVisible[];
   promos: PromoPublic[];
   combos: ComboPublic[];
-  /** Zonas curadas visibles para la banda "Conocé la zona" (landing). */
-  zonas?: ZonaCard[];
   session: HeaderSession;
   /** Slides del hero de destacados (fallback cuando no hay atracciones/promos). */
   heroSlides?: HeroSlide[];
@@ -89,7 +85,6 @@ export function HubV2({
   regiones,
   promos,
   combos,
-  zonas = [],
   session,
   heroSlides = [],
   atraccionSlides = [],
@@ -405,7 +400,7 @@ export function HubV2({
                   Ofertas y escapadas
                 </p>
                 <h2 className="mt-2 font-display text-2xl tracking-tight text-foreground md:text-3xl">
-                  Imperdible
+                  Imperdibles
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground">
                   Promos vigentes y escapadas armadas que sólo conseguís acá.
@@ -420,9 +415,6 @@ export function HubV2({
             />
           </section>
         )}
-
-        {/* Conocé la zona — orientación curada (landing). */}
-        {isLanding && zonas.length > 0 && <ConoceLaZonaBand zonas={zonas} />}
 
         {/* Armá la tuya — landing, con un solo destino (target directo). */}
         {isLanding && singleDestino && (
