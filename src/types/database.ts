@@ -158,6 +158,42 @@ export interface CiudadRow {
   updated_at: string;
 }
 
+/** Zona: conglomerado nombrado de destinos dentro de una ciudad (M2M vía zona_destinos). */
+export interface ZonaRow {
+  id: string;
+  slug: string;
+  nombre: string;
+  descripcion: string | null;
+  ciudad_id: string | null;
+  /** Admin (local) que cura las atracciones de la zona. NULL = solo super admin. */
+  curador_id: string | null;
+  foto_path: string | null;
+  activo: boolean;
+  orden: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Atracción curada (no comercial). Cuelga de una zona; ancla y vigencia opcionales. */
+export interface AtraccionRow {
+  id: string;
+  slug: string;
+  nombre: string;
+  descripcion: string | null;
+  categoria: string | null;
+  zona_id: string;
+  destino_ancla_id: string | null;
+  ubicacion_texto: string | null;
+  vigencia_desde: string | null;
+  vigencia_hasta: string | null;
+  foto_path: string | null;
+  publicada: boolean;
+  destacada: boolean;
+  orden: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PerfilRow {
   id: string;
   nombre: string | null;
