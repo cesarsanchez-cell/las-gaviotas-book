@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Sparkles,
+  Star,
   Building2,
   Utensils,
   Compass,
@@ -32,12 +32,19 @@ export interface HeroSlide {
 
 const TYPE_META: Record<
   HeroSlideType,
-  { label: string; icon: LucideIcon; chip: string }
+  { label: string; icon: LucideIcon; chip: string; iconClass?: string }
 > = {
-  atraccion: { label: "Imperdible", icon: Sparkles, chip: "bg-amber-500/95" },
-  atractivo: { label: "Para hacer", icon: Compass, chip: "bg-teal-600/95" },
-  hospedaje: { label: "Dónde dormir", icon: Building2, chip: "bg-primary/95" },
-  gastronomia: { label: "Para comer", icon: Utensils, chip: "bg-rose-500/95" },
+  // Atracción curada: estrella amarilla (señal de calidad) + "Única", sobre chip
+  // claro para que la estrella resalte como una calificación.
+  atraccion: {
+    label: "Única",
+    icon: Star,
+    chip: "bg-white/95 text-foreground",
+    iconClass: "fill-amber-400 text-amber-400",
+  },
+  atractivo: { label: "Para hacer", icon: Compass, chip: "bg-teal-600/95 text-white" },
+  hospedaje: { label: "Dónde dormir", icon: Building2, chip: "bg-primary/95 text-white" },
+  gastronomia: { label: "Para comer", icon: Utensils, chip: "bg-rose-500/95 text-white" },
 };
 
 interface HeroCarouselProps {
@@ -102,9 +109,9 @@ export function HeroCarousel({
                   className="object-cover transition duration-300 group-hover:scale-105"
                 />
                 <span
-                  className={`absolute left-3 top-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white ${meta.chip}`}
+                  className={`absolute left-3 top-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${meta.chip}`}
                 >
-                  <Icon className="h-3 w-3" aria-hidden />
+                  <Icon className={`h-3 w-3 ${meta.iconClass ?? ""}`} aria-hidden />
                   {meta.label}
                 </span>
               </div>

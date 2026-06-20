@@ -13,12 +13,11 @@ import {
 import { cn } from "@/lib/utils";
 import { AirbnbTop } from "./AirbnbTop";
 import { HeroCarousel, type HeroSlide } from "@/features/destinos/components/HeroCarousel";
-import { PromosHero } from "@/features/promos/components/PromosHero";
 import { SearchPanel } from "./SearchPanel";
 import { ItemCard } from "./ItemCard";
 import { PromoDetailModal } from "@/features/promos/components/PromoDetailModal";
 import { DestinoMiniCard, type DestinoMini } from "./DestinoMiniCard";
-import { CombosCarousel } from "@/features/combos/components/CombosCarousel";
+import { ImperdiblesCarousel } from "./ImperdiblesCarousel";
 import { ComboDetailModal } from "@/features/combos/components/ComboDetailModal";
 import { ArmadorCTA } from "@/features/armador/components/ArmadorCTA";
 import { ConoceLaZonaBand } from "@/features/zonas/components/ConoceLaZonaBand";
@@ -39,9 +38,6 @@ import type {
   RegionVisible,
 } from "@/features/home/lib/queries";
 import type { HeaderSession } from "@/features/home/lib/header-session";
-
-// Umbral de promos para que el hero sea de promos; con menos, cae a destacados.
-const PROMO_HERO_MIN = 3;
 
 // Orden de las verticales en las bandas de la home (cuando no hay una enfocada).
 const VERTICAL_KEYS: VerticalKey[] = ["hospedajes", "gastronomia", "atractivos"];
@@ -345,20 +341,9 @@ export function HubV2({
   // Armador es por-destino: con un solo destino tenemos target claro.
   const singleDestino = destinos.length === 1 ? destinos[0] : null;
 
-  // Hero: promos si hay suficientes; si no, destacados. Con un destino/región
-  // elegido basta 1 promo (es contexto acotado); sin filtro pedimos el mínimo.
-  const showPromoHero =
-    promosVisibles.length >= (allowedSlugs ? 1 : PROMO_HERO_MIN);
-  const promoHeroEyebrow = scopedDestino
-    ? `Promos en ${scopedDestino.nombre}`
-    : "Promos";
-  const promoHeroSubtitle = scopedDestino
-    ? null
-    : "Ofertas vigentes en los destinos de la red.";
-
   // Hero principal = atracciones curadas (emocional). Si las hay (y sin filtro
-  // por región/dónde, que las acotaría), ocupan el hero y las promos bajan a
-  // banda. Sin atracciones cae al comportamiento previo (promos-hero / destacados).
+  // por región/dónde, que las acotaría), ocupan el hero; si no, cae a destacados
+  // mezclados. Las ofertas (promos + combos) viven en la banda "Imperdibles".
   const heroIsAtracciones =
     isLanding && !allowedSlugs && atraccionSlides.length > 0 && Boolean(heroTitle);
 
@@ -386,7 +371,7 @@ export function HubV2({
       />
 
       {/* Hero (solo landing): atracciones curadas (emocional) primero; si no hay,
-          promos del destino/red; destacados como último fallback (red, sin filtro). */}
+          destacados mezclados como fallback (red, sin filtro). */}
       {isLanding &&
         (heroIsAtracciones ? (
           <HeroCarousel
@@ -394,14 +379,6 @@ export function HubV2({
             title={heroTitle as string}
             subtitle={heroSubtitle}
             slides={atraccionSlides}
-          />
-        ) : showPromoHero ? (
-          <PromosHero
-            promos={promosVisibles}
-            eyebrow={promoHeroEyebrow}
-            title="Lo que conviene ahora"
-            subtitle={promoHeroSubtitle}
-            onOpen={setPromoSel}
           />
         ) : (
           !allowedSlugs &&
@@ -417,38 +394,30 @@ export function HubV2({
         ))}
 
       <main className="pb-16">
-        {/* Promos como banda (cuando el hero lo ocupan las atracciones). Mantiene
-            las ofertas visibles sin robarle la franja superior al hero emocional. */}
-        {isLanding && heroIsAtracciones && promosVisibles.length > 0 && (
-          <PromosHero
-            promos={promosVisibles}
-            eyebrow={promoHeroEyebrow}
-            title="Lo que conviene ahora"
-            subtitle={promoHeroSubtitle}
-            onOpen={setPromoSel}
-            titleAs="h2"
-          />
-        )}
-
-        {/* Combos (escapadas armadas) — banda propia, solo en landing. */}
-        {isLanding && combosVisibles.length > 0 && (
+        {/* Imperdibles — ofertas (promos) + escapadas armadas (combos) en un solo
+            carrusel. Solo en landing. */}
+        {isLanding && (promosVisibles.length > 0 || combosVisibles.length > 0) && (
           <section className="border-b border-border py-10 md:py-14">
             <div className="container">
               <header className="max-w-2xl">
                 <p className="eyebrow flex items-center gap-2">
                   <Sparkles className="h-4 w-4" aria-hidden />
-                  Escapadas armadas
+                  Ofertas y escapadas
                 </p>
                 <h2 className="mt-2 font-display text-2xl tracking-tight text-foreground md:text-3xl">
-                  Lo que sólo conseguís acá
+                  Imperdible
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Hospedaje, mesa y experiencia en una sola propuesta, con
-                  beneficios que no existen por separado.
+                  Promos vigentes y escapadas armadas que sólo conseguís acá.
                 </p>
               </header>
             </div>
-            <CombosCarousel combos={combosVisibles} onOpen={setComboSel} />
+            <ImperdiblesCarousel
+              promos={promosVisibles}
+              combos={combosVisibles}
+              onOpenPromo={setPromoSel}
+              onOpenCombo={setComboSel}
+            />
           </section>
         )}
 
