@@ -405,7 +405,7 @@ export function HubV2({
                   Ofertas y escapadas
                 </p>
                 <h2 className="mt-2 font-display text-2xl tracking-tight text-foreground md:text-3xl">
-                  Imperdibles
+                  Imperdible
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground">
                   Promos vigentes y escapadas armadas que sólo conseguís acá.
