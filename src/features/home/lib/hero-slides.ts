@@ -69,9 +69,8 @@ export function buildHeroSlides(
 /**
  * Hero emocional a partir de atracciones curadas (lo que tracciona gente: playa,
  * bosque, eventos). Solo entran las que tienen foto. Ya vienen ordenadas
- * (destacadas → orden) y filtradas por vigencia desde la query. La card linkea
- * al destino ancla si tiene; sin ancla queda editorial (no navega) hasta la
- * landing de zona (Fase 5).
+ * (destacadas → orden) y filtradas por vigencia desde la query. La card linkea a
+ * la landing pública de su zona; sin zona resoluble queda editorial (no navega).
  */
 export function buildAtraccionHeroSlides(
   atracciones: AtraccionHero[],
@@ -87,7 +86,7 @@ export function buildAtraccionHeroSlides(
       categoria: a.categoria ?? "",
       descripcion: a.descripcion,
       photoUrl: a.fotoUrl,
-      href: a.anclaSlug ? `/${a.anclaSlug}` : undefined,
+      href: a.zonaSlug ? `/zona/${a.zonaSlug}` : undefined,
     });
     if (slides.length >= max) break;
   }

@@ -17,6 +17,7 @@ import {
 } from "@/features/home/lib/hero-slides";
 import { listPromosRed } from "@/features/promos/lib/queries";
 import { listCombosRed } from "@/features/combos/lib/queries";
+import { listZonasVisibles } from "@/features/zonas/lib/queries";
 import { siteConfig } from "@/config/site";
 
 export const metadata: Metadata = {
@@ -47,16 +48,25 @@ export default async function HubPage() {
     return <EmptyHub />;
   }
 
-  const [hospedajes, gastronomia, atractivos, regiones, promos, combos, atracciones] =
-    await Promise.all([
-      listVerticalItemsRed("hospedajes"),
-      listVerticalItemsRed("gastronomia"),
-      listVerticalItemsRed("atractivos"),
-      listRegionesVisibles(destinos),
-      listPromosRed(),
-      listCombosRed(),
-      listAtraccionesHero(),
-    ]);
+  const [
+    hospedajes,
+    gastronomia,
+    atractivos,
+    regiones,
+    promos,
+    combos,
+    atracciones,
+    zonas,
+  ] = await Promise.all([
+    listVerticalItemsRed("hospedajes"),
+    listVerticalItemsRed("gastronomia"),
+    listVerticalItemsRed("atractivos"),
+    listRegionesVisibles(destinos),
+    listPromosRed(),
+    listCombosRed(),
+    listAtraccionesHero(),
+    listZonasVisibles(),
+  ]);
 
   const verticalData: Record<VerticalKey, VerticalItem[]> = {
     hospedajes,
@@ -75,6 +85,7 @@ export default async function HubPage() {
         regiones={regiones}
         promos={promos}
         combos={combos}
+        zonas={zonas}
         session={session}
         heroSlides={heroSlides}
         atraccionSlides={atraccionSlides}

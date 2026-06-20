@@ -18,6 +18,7 @@ import { JsonLd } from "@/components/seo/JsonLd";
 import { getDestinoBySlug } from "@/features/hospedajes/lib/queries";
 import { listPromosByDestino } from "@/features/promos/lib/queries";
 import { listCombosByDestino } from "@/features/combos/lib/queries";
+import { listZonasVisibles } from "@/features/zonas/lib/queries";
 import { buildDestinoJsonLd, buildBreadcrumbJsonLd } from "@/lib/seo/jsonld";
 import { siteConfig } from "@/config/site";
 
@@ -59,7 +60,7 @@ export default async function DestinoPage({ params }: PageProps) {
 
   // Hub scopeado al destino: mismas verticales/promos/combos que la home, pero
   // acotadas a este destino.
-  const [hospedajes, gastronomia, atractivos, promos, combos, atracciones] =
+  const [hospedajes, gastronomia, atractivos, promos, combos, atracciones, zonas] =
     await Promise.all([
       listVerticalItemsRed("hospedajes", slug),
       listVerticalItemsRed("gastronomia", slug),
@@ -67,6 +68,7 @@ export default async function DestinoPage({ params }: PageProps) {
       listPromosByDestino(destino.id),
       listCombosByDestino(destino.id),
       listAtraccionesHero(destino.id),
+      listZonasVisibles(destino.id),
     ]);
 
   const verticalData: Record<VerticalKey, VerticalItem[]> = {
@@ -114,6 +116,7 @@ export default async function DestinoPage({ params }: PageProps) {
         regiones={[]}
         promos={promos}
         combos={combos}
+        zonas={zonas}
         session={session}
         heroSlides={heroSlides}
         atraccionSlides={atraccionSlides}

@@ -65,10 +65,9 @@ export interface AtraccionHero {
   descripcion: string | null;
   fotoUrl: string | null;
   destacada: boolean;
-  /**
-   * Destino al que linkea la card (ancla), si tiene. Sin ancla la card es
-   * editorial/no-clickeable hasta que exista la landing de zona (Fase 5).
-   */
+  /** Slug de la zona a la que pertenece (la card linkea a su landing pública). */
+  zonaSlug: string | null;
+  /** Destino al que está anclada, si tiene (metadato; el link va a la zona). */
   anclaSlug: string | null;
 }
 
@@ -96,7 +95,7 @@ export async function listAtraccionesHero(
   let q = sb
     .from("atracciones")
     .select(
-      "slug, nombre, categoria, descripcion, foto_path, destacada, orden, destino_ancla_id"
+      "slug, nombre, categoria, descripcion, foto_path, destacada, orden, zona_id, destino_ancla_id"
     )
     .eq("publicada", true)
     .order("destacada", { ascending: false })
@@ -118,12 +117,13 @@ export async function listAtraccionesHero(
     | "foto_path"
     | "destacada"
     | "orden"
+    | "zona_id"
     | "destino_ancla_id"
   >;
   const { data } = await q.returns<Row[]>();
   if (!data || data.length === 0) return [];
 
-  // Resolvemos el slug del destino ancla (para el link de la card).
+  // Resolvemos el slug del destino ancla (metadato) y de la zona (link de la card).
   const anclaIds = [
     ...new Set(data.map((a) => a.destino_ancla_id).filter(Boolean)),
   ] as string[];
@@ -137,6 +137,17 @@ export async function listAtraccionesHero(
     for (const d of ds ?? []) anclaSlug.set(d.id, d.slug);
   }
 
+  const zonaSlugMap = new Map<string, string>();
+  const zonaIdsAll = [...new Set(data.map((a) => a.zona_id))];
+  if (zonaIdsAll.length) {
+    const { data: zs } = await sb
+      .from("zonas")
+      .select("id, slug")
+      .in("id", zonaIdsAll)
+      .returns<Array<{ id: string; slug: string }>>();
+    for (const z of zs ?? []) zonaSlugMap.set(z.id, z.slug);
+  }
+
   return data.map((a) => ({
     slug: a.slug,
     nombre: a.nombre,
@@ -144,6 +155,7 @@ export async function listAtraccionesHero(
     descripcion: a.descripcion,
     fotoUrl: a.foto_path ? getAtraccionFotoUrl(a.foto_path) : null,
     destacada: a.destacada,
+    zonaSlug: zonaSlugMap.get(a.zona_id) ?? null,
     anclaSlug: a.destino_ancla_id
       ? anclaSlug.get(a.destino_ancla_id) ?? null
       : null,
