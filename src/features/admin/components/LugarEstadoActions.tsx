@@ -185,8 +185,8 @@ export function LugarEstadoActions({
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            Le mandamos un mail al responsable con el motivo (solo gastronómicos
-            tienen responsable asignado — atractivos los gestionás vos).
+            Le mandamos un mail al responsable con el motivo (si el comercio
+            tiene uno asignado).
           </p>
         </div>
       )}

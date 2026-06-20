@@ -3,10 +3,15 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { requireAdmin } from "@/features/admin/lib/auth";
 import { getLugarById } from "@/features/lugares/lib/queries";
-import { listDestinosParaSelect } from "@/features/admin/lib/lugar-queries";
+import {
+  listDestinosParaSelect,
+  listResponsablesParaSelector,
+  listResponsablesDeLugar,
+} from "@/features/admin/lib/lugar-queries";
 import { LugarForm } from "@/features/admin/components/LugarForm";
 import { LugarEstadoActions } from "@/features/admin/components/LugarEstadoActions";
 import { LugarFotosManager } from "@/features/admin/components/LugarFotosManager";
+import { LugarResponsablePanel } from "@/features/admin/components/LugarResponsablePanel";
 import { updateLugarAsAdminAction } from "@/features/lugares/lib/actions";
 
 interface PageProps {
@@ -21,7 +26,11 @@ export default async function EditAtractivoPage({ params }: PageProps) {
   if (!lugar || lugar.tipo !== "atractivo") notFound();
   if (!admin.isSuperAdmin && lugar.destino_id !== admin.destinoId) notFound();
 
-  const destinos = await listDestinosParaSelect(admin.destinoId);
+  const [destinos, candidatosResp, responsablesActuales] = await Promise.all([
+    listDestinosParaSelect(admin.destinoId),
+    listResponsablesParaSelector(),
+    listResponsablesDeLugar(id),
+  ]);
 
   async function action(fd: FormData) {
     "use server";
@@ -43,8 +52,8 @@ export default async function EditAtractivoPage({ params }: PageProps) {
           {lugar.nombre}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Editar los datos del atractivo. Aparece en la home del destino si lo
-          marcás como imperdible.
+          Editar los datos. Si lo carga o gestiona un responsable, las consultas
+          le llegarán a él directo.
         </p>
       </div>
 
@@ -53,6 +62,12 @@ export default async function EditAtractivoPage({ params }: PageProps) {
         estadoActual={lugar.estado}
         tipo="atractivo"
         listadoPath="/admin/atractivos"
+      />
+
+      <LugarResponsablePanel
+        lugarId={lugar.id}
+        responsablesActuales={responsablesActuales}
+        candidatos={candidatosResp}
       />
 
       <LugarFotosManager

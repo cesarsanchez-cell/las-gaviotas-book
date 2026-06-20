@@ -33,9 +33,8 @@ export async function assertResponsableOwnsLugar(
     .maybeSingle<{ destino_id: string; tipo: string }>();
 
   if (!l) throw new Error("Lugar no encontrado.");
-  if (l.tipo !== "gastronomico") {
-    throw new Error("Los responsables solo gestionan gastronómicos.");
-  }
+  // Gastronómico y "Qué hacer" (atractivo) son comerciales: ambos pueden tener
+  // responsable. La pertenencia ya quedó validada por `responsabilidades` arriba.
 
   return { destinoId: l.destino_id, hospedajeOlugar: "lugar" };
 }

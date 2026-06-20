@@ -1,12 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { MapPin, ExternalLink, Globe, Instagram, Sparkles } from "lucide-react";
+import { MapPin, ExternalLink, Globe, Instagram, Sparkles, Phone } from "lucide-react";
 import { Container } from "@/components/layout/Container";
 import { DestinoHeader } from "@/components/layout/DestinoHeader";
 import { Footer } from "@/components/layout/Footer";
 import { Badge } from "@/components/ui/badge";
 import { HospedajeGallery } from "@/features/hospedajes/components/HospedajeGallery";
+import { WhatsAppButton } from "@/features/hospedajes/components/WhatsAppButton";
 import { buttonVariants } from "@/components/ui/button";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getDestinoBySlug } from "@/features/hospedajes/lib/queries";
@@ -210,12 +211,35 @@ export default async function AtractivoDetailPage({ params }: PageProps) {
                 </p>
                 <p className="mt-1 font-medium">{lugar.nombre}</p>
 
+                {lugar.whatsapp && (
+                  <WhatsAppButton
+                    whatsapp={lugar.whatsapp}
+                    hospedajeNombre={lugar.nombre}
+                    size="lg"
+                    fullWidth
+                    label="Escribir por WhatsApp"
+                    className="mt-5"
+                  />
+                )}
+
+                {lugar.telefono && (
+                  <p className="mt-4 flex items-center gap-2 text-sm">
+                    <Phone className="h-4 w-4 text-muted-foreground" aria-hidden />
+                    <a
+                      href={`tel:${lugar.telefono}`}
+                      className="font-medium hover:underline"
+                    >
+                      {lugar.telefono}
+                    </a>
+                  </p>
+                )}
+
                 {lugar.google_maps_url && (
                   <a
                     href={lugar.google_maps_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`${buttonVariants({ size: "lg" })} mt-5 w-full`}
+                    className={`${buttonVariants({ size: "lg", variant: lugar.whatsapp ? "outline" : "default" })} mt-4 w-full`}
                   >
                     <MapPin className="h-4 w-4" />
                     Cómo llegar
