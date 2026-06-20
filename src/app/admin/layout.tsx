@@ -57,9 +57,9 @@ export default async function AdminLayout({
     respCounts.hospedajes + respCounts.gastronomicos > 0;
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen overflow-hidden">
       <div className="hidden w-64 shrink-0 md:block">
-        <div className="sticky top-0 h-screen">
+        <div className="h-full">
           <AdminSidebar
             email={admin.email}
             nombre={admin.perfil.nombre}
@@ -71,7 +71,7 @@ export default async function AdminLayout({
           />
         </div>
       </div>
-      <main className="flex-1 bg-muted/20">
+      <main className="flex-1 overflow-y-auto bg-muted/20">
         <div className="md:hidden">
           <AdminSidebar
             email={admin.email}

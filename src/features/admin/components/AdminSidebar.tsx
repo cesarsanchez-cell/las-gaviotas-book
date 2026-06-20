@@ -40,7 +40,7 @@ const NAV: NavItem[] = [
   { href: "/admin/validaciones", label: "Cola de validación", icon: ShieldCheck },
   { href: "/admin/hospedajes", label: "Hospedajes", icon: Building2 },
   { href: "/admin/gastronomia", label: "Gastronomía", icon: Utensils },
-  { href: "/admin/atractivos", label: "Atractivos", icon: Camera },
+  { href: "/admin/atractivos", label: "Qué hacer", icon: Camera },
   { href: "/admin/atracciones", label: "Atracciones", icon: Trees },
   { href: "/admin/promos", label: "Promos", icon: Tag },
   { href: "/admin/combos", label: "Combos", icon: Layers },
@@ -103,7 +103,7 @@ export function AdminSidebar({
         <p className="mt-1 text-xs text-muted-foreground">Panel administración</p>
       </div>
 
-      <nav className="flex-1 space-y-0.5 px-3">
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3">
         {visibleNav.map((item) => {
           const active = item.exact
             ? pathname === item.href

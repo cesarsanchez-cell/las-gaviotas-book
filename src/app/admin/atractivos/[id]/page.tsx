@@ -37,7 +37,7 @@ export default async function EditAtractivoPage({ params }: PageProps) {
           className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft className="h-4 w-4" />
-          Volver a Atractivos
+          Volver a Qué hacer
         </Link>
         <h1 className="mt-2 font-display text-3xl tracking-tight">
           {lugar.nombre}
