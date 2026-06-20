@@ -16,7 +16,7 @@ import type { ComercioTipo, PromoRow } from "@/types/database";
 const TIPO_GROUP_LABEL: Record<ComercioTipo, string> = {
   hospedaje: "Hospedajes",
   gastronomico: "Gastronomía",
-  atractivo: "Atractivos",
+  atractivo: "Qué hacer",
 };
 
 interface PromoFormProps {

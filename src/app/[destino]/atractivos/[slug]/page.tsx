@@ -91,7 +91,7 @@ export default async function AtractivoDetailPage({ params }: PageProps) {
         data={buildBreadcrumbJsonLd([
           { name: "Inicio", url: "/" },
           { name: destino.nombre, url: `/${destinoSlug}` },
-          { name: "Atractivos", url: `/${destinoSlug}/atractivos` },
+          { name: "Qué hacer", url: `/${destinoSlug}/atractivos` },
           { name: lugar.nombre, url: `/${destinoSlug}/atractivos/${slug}` },
         ])}
       />
@@ -120,7 +120,7 @@ export default async function AtractivoDetailPage({ params }: PageProps) {
                     href={`/${destinoSlug}/atractivos`}
                     className="hover:text-foreground"
                   >
-                    Atractivos
+                    Qué hacer
                   </Link>
                 </li>
                 <li aria-hidden>/</li>
@@ -260,7 +260,7 @@ export default async function AtractivoDetailPage({ params }: PageProps) {
                   href={`/${destinoSlug}/atractivos`}
                   className="mt-5 inline-block text-xs text-muted-foreground hover:text-foreground"
                 >
-                  ← Ver todos los atractivos
+                  ← Ver todo Qué hacer
                 </Link>
               </div>
             </aside>

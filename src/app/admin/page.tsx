@@ -258,12 +258,12 @@ export default async function AdminDashboardPage() {
         <header className="mb-3 flex items-center gap-2">
           <Camera className="h-4 w-4 text-muted-foreground" aria-hidden />
           <h2 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
-            Atractivos
+            Qué hacer
           </h2>
         </header>
         <StatGrid items={atractivoItems} />
         <p className="mt-2 text-xs text-muted-foreground">
-          Los atractivos los cargás y publicás vos — no pasan por validación.
+          Las actividades las cargás y publicás vos — no pasan por validación.
         </p>
       </section>
 
@@ -291,7 +291,7 @@ export default async function AdminDashboardPage() {
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             <Camera className="h-4 w-4" />
-            Nuevo atractivo
+            Nueva actividad
           </Link>
           <Link
             href="/admin/validaciones"

@@ -32,10 +32,12 @@ export default async function AtractivosAdminPage({ searchParams }: PageProps) {
     <div className="max-w-7xl space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl tracking-tight">Atractivos</h1>
+          <h1 className="font-display text-3xl tracking-tight">Qué hacer</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Playas, bosques, miradores, espacios culturales, lugares
-            recomendados del destino. Los gestionás vos como admin local.
+            Actividades, paseos y experiencias del destino (cabalgatas,
+            excursiones, alquileres, visitas). Lo que la gente puede hacer en la
+            zona. Para los atractivos naturales/culturales del destino usá la
+            sección Atracciones.
           </p>
         </div>
         <Link
@@ -43,7 +45,7 @@ export default async function AtractivosAdminPage({ searchParams }: PageProps) {
           className={buttonVariants({ size: "default" })}
         >
           <Plus className="h-4 w-4" />
-          Nuevo atractivo
+          Nueva actividad
         </Link>
       </header>
 

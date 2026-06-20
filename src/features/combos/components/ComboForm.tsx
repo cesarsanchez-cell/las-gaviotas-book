@@ -18,7 +18,7 @@ import type { ComercioTipo } from "@/types/database";
 const TIPO_GROUP_LABEL: Record<ComercioTipo, string> = {
   hospedaje: "Hospedajes",
   gastronomico: "Gastronomía",
-  atractivo: "Atractivos",
+  atractivo: "Qué hacer",
 };
 
 interface ItemRow {
