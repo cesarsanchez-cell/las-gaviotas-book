@@ -11,6 +11,8 @@ interface PromosHeroProps {
   title: string;
   subtitle?: string | null;
   onOpen: (p: PromoPublic) => void;
+  /** "h1" cuando ocupa el hero; "h2" cuando baja a banda (hero = atracciones). */
+  titleAs?: "h1" | "h2";
 }
 
 /**
@@ -25,10 +27,13 @@ export function PromosHero({
   title,
   subtitle,
   onOpen,
+  titleAs = "h1",
 }: PromosHeroProps) {
   const { active, scrollToSlide, trackProps } = useCarousel(promos.length);
 
   if (promos.length === 0) return null;
+
+  const TitleTag = titleAs;
 
   return (
     <section
@@ -41,9 +46,9 @@ export function PromosHero({
           <Tag className="h-4 w-4" aria-hidden />
           {eyebrow ?? "Promos"}
         </p>
-        <h1 className="mt-2 font-display text-4xl tracking-tight text-foreground md:text-5xl">
+        <TitleTag className="mt-2 font-display text-4xl tracking-tight text-foreground md:text-5xl">
           {title}
-        </h1>
+        </TitleTag>
         {subtitle && (
           <p className="mt-3 max-w-2xl text-base text-muted-foreground md:text-lg">
             {subtitle}

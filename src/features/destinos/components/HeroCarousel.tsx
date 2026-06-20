@@ -6,13 +6,18 @@ import {
   Sparkles,
   Building2,
   Utensils,
+  Compass,
   ArrowRight,
   MapPin,
   type LucideIcon,
 } from "lucide-react";
 import { useCarousel } from "./useCarousel";
 
-export type HeroSlideType = "atractivo" | "hospedaje" | "gastronomia";
+export type HeroSlideType =
+  | "atraccion"
+  | "atractivo"
+  | "hospedaje"
+  | "gastronomia";
 
 export interface HeroSlide {
   type: HeroSlideType;
@@ -21,14 +26,16 @@ export interface HeroSlide {
   categoria: string;
   descripcion?: string | null;
   photoUrl: string;
-  href: string;
+  /** Destino/ficha de la card. Sin href la card es editorial (no navega). */
+  href?: string;
 }
 
 const TYPE_META: Record<
   HeroSlideType,
   { label: string; icon: LucideIcon; chip: string }
 > = {
-  atractivo: { label: "Imperdible", icon: Sparkles, chip: "bg-amber-500/95" },
+  atraccion: { label: "Imperdible", icon: Sparkles, chip: "bg-amber-500/95" },
+  atractivo: { label: "Para hacer", icon: Compass, chip: "bg-teal-600/95" },
   hospedaje: { label: "Dónde dormir", icon: Building2, chip: "bg-primary/95" },
   gastronomia: { label: "Para comer", icon: Utensils, chip: "bg-rose-500/95" },
 };
@@ -81,16 +88,10 @@ export function HeroCarousel({
         {slides.map((s, i) => {
           const meta = TYPE_META[s.type];
           const Icon = meta.icon;
-          return (
-            <Link
-              key={`${s.type}-${s.slug}-${i}`}
-              href={s.href}
-              data-slide
-              data-idx={i}
-              aria-roledescription="slide"
-              aria-label={`${i + 1} de ${slides.length}: ${s.nombre}`}
-              className="group flex w-[85%] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-[22rem] lg:w-[24rem]"
-            >
+          const cardClass =
+            "group flex w-[85%] shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:w-[22rem] lg:w-[24rem]";
+          const body = (
+            <>
               <div className="relative aspect-[16/10] overflow-hidden bg-secondary">
                 <Image
                   src={s.photoUrl}
@@ -123,12 +124,30 @@ export function HeroCarousel({
                     {s.descripcion}
                   </p>
                 )}
-                <span className="mt-auto pt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary">
-                  Conocer más
-                  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden />
-                </span>
+                {s.href && (
+                  <span className="mt-auto pt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary">
+                    Conocer más
+                    <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden />
+                  </span>
+                )}
               </div>
+            </>
+          );
+          const common = {
+            "data-slide": true,
+            "data-idx": i,
+            "aria-roledescription": "slide",
+            "aria-label": `${i + 1} de ${slides.length}: ${s.nombre}`,
+            className: cardClass,
+          } as const;
+          return s.href ? (
+            <Link key={`${s.type}-${s.slug}-${i}`} href={s.href} {...common}>
+              {body}
             </Link>
+          ) : (
+            <div key={`${s.type}-${s.slug}-${i}`} {...common}>
+              {body}
+            </div>
           );
         })}
       </div>

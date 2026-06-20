@@ -2,10 +2,14 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { Footer } from "@/components/layout/Footer";
 import { HubV2 } from "@/features/home/components/HubV2";
-import { buildHeroSlides } from "@/features/home/lib/hero-slides";
+import {
+  buildHeroSlides,
+  buildAtraccionHeroSlides,
+} from "@/features/home/lib/hero-slides";
 import { getHeaderSession } from "@/features/home/lib/header-session";
 import {
   listVerticalItemsRed,
+  listAtraccionesHero,
   type VerticalItem,
   type VerticalKey,
   type DestinoPublicadoLite,
@@ -55,13 +59,14 @@ export default async function DestinoPage({ params }: PageProps) {
 
   // Hub scopeado al destino: mismas verticales/promos/combos que la home, pero
   // acotadas a este destino.
-  const [hospedajes, gastronomia, atractivos, promos, combos] =
+  const [hospedajes, gastronomia, atractivos, promos, combos, atracciones] =
     await Promise.all([
       listVerticalItemsRed("hospedajes", slug),
       listVerticalItemsRed("gastronomia", slug),
       listVerticalItemsRed("atractivos", slug),
       listPromosByDestino(destino.id),
       listCombosByDestino(destino.id),
+      listAtraccionesHero(destino.id),
     ]);
 
   const verticalData: Record<VerticalKey, VerticalItem[]> = {
@@ -71,6 +76,7 @@ export default async function DestinoPage({ params }: PageProps) {
   };
 
   const heroSlides = buildHeroSlides(verticalData);
+  const atraccionSlides = buildAtraccionHeroSlides(atracciones);
 
   // Lite mínimo para el hub (en modo scopeado no se usan biomas/geo/conteo).
   const destinoLite: DestinoPublicadoLite = {
@@ -110,6 +116,7 @@ export default async function DestinoPage({ params }: PageProps) {
         combos={combos}
         session={session}
         heroSlides={heroSlides}
+        atraccionSlides={atraccionSlides}
         heroEyebrow={heroEyebrow}
         heroTitle={destino.nombre}
         heroSubtitle={destino.descripcion_corta}

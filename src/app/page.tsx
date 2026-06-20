@@ -6,11 +6,15 @@ import {
   listVerticalItemsRed,
   listDestinosPublicados,
   listRegionesVisibles,
+  listAtraccionesHero,
   type VerticalItem,
   type VerticalKey,
 } from "@/features/home/lib/queries";
 import { HubV2 } from "@/features/home/components/HubV2";
-import { buildHeroSlides } from "@/features/home/lib/hero-slides";
+import {
+  buildHeroSlides,
+  buildAtraccionHeroSlides,
+} from "@/features/home/lib/hero-slides";
 import { listPromosRed } from "@/features/promos/lib/queries";
 import { listCombosRed } from "@/features/combos/lib/queries";
 import { siteConfig } from "@/config/site";
@@ -43,7 +47,7 @@ export default async function HubPage() {
     return <EmptyHub />;
   }
 
-  const [hospedajes, gastronomia, atractivos, regiones, promos, combos] =
+  const [hospedajes, gastronomia, atractivos, regiones, promos, combos, atracciones] =
     await Promise.all([
       listVerticalItemsRed("hospedajes"),
       listVerticalItemsRed("gastronomia"),
@@ -51,6 +55,7 @@ export default async function HubPage() {
       listRegionesVisibles(destinos),
       listPromosRed(),
       listCombosRed(),
+      listAtraccionesHero(),
     ]);
 
   const verticalData: Record<VerticalKey, VerticalItem[]> = {
@@ -60,6 +65,7 @@ export default async function HubPage() {
   };
 
   const heroSlides = buildHeroSlides(verticalData);
+  const atraccionSlides = buildAtraccionHeroSlides(atracciones);
 
   return (
     <>
@@ -71,6 +77,7 @@ export default async function HubPage() {
         combos={combos}
         session={session}
         heroSlides={heroSlides}
+        atraccionSlides={atraccionSlides}
         heroEyebrow="Mis Escapadas"
         heroTitle="Descubrí tu próxima escapada"
         heroSubtitle="Hospedajes, gastronomía y atractivos verificados por la comunidad de cada destino."
