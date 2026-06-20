@@ -82,8 +82,10 @@ export function buildAtraccionHeroSlides(
     slides.push({
       type: "atraccion",
       slug: a.slug,
+      // La "categoría" del slide se rinde con 📍: usamos la zona como marcador
+      // ("está en la zona X"), que es lo útil acá (la categoría propia se omite).
       nombre: a.nombre,
-      categoria: a.categoria ?? "",
+      categoria: a.zonaNombre ?? "",
       descripcion: a.descripcion,
       photoUrl: a.fotoUrl,
       href: a.zonaSlug ? `/zona/${a.zonaSlug}` : undefined,
