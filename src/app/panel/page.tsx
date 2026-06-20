@@ -51,7 +51,7 @@ export default async function PanelDashboardPage() {
         </p>
         <h1 className="mt-1 font-display text-4xl tracking-tight">Mi panel</h1>
         <p className="mt-2 text-muted-foreground">
-          Gestioná tus hospedajes y gastronómicos en Mis Escapadas.
+          Gestioná tus hospedajes y comercios en Mis Escapadas.
         </p>
       </header>
 
@@ -65,8 +65,8 @@ export default async function PanelDashboardPage() {
             Todavía no cargaste nada
           </h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-            Empezá creando tu primer hospedaje o gastronómico. Vas a poder
-            cargar datos, fotos y enviar a revisión.
+            Empezá creando tu primer hospedaje o comercio (gastronómico o qué
+            hacer). Vas a poder cargar datos, fotos y enviar a revisión.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
@@ -81,7 +81,7 @@ export default async function PanelDashboardPage() {
               className={buttonVariants({ size: "lg", variant: "outline" })}
             >
               <Utensils className="h-4 w-4" />
-              Cargar gastronómico
+              Cargar comercio
             </Link>
           </div>
         </section>
@@ -144,7 +144,7 @@ export default async function PanelDashboardPage() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="inline-flex items-center gap-2 font-display text-2xl tracking-tight">
                 <Utensils className="h-5 w-5 text-muted-foreground" aria-hidden />
-                Mis gastronómicos
+                Mis comercios
               </h2>
               <Link
                 href="/panel/lugares/nuevo"
@@ -157,8 +157,8 @@ export default async function PanelDashboardPage() {
 
             {lugares.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border bg-card px-5 py-6 text-sm text-muted-foreground">
-                Todavía no cargaste ningún gastronómico. Usá{" "}
-                <strong>Nuevo</strong> para agregar uno.
+                Todavía no cargaste ningún comercio. Usá <strong>Nuevo</strong>{" "}
+                para agregar uno.
               </div>
             ) : (
               <ul className="divide-y divide-border rounded-xl border border-border bg-card">

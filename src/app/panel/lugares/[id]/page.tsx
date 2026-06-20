@@ -35,13 +35,14 @@ export default async function MiLugarEditPage({ params }: PageProps) {
   if (!ownedIds.includes(id)) notFound();
 
   const lugar = await getLugarById(id);
-  if (!lugar || lugar.tipo !== "gastronomico") notFound();
+  if (!lugar) notFound();
+  const tipo = lugar.tipo as "gastronomico" | "atractivo";
 
   const destinos = await listDestinosActivos();
 
   async function action(fd: FormData) {
     "use server";
-    fd.set("tipo", "gastronomico");
+    fd.set("tipo", tipo);
     return updateLugarAsResponsableAction(id, fd);
   }
 
@@ -69,11 +70,11 @@ export default async function MiLugarEditPage({ params }: PageProps) {
       <LugarFotosManager
         lugarId={lugar.id}
         fotos={lugar.lugar_fotos}
-        tipo="gastronomico"
+        tipo={tipo}
       />
 
       <LugarForm
-        tipo="gastronomico"
+        tipo={tipo}
         destinos={destinos}
         initial={lugar}
         submitLabel="Guardar cambios"

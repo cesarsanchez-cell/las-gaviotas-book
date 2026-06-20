@@ -73,11 +73,10 @@ async function gatherLugarNotifContext(
 }
 
 /**
- * Notifica al responsable que su lugar fue publicado.
- * Silencioso (con log) si:
- *   - El lugar es atractivo (no tiene responsable por diseño).
- *   - El lugar es gastronómico sin responsable asignado (caso patológico —
- *     debería ser raro porque `createLugarAsResponsable` autoasigna).
+ * Notifica al responsable que su comercio (gastronómico o "Qué hacer") fue
+ * publicado. Silencioso (con log) si el lugar no tiene responsable asignado
+ * (caso patológico — `createLugarAsResponsable` autoasigna; el admin puede
+ * cargar uno sin responsable y asignarlo después).
  */
 export async function notifyLugarPublicado(lugarId: string): Promise<void> {
   try {
@@ -86,19 +85,19 @@ export async function notifyLugarPublicado(lugarId: string): Promise<void> {
       console.warn("[notifyLugarPublicado] sin contexto:", lugarId);
       return;
     }
-    if (ctx.lugar.tipo !== "gastronomico") return; // atractivo, no notificamos
+    // Gastronómico y "Qué hacer" (atractivo) son comerciales: si tienen
+    // responsable asignado, le avisamos. Sin responsable, log (caso patológico).
     if (!ctx.responsable) {
-      console.warn(
-        "[notifyLugarPublicado] gastronómico sin responsable:",
-        lugarId
-      );
+      console.warn("[notifyLugarPublicado] comercio sin responsable:", lugarId);
       return;
     }
+    const segmento =
+      ctx.lugar.tipo === "gastronomico" ? "gastronomia" : "atractivos";
     const tpl = lugarPublicadoTemplate({
       responsableNombre: ctx.responsable.nombre,
       lugarNombre: ctx.lugar.nombre,
       destinoNombre: ctx.destino.nombre,
-      urlPublica: `${siteConfig.url}/${ctx.destino.slug}/gastronomia/${ctx.lugar.slug}`,
+      urlPublica: `${siteConfig.url}/${ctx.destino.slug}/${segmento}/${ctx.lugar.slug}`,
       urlPanel: `${siteConfig.url}/panel/lugares/${ctx.lugar.id}`,
     });
     const result = await sendEmail({ to: ctx.responsable.email, ...tpl });
@@ -117,7 +116,6 @@ export async function notifyLugarRechazado(
   try {
     const ctx = await gatherLugarNotifContext(lugarId);
     if (!ctx) return;
-    if (ctx.lugar.tipo !== "gastronomico") return;
     if (!ctx.responsable) return;
     const tpl = lugarRechazadoTemplate({
       responsableNombre: ctx.responsable.nombre,

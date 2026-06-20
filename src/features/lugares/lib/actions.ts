@@ -110,26 +110,22 @@ export async function createLugarAsAdminAction(
 }
 
 /**
- * Responsable crea un gastronómico. Va directo a `pendiente_validacion`
- * (el admin local revisa antes de publicar). Crea automáticamente la fila
- * en `responsabilidades` para que el responsable quede como dueño.
+ * Responsable crea un comercio (gastronómico o "Qué hacer"). Va directo a
+ * `pendiente_validacion` (el admin local revisa antes de publicar). Crea
+ * automáticamente la fila en `responsabilidades` para que quede como dueño.
  */
 export async function createLugarAsResponsableAction(
   formData: FormData
 ): Promise<ActionResult> {
   const responsable = await requireResponsable();
   if (responsable.perfil.rol !== "responsable") {
-    return { error: "Solo responsables pueden cargar gastronómicos." };
+    return { error: "Solo responsables pueden cargar comercios." };
   }
 
   const raw = parseFormDataToLugar(formData);
   const parsed = lugarSchema.safeParse(raw);
   if (!parsed.success) return formatZodError(parsed.error);
   const input = parsed.data;
-
-  if (input.tipo !== "gastronomico") {
-    return { error: "Los responsables solo cargan gastronómicos." };
-  }
 
   const sb = createAdminClient();
   const { data, error } = await sb
@@ -141,7 +137,7 @@ export async function createLugarAsResponsableAction(
   if (error) {
     if (error.code === "23505") {
       return {
-        error: "Ya existe un gastronómico con ese slug en este destino.",
+        error: "Ya existe un comercio con ese slug en este destino.",
         fieldErrors: { slug: "Slug duplicado" },
       };
     }
@@ -264,17 +260,17 @@ export async function updateLugarAsResponsableAction(
   if (!parsed.success) return formatZodError(parsed.error);
   const input = parsed.data;
 
-  if (input.tipo !== "gastronomico") {
-    return { error: "No se puede cambiar el tipo." };
-  }
-
   const sb = createAdminClient();
 
   const { data: previo } = await sb
     .from("lugares")
-    .select("estado")
+    .select("estado, tipo")
     .eq("id", id)
-    .maybeSingle<{ estado: EstadoLugar }>();
+    .maybeSingle<{ estado: EstadoLugar; tipo: string }>();
+
+  if (previo && input.tipo !== previo.tipo) {
+    return { error: "No se puede cambiar el tipo." };
+  }
 
   const nuevoEstado: EstadoLugar =
     previo?.estado === "publicado" ? "pendiente_validacion" : previo?.estado ?? "borrador";
@@ -287,7 +283,7 @@ export async function updateLugarAsResponsableAction(
   if (error) {
     if (error.code === "23505") {
       return {
-        error: "Ya existe un gastronómico con ese slug en este destino.",
+        error: "Ya existe un comercio con ese slug en este destino.",
         fieldErrors: { slug: "Slug duplicado" },
       };
     }
@@ -452,9 +448,9 @@ const assignSchema = z.object({
 });
 
 /**
- * Admin asigna un responsable existente a un lugar gastronómico. Para flow
- * de transferencia de propiedad o cuando el dueño se registra después de
- * que el admin ya cargó el local.
+ * Admin asigna un responsable existente a un comercio (gastronómico o "Qué
+ * hacer"). Para flow de transferencia de propiedad o cuando el dueño se
+ * registra después de que el admin ya cargó el local.
  */
 export async function assignResponsableToLugarAction(input: {
   lugarId: string;
@@ -464,20 +460,14 @@ export async function assignResponsableToLugarAction(input: {
   const parsed = assignSchema.safeParse(input);
   if (!parsed.success) return { error: "Datos inválidos." };
 
-  let ctx;
   try {
-    ctx = await assertAdminCanAccessLugar(
+    await assertAdminCanAccessLugar(
       admin.destinoId,
       admin.isSuperAdmin,
       parsed.data.lugarId
     );
   } catch (e) {
     return { error: (e as Error).message };
-  }
-  if (ctx.tipo !== "gastronomico") {
-    return {
-      error: "Solo los gastronómicos pueden tener responsable. Los atractivos los gestiona el admin.",
-    };
   }
 
   const sb = createAdminClient();
