@@ -34,10 +34,10 @@ const TYPE_META: Record<
   HeroSlideType,
   { label: string; icon: LucideIcon; chip: string; iconClass?: string }
 > = {
-  // Atracción curada: estrella amarilla (señal de calidad) + "Única", sobre chip
-  // claro para que la estrella resalte como una calificación.
+  // Atracción curada: estrella amarilla (respaldo editorial) + "Recomendado",
+  // sobre chip claro para que la estrella resalte como una calificación.
   atraccion: {
-    label: "Única",
+    label: "Recomendado",
     icon: Star,
     chip: "bg-white/95 text-foreground",
     iconClass: "fill-amber-400 text-amber-400",
