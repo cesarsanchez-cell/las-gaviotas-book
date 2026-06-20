@@ -214,6 +214,56 @@ export function buildLugarJsonLd(l: LugarForJsonLd, url: string) {
   return base;
 }
 
+// =============================================================================
+// Zonas + Atracciones (curaduría — Fase 5)
+// =============================================================================
+
+interface AtraccionForJsonLd {
+  nombre: string;
+  descripcion?: string | null;
+  fotoUrl?: string | null;
+  ubicacionTexto?: string | null;
+}
+
+/**
+ * Zona como TouristDestination, con sus atracciones embebidas como
+ * TouristAttraction en `containsPlace`. Una sola pieza de JSON-LD para la
+ * landing de zona (más simple que N bloques sueltos y mejor para crawlers).
+ */
+export function buildZonaJsonLd(
+  zona: { nombre: string; descripcion?: string | null; fotoUrl?: string | null },
+  atracciones: AtraccionForJsonLd[],
+  url: string
+) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "TouristDestination",
+    name: zona.nombre,
+    ...(zona.descripcion ? { description: zona.descripcion } : {}),
+    url,
+    ...(zona.fotoUrl ? { image: zona.fotoUrl } : {}),
+    ...(atracciones.length
+      ? {
+          containsPlace: atracciones.map((a) => ({
+            "@type": "TouristAttraction",
+            name: a.nombre,
+            ...(a.descripcion ? { description: a.descripcion } : {}),
+            ...(a.fotoUrl ? { image: a.fotoUrl } : {}),
+            ...(a.ubicacionTexto
+              ? {
+                  address: {
+                    "@type": "PostalAddress",
+                    streetAddress: a.ubicacionTexto,
+                    addressCountry: "AR",
+                  },
+                }
+              : {}),
+          })),
+        }
+      : {}),
+  };
+}
+
 export function buildBreadcrumbJsonLd(items: { name: string; url: string }[]) {
   return {
     "@context": "https://schema.org",

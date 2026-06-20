@@ -1,5 +1,5 @@
 import type { HeroSlide, HeroSlideType } from "@/features/destinos/components/HeroCarousel";
-import type { VerticalItem, VerticalKey } from "./queries";
+import type { AtraccionHero, VerticalItem, VerticalKey } from "./queries";
 
 // kind de la vertical → tipo de slide del hero (1:1 con el segmento de ruta).
 const KIND_TO_TYPE: Record<VerticalKey, HeroSlideType> = {
@@ -62,6 +62,33 @@ export function buildHeroSlides(
       seen.add(key);
       slides.push(slide);
     }
+  }
+  return slides;
+}
+
+/**
+ * Hero emocional a partir de atracciones curadas (lo que tracciona gente: playa,
+ * bosque, eventos). Solo entran las que tienen foto. Ya vienen ordenadas
+ * (destacadas → orden) y filtradas por vigencia desde la query. La card linkea a
+ * la landing pública de su zona; sin zona resoluble queda editorial (no navega).
+ */
+export function buildAtraccionHeroSlides(
+  atracciones: AtraccionHero[],
+  max = 8
+): HeroSlide[] {
+  const slides: HeroSlide[] = [];
+  for (const a of atracciones) {
+    if (!a.fotoUrl) continue; // el hero necesita foto sí o sí
+    slides.push({
+      type: "atraccion",
+      slug: a.slug,
+      nombre: a.nombre,
+      categoria: a.categoria ?? "",
+      descripcion: a.descripcion,
+      photoUrl: a.fotoUrl,
+      href: a.zonaSlug ? `/zona/${a.zonaSlug}` : undefined,
+    });
+    if (slides.length >= max) break;
   }
   return slides;
 }

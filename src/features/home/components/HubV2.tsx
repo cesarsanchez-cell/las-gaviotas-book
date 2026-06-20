@@ -21,6 +21,8 @@ import { DestinoMiniCard, type DestinoMini } from "./DestinoMiniCard";
 import { CombosCarousel } from "@/features/combos/components/CombosCarousel";
 import { ComboDetailModal } from "@/features/combos/components/ComboDetailModal";
 import { ArmadorCTA } from "@/features/armador/components/ArmadorCTA";
+import { ConoceLaZonaBand } from "@/features/zonas/components/ConoceLaZonaBand";
+import type { ZonaCard } from "@/features/zonas/lib/queries";
 import type { ComboPublic } from "@/features/combos/lib/queries";
 import type { PromoPublic } from "@/features/promos/lib/queries";
 import {
@@ -50,9 +52,13 @@ interface HubV2Props {
   regiones: RegionVisible[];
   promos: PromoPublic[];
   combos: ComboPublic[];
+  /** Zonas curadas visibles para la banda "Conocé la zona" (landing). */
+  zonas?: ZonaCard[];
   session: HeaderSession;
-  /** Slides del hero de destacados (fallback cuando no hay suficientes promos). */
+  /** Slides del hero de destacados (fallback cuando no hay atracciones/promos). */
   heroSlides?: HeroSlide[];
+  /** Slides del hero emocional de atracciones curadas (hero principal). */
+  atraccionSlides?: HeroSlide[];
   heroTitle?: string;
   heroEyebrow?: string | null;
   heroSubtitle?: string | null;
@@ -87,8 +93,10 @@ export function HubV2({
   regiones,
   promos,
   combos,
+  zonas = [],
   session,
   heroSlides = [],
+  atraccionSlides = [],
   heroTitle,
   heroEyebrow,
   heroSubtitle,
@@ -348,6 +356,12 @@ export function HubV2({
     ? null
     : "Ofertas vigentes en los destinos de la red.";
 
+  // Hero principal = atracciones curadas (emocional). Si las hay (y sin filtro
+  // por región/dónde, que las acotaría), ocupan el hero y las promos bajan a
+  // banda. Sin atracciones cae al comportamiento previo (promos-hero / destacados).
+  const heroIsAtracciones =
+    isLanding && !allowedSlugs && atraccionSlides.length > 0 && Boolean(heroTitle);
+
   return (
     <>
       <AirbnbTop
@@ -371,10 +385,17 @@ export function HubV2({
         onUseGeo={askGeo}
       />
 
-      {/* Hero (solo landing): promos del destino/red; destacados como fallback
-          únicamente sin destino elegido (los destacados son de toda la red). */}
+      {/* Hero (solo landing): atracciones curadas (emocional) primero; si no hay,
+          promos del destino/red; destacados como último fallback (red, sin filtro). */}
       {isLanding &&
-        (showPromoHero ? (
+        (heroIsAtracciones ? (
+          <HeroCarousel
+            eyebrow={heroEyebrow}
+            title={heroTitle as string}
+            subtitle={heroSubtitle}
+            slides={atraccionSlides}
+          />
+        ) : showPromoHero ? (
           <PromosHero
             promos={promosVisibles}
             eyebrow={promoHeroEyebrow}
@@ -396,6 +417,19 @@ export function HubV2({
         ))}
 
       <main className="pb-16">
+        {/* Promos como banda (cuando el hero lo ocupan las atracciones). Mantiene
+            las ofertas visibles sin robarle la franja superior al hero emocional. */}
+        {isLanding && heroIsAtracciones && promosVisibles.length > 0 && (
+          <PromosHero
+            promos={promosVisibles}
+            eyebrow={promoHeroEyebrow}
+            title="Lo que conviene ahora"
+            subtitle={promoHeroSubtitle}
+            onOpen={setPromoSel}
+            titleAs="h2"
+          />
+        )}
+
         {/* Combos (escapadas armadas) — banda propia, solo en landing. */}
         {isLanding && combosVisibles.length > 0 && (
           <section className="border-b border-border py-10 md:py-14">
@@ -417,6 +451,9 @@ export function HubV2({
             <CombosCarousel combos={combosVisibles} onOpen={setComboSel} />
           </section>
         )}
+
+        {/* Conocé la zona — orientación curada (landing). */}
+        {isLanding && zonas.length > 0 && <ConoceLaZonaBand zonas={zonas} />}
 
         {/* Armá la tuya — landing, con un solo destino (target directo). */}
         {isLanding && singleDestino && (

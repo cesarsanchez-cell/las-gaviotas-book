@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { getFotoUrl } from "@/lib/storage";
+import { getFotoUrl, getAtraccionFotoUrl } from "@/lib/storage";
 import { sanitizeBiomas } from "@/features/regiones/lib/queries";
 import { getCategoriaLabel } from "@/config/categorias-lugar";
-import type { Bioma, TipoHospedaje } from "@/types/database";
+import type { Bioma, TipoHospedaje, AtraccionRow } from "@/types/database";
 
 // =============================================================================
 // Capa de datos de la home v2 (hub estilo Airbnb).
@@ -55,6 +55,111 @@ export interface RegionVisible {
   nombre: string;
   biomas: Bioma[];
   destinos_slugs: string[];
+}
+
+/** Atracción curada para el hero emocional (sin precio, sin lead). */
+export interface AtraccionHero {
+  slug: string;
+  nombre: string;
+  categoria: string | null;
+  descripcion: string | null;
+  fotoUrl: string | null;
+  destacada: boolean;
+  /** Slug de la zona a la que pertenece (la card linkea a su landing pública). */
+  zonaSlug: string | null;
+  /** Destino al que está anclada, si tiene (metadato; el link va a la zona). */
+  anclaSlug: string | null;
+}
+
+/**
+ * Atracciones para el hero. Sin `destinoId`: toda la red. Con `destinoId`: las de
+ * las zonas que lo contienen + las ancladas a él. La RLS ya restringe a
+ * publicadas y vigentes (vigencia_hasta >= hoy); acá solo damos forma y orden
+ * (destacadas primero, luego `orden`).
+ */
+export async function listAtraccionesHero(
+  destinoId?: string
+): Promise<AtraccionHero[]> {
+  const sb = await createClient();
+
+  let zonaIds: string[] = [];
+  if (destinoId) {
+    const { data: links } = await sb
+      .from("zona_destinos")
+      .select("zona_id")
+      .eq("destino_id", destinoId)
+      .returns<Array<{ zona_id: string }>>();
+    zonaIds = (links ?? []).map((l) => l.zona_id);
+  }
+
+  let q = sb
+    .from("atracciones")
+    .select(
+      "slug, nombre, categoria, descripcion, foto_path, destacada, orden, zona_id, destino_ancla_id"
+    )
+    .eq("publicada", true)
+    .order("destacada", { ascending: false })
+    .order("orden", { ascending: true });
+
+  if (destinoId) {
+    // Zona que contiene el destino O atracción anclada a él. Sin zonas, solo ancladas.
+    const ors = [`destino_ancla_id.eq.${destinoId}`];
+    if (zonaIds.length) ors.push(`zona_id.in.(${zonaIds.join(",")})`);
+    q = q.or(ors.join(","));
+  }
+
+  type Row = Pick<
+    AtraccionRow,
+    | "slug"
+    | "nombre"
+    | "categoria"
+    | "descripcion"
+    | "foto_path"
+    | "destacada"
+    | "orden"
+    | "zona_id"
+    | "destino_ancla_id"
+  >;
+  const { data } = await q.returns<Row[]>();
+  if (!data || data.length === 0) return [];
+
+  // Resolvemos el slug del destino ancla (metadato) y de la zona (link de la card).
+  const anclaIds = [
+    ...new Set(data.map((a) => a.destino_ancla_id).filter(Boolean)),
+  ] as string[];
+  const anclaSlug = new Map<string, string>();
+  if (anclaIds.length) {
+    const { data: ds } = await sb
+      .from("destinos")
+      .select("id, slug")
+      .in("id", anclaIds)
+      .returns<Array<{ id: string; slug: string }>>();
+    for (const d of ds ?? []) anclaSlug.set(d.id, d.slug);
+  }
+
+  const zonaSlugMap = new Map<string, string>();
+  const zonaIdsAll = [...new Set(data.map((a) => a.zona_id))];
+  if (zonaIdsAll.length) {
+    const { data: zs } = await sb
+      .from("zonas")
+      .select("id, slug")
+      .in("id", zonaIdsAll)
+      .returns<Array<{ id: string; slug: string }>>();
+    for (const z of zs ?? []) zonaSlugMap.set(z.id, z.slug);
+  }
+
+  return data.map((a) => ({
+    slug: a.slug,
+    nombre: a.nombre,
+    categoria: a.categoria,
+    descripcion: a.descripcion,
+    fotoUrl: a.foto_path ? getAtraccionFotoUrl(a.foto_path) : null,
+    destacada: a.destacada,
+    zonaSlug: zonaSlugMap.get(a.zona_id) ?? null,
+    anclaSlug: a.destino_ancla_id
+      ? anclaSlug.get(a.destino_ancla_id) ?? null
+      : null,
+  }));
 }
 
 const TIPO_HOSPEDAJE_LABEL: Record<TipoHospedaje, string> = {
