@@ -72,7 +72,7 @@ export function CombosCarousel({ combos, onOpen }: CombosCarouselProps) {
           <div
             key={c.id}
             data-card
-            className="w-[88%] shrink-0 snap-start sm:w-[24rem] lg:w-[26rem] [&>article]:h-full"
+            className="w-[46%] shrink-0 snap-start sm:w-52 lg:w-56 [&>article]:h-full"
           >
             <ComboCard combo={c} onOpen={onOpen} />
           </div>
