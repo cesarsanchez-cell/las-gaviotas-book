@@ -16,15 +16,6 @@ import type { SearchState, HubTab } from "@/features/home/lib/search-types";
 const GASTRO_TIPOS = Object.values(CATEGORIAS_GASTRONOMICO).map((c) => c.label);
 const ATRACTIVO_TIPOS = Object.values(CATEGORIAS_ATRACTIVO).map((c) => c.label);
 
-const CHIPS_CUANDO_HOSPEDAJE = [
-  "Este finde",
-  "Finde largo",
-  "Una semana",
-  "Quincena",
-  "Sin fecha aún",
-];
-const CHIPS_CUANDO_OTROS = ["Hoy", "Este finde", "Esta semana", "Cualquier día"];
-
 type Step = "donde" | "tipo" | "cuando" | "quien";
 
 interface SearchPanelProps {
@@ -303,44 +294,24 @@ export function SearchPanel({
             <button type="button" className={secHeadClass} onClick={() => setStep("cuando")}>
               <span className="text-sm font-medium text-foreground">Cuándo</span>
               <span className="truncate text-sm text-muted-foreground">
-                {cuando || (esHospedaje ? "Elegí fechas" : "Cualquier día")}
+                {fechaIn
+                  ? fechaOut
+                    ? `${fmtFecha(fechaIn)} → ${fmtFecha(fechaOut)}`
+                    : fmtFecha(fechaIn)
+                  : esHospedaje
+                    ? "Elegí fechas"
+                    : "Elegí el día"}
               </span>
             </button>
             {step === "cuando" && (
               <div className="mt-2 rounded-xl border border-border bg-card p-3">
-                <div className="flex flex-wrap gap-2">
-                  {(esHospedaje ? CHIPS_CUANDO_HOSPEDAJE : CHIPS_CUANDO_OTROS).map(
-                    (opt) => (
-                      <button
-                        key={opt}
-                        type="button"
-                        className={chipClass(cuando === opt)}
-                        onClick={() => {
-                          setCuando(cuando === opt ? "" : opt);
-                          setFechaIn("");
-                          setFechaOut("");
-                        }}
-                      >
-                        {opt}
-                      </button>
-                    )
-                  )}
-                </div>
-                <div className="mt-3 border-t border-border pt-3">
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <p className="text-xs text-muted-foreground">
-                      {esHospedaje
-                        ? "O elegí las fechas en el calendario"
-                        : "O elegí el día"}
-                    </p>
-                    {esHospedaje && fechaIn && (
-                      <p className="text-xs font-medium text-foreground">
-                        {fmtFecha(fechaIn)}
-                        {fechaOut ? ` → ${fmtFecha(fechaOut)}` : " · elegí la salida"}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex justify-center">
+                {esHospedaje && fechaIn && (
+                  <p className="mb-2 text-center text-sm font-medium text-foreground">
+                    {fmtFecha(fechaIn)}
+                    {fechaOut ? ` → ${fmtFecha(fechaOut)}` : " · elegí la salida"}
+                  </p>
+                )}
+                <div className="flex justify-center">
                     {esHospedaje ? (
                       <DayPicker
                         mode="range"
@@ -364,7 +335,6 @@ export function SearchPanel({
                         onSelect={onSelectSingle}
                       />
                     )}
-                  </div>
                 </div>
               </div>
             )}
