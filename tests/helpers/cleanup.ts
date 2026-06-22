@@ -49,7 +49,89 @@ export async function resetResponsableHospedajes(email: string) {
     .eq("id", user.id);
 }
 
+/**
+ * Borra lugares (gastronómicos / qué hacer) cuyo slug arranca con un prefijo.
+ * Limpia primero las responsabilidades (FK apunta a perfiles, sin cascade) y las
+ * fotos de storage. Los rows en lugar_fotos se borran por cascade.
+ */
+export async function cleanupTestLugares(slugPrefix: string) {
+  const admin = getAdminClient();
+
+  const { data: lugares } = await admin
+    .from("lugares")
+    .select("id")
+    .like("slug", `${slugPrefix}%`);
+
+  if (!lugares?.length) return;
+
+  for (const l of lugares) {
+    const { data: fotos } = await admin
+      .from("lugar_fotos")
+      .select("storage_path")
+      .eq("lugar_id", l.id);
+    if (fotos?.length) {
+      await admin.storage
+        .from("hospedajes")
+        .remove(fotos.map((f) => f.storage_path));
+    }
+    await admin
+      .from("responsabilidades")
+      .delete()
+      .eq("entidad_tipo", "lugar")
+      .eq("entidad_id", l.id);
+    await admin.from("lugares").delete().eq("id", l.id);
+  }
+}
+
 const LAS_GAVIOTAS_DESTINO_ID = "11111111-1111-1111-1111-111111111111";
+
+/**
+ * Crea un lugar (gastronómico o "qué hacer") server-side y lo vincula al perfil
+ * del email indicado vía `responsabilidades`. Devuelve el id. Para tests que
+ * necesitan un lugar pre-existente (ej. ficha pública) sin pasar por la UI.
+ */
+export async function seedLugarAsResponsable(
+  email: string,
+  slug: string,
+  nombre: string,
+  tipo: "gastronomico" | "atractivo",
+  estado: "borrador" | "pendiente_validacion" | "publicado" | "pausado" | "rechazado" = "publicado"
+): Promise<string> {
+  const admin = getAdminClient();
+
+  const { data: list } = await admin.auth.admin.listUsers({ perPage: 200 });
+  const user = list.users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+  if (!user) throw new Error(`Usuario ${email} no encontrado`);
+
+  const { data: lugar, error } = await admin
+    .from("lugares")
+    .insert({
+      destino_id: LAS_GAVIOTAS_DESTINO_ID,
+      tipo,
+      categoria: tipo === "gastronomico" ? "restaurant" : "playas",
+      slug,
+      nombre,
+      descripcion_corta: "Lugar de testing seedeado server-side para E2E.",
+      whatsapp: "+5492257000000",
+      estado,
+    } as never)
+    .select("id")
+    .single<{ id: string }>();
+  if (error || !lugar) {
+    throw new Error(`Insert seed lugar failed: ${error?.message}`);
+  }
+
+  await admin.from("responsabilidades").upsert(
+    {
+      perfil_id: user.id,
+      entidad_tipo: "lugar",
+      entidad_id: lugar.id,
+    } as never,
+    { onConflict: "perfil_id,entidad_tipo,entidad_id", ignoreDuplicates: true }
+  );
+
+  return lugar.id;
+}
 
 /**
  * Crea un hospedaje en borrador (server-side, service role) y lo asocia al
