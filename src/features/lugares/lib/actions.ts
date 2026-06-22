@@ -423,6 +423,13 @@ export async function deleteLugarAction(id: string): Promise<ActionResult> {
 
   const sb = createAdminClient();
 
+  // Tipo del lugar para volver a la lista correcta (no existe /admin/lugares).
+  const { data: lugar } = await sb
+    .from("lugares")
+    .select("tipo")
+    .eq("id", id)
+    .maybeSingle<{ tipo: "gastronomico" | "atractivo" }>();
+
   // Borrar responsabilidades primero (FK no tiene ON DELETE CASCADE hacia
   // lugares — apunta a perfiles). Igual hay que limpiarlas a mano.
   await sb
@@ -434,8 +441,10 @@ export async function deleteLugarAction(id: string): Promise<ActionResult> {
   const { error } = await sb.from("lugares").delete().eq("id", id);
   if (error) return { error: error.message };
 
-  revalidatePath("/admin/lugares");
-  redirect("/admin/lugares");
+  const lista =
+    lugar?.tipo === "gastronomico" ? "/admin/gastronomia" : "/admin/atractivos";
+  revalidatePath(lista);
+  redirect(lista);
 }
 
 // =============================================================================

@@ -20,18 +20,19 @@ export default async function NuevoAtractivoPage() {
     <div className="max-w-4xl space-y-6">
       <header>
         <h1 className="font-display text-3xl tracking-tight">
-          Nuevo atractivo
+          Nueva actividad
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Cargá lugares de interés del destino: playas, bosques, miradores,
-          espacios culturales. Los gestionás vos directo, sin responsable.
+          Cargá actividades y experiencias del destino: cabalgatas, excursiones,
+          paseos, alquileres. Podés gestionarla vos o asignar un responsable.
+          (Las playas, bosques y espacios culturales van en Atracciones.)
         </p>
       </header>
 
       <LugarForm
         tipo="atractivo"
         destinos={destinos}
-        submitLabel="Crear atractivo"
+        submitLabel="Crear actividad"
         action={action}
       />
     </div>
