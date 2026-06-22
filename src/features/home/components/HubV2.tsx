@@ -3,20 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ArrowRight,
-  Store,
-  LocateFixed,
-  MapPinOff,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight, Store, MapPinOff, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AirbnbTop } from "./AirbnbTop";
 import { HeroCarousel, type HeroSlide } from "@/features/destinos/components/HeroCarousel";
 import { SearchPanel } from "./SearchPanel";
 import { ItemCard } from "./ItemCard";
 import { PromoDetailModal } from "@/features/promos/components/PromoDetailModal";
-import { DestinoMiniCard, type DestinoMini } from "./DestinoMiniCard";
 import { ImperdiblesCarousel } from "./ImperdiblesCarousel";
 import { ComboDetailModal } from "@/features/combos/components/ComboDetailModal";
 import { ArmadorCTA } from "@/features/armador/components/ArmadorCTA";
@@ -55,28 +48,11 @@ interface HubV2Props {
   heroEyebrow?: string | null;
   heroSubtitle?: string | null;
   /**
-   * Si está, el hub queda scopeado a este destino: oculta chips de región y la
-   * banda "Cerca tuyo", el logo/volver navega a la red (`/`), y el contenido es
-   * una grilla (no filas por destino).
+   * Si está, el hub queda scopeado a este destino: oculta chips de región, el
+   * logo/volver navega a la red (`/`), y el contenido es una grilla (no filas
+   * por destino).
    */
   scopedDestino?: { slug: string; nombre: string } | null;
-}
-
-type GeoState = "idle" | "granted" | "denied";
-
-function haversine(
-  a: { lat: number; lng: number },
-  b: { lat: number; lng: number }
-): number {
-  const R = 6371;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const lat1 = (a.lat * Math.PI) / 180;
-  const lat2 = (b.lat * Math.PI) / 180;
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
-  return 2 * R * Math.asin(Math.sqrt(h));
 }
 
 export function HubV2({
@@ -100,8 +76,6 @@ export function HubV2({
   const [search, setSearch] = React.useState<SearchState>(EMPTY_SEARCH);
   const [searchOpen, setSearchOpen] = React.useState(false);
   const [regionFilter, setRegionFilter] = React.useState<string | null>(null);
-  const [geo, setGeo] = React.useState<GeoState>("idle");
-  const [coords, setCoords] = React.useState<{ lat: number; lng: number } | null>(null);
   const [comboSel, setComboSel] = React.useState<ComboPublic | null>(null);
   const [promoSel, setPromoSel] = React.useState<PromoPublic | null>(null);
 
@@ -221,41 +195,6 @@ export function HubV2({
     [combos, allowedSlugs]
   );
 
-  // Destinos cercanos por distancia (solo con geo concedida).
-  const nearby: DestinoMini[] = React.useMemo(() => {
-    if (geo !== "granted" || !coords) return [];
-    return [...destinos]
-      .filter((d) => d.lat != null && d.lng != null)
-      .map((d) => ({
-        d,
-        dist: haversine(coords, { lat: d.lat as number, lng: d.lng as number }),
-      }))
-      .sort((a, b) => a.dist - b.dist)
-      .slice(0, 6)
-      .map(({ d }) => ({
-        slug: d.slug,
-        nombre: d.nombre,
-        region: d.region_label,
-        biomas: d.biomas,
-        hospedajes_count: d.hospedajes_count,
-      }));
-  }, [geo, coords, destinos]);
-
-  function askGeo() {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      setGeo("denied");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setGeo("granted");
-      },
-      () => setGeo("denied"),
-      { timeout: 8000 }
-    );
-  }
-
   function goHub() {
     // Scopeado a un destino: el logo lleva a la red completa.
     if (scopedDestino) {
@@ -327,7 +266,6 @@ export function HubV2({
   // Landing: ninguna vertical enfocada. Hero + promos + combos viven solo acá;
   // la grilla se muestra siempre (en landing con la vertical por defecto).
   const isLanding = tab === null;
-  const showNearby = !scopedDestino && geo === "granted" && nearby.length > 0;
   const showRegionChips = !scopedDestino && regiones.length > 1;
   // Sin vertical enfocada: bandas por vertical (solo las que tienen contenido).
   const verticalesConContenido = VERTICAL_KEYS.filter(
@@ -362,7 +300,6 @@ export function HubV2({
         onApply={handleApplySearch}
         destinos={destinos}
         vertical={tab}
-        onUseGeo={askGeo}
       />
 
       {/* Hero (solo landing): atracciones curadas (emocional) primero; si no hay,
@@ -425,19 +362,6 @@ export function HubV2({
               destinoNombre={singleDestino.nombre}
             />
           </section>
-        )}
-
-        {/* Cercanos (geolocalización). */}
-        {showNearby && (
-          <Band
-            icon={<LocateFixed className="h-4 w-4" aria-hidden />}
-            eyebrow="Cerca tuyo"
-            title="Escapadas a pocas horas"
-          >
-            {nearby.map((d) => (
-              <DestinoMiniCard key={d.slug} destino={d} />
-            ))}
-          </Band>
         )}
 
         {/* Chips de región */}
@@ -625,37 +549,6 @@ function EmptyState({
         Limpiar filtros
       </button>
     </div>
-  );
-}
-
-function Band({
-  icon,
-  eyebrow,
-  title,
-  children,
-}: {
-  icon: React.ReactNode;
-  eyebrow: string;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="border-b border-border py-8">
-      <div className="container">
-        <header className="mb-4">
-          <p className="eyebrow flex items-center gap-2">
-            {icon}
-            {eyebrow}
-          </p>
-          <h2 className="mt-1 font-display text-xl tracking-tight text-foreground sm:text-2xl md:text-3xl">
-            {title}
-          </h2>
-        </header>
-        <div className="flex gap-4 overflow-x-auto pb-2 [scrollbar-width:thin] sm:gap-5">
-          {children}
-        </div>
-      </div>
-    </section>
   );
 }
 
