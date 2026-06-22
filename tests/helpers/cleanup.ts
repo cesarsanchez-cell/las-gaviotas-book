@@ -83,7 +83,25 @@ export async function cleanupTestLugares(slugPrefix: string) {
   }
 }
 
-const LAS_GAVIOTAS_DESTINO_ID = "11111111-1111-1111-1111-111111111111";
+// Resolvemos el destino "Las Gaviotas" por slug (su id real varía por entorno;
+// hardcodearlo rompía los seeds con FK violation). Se cachea tras la 1ª lectura.
+let _lasGaviotasId: string | null = null;
+async function lasGaviotasDestinoId(): Promise<string> {
+  if (_lasGaviotasId) return _lasGaviotasId;
+  const admin = getAdminClient();
+  const { data, error } = await admin
+    .from("destinos")
+    .select("id")
+    .eq("slug", "las-gaviotas")
+    .single<{ id: string }>();
+  if (error || !data) {
+    throw new Error(
+      `No se encontró el destino 'las-gaviotas': ${error?.message ?? "sin dato"}`
+    );
+  }
+  _lasGaviotasId = data.id;
+  return data.id;
+}
 
 /**
  * Crea un lugar (gastronómico o "qué hacer") server-side y lo vincula al perfil
@@ -106,7 +124,7 @@ export async function seedLugarAsResponsable(
   const { data: lugar, error } = await admin
     .from("lugares")
     .insert({
-      destino_id: LAS_GAVIOTAS_DESTINO_ID,
+      destino_id: await lasGaviotasDestinoId(),
       tipo,
       categoria: tipo === "gastronomico" ? "restaurant" : "playas",
       slug,
@@ -153,7 +171,7 @@ export async function seedHospedajeAsResponsable(
   const { data: hospedaje, error } = await admin
     .from("hospedajes")
     .insert({
-      destino_id: LAS_GAVIOTAS_DESTINO_ID,
+      destino_id: await lasGaviotasDestinoId(),
       slug,
       nombre,
       tipo: "cabana",
