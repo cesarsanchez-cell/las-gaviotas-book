@@ -10,7 +10,7 @@ export interface EntidadAsignada {
   id: string;
   nombre: string;
   destinoId: string;
-  tipo: "hospedaje" | "gastronomico";
+  tipo: "hospedaje" | "gastronomico" | "atractivo";
 }
 
 export interface ResponsableListRow {
@@ -29,11 +29,16 @@ export interface ResponsableListRow {
 }
 
 export interface EntidadAsignable {
-  tipo: "hospedaje" | "gastronomico";
+  tipo: "hospedaje" | "gastronomico" | "atractivo";
   id: string;
   nombre: string;
   destinoNombre: string;
   destinoId: string;
+}
+
+/** ¿Es un tipo de lugar (entidad_tipo='lugar' en responsabilidades)? */
+function esTipoLugar(t: string): t is "gastronomico" | "atractivo" {
+  return t === "gastronomico" || t === "atractivo";
 }
 
 type ResponsabilidadDB = {
@@ -147,8 +152,13 @@ export async function listResponsablesAction(): Promise<ResponsableListRow[]> {
       if (h) arr.push({ id: h.id, nombre: h.nombre, destinoId: h.destino_id, tipo: "hospedaje" });
     } else {
       const l = lugaresById.get(r.entidad_id);
-      if (l && l.tipo === "gastronomico") {
-        arr.push({ id: l.id, nombre: l.nombre, destinoId: l.destino_id, tipo: "gastronomico" });
+      if (l && esTipoLugar(l.tipo)) {
+        arr.push({
+          id: l.id,
+          nombre: l.nombre,
+          destinoId: l.destino_id,
+          tipo: l.tipo,
+        });
       }
     }
     respsByPerfil.set(r.perfil_id, arr);
@@ -219,17 +229,18 @@ export async function listEntidadesAsignables(
     }>
   >();
 
-  // 2) Lugares gastronómicos (scoped por destino si admin local).
+  // 2) Lugares comerciales: gastronómicos Y "qué hacer" (scoped si admin local).
   let qL = sb
     .from("lugares")
-    .select("id, nombre, destino_id, destinos!inner(nombre)")
-    .eq("tipo", "gastronomico")
+    .select("id, nombre, tipo, destino_id, destinos!inner(nombre)")
+    .in("tipo", ["gastronomico", "atractivo"])
     .order("nombre");
   if (!me.isSuperAdmin) qL = qL.eq("destino_id", me.destinoId!);
   const { data: lugs } = await qL.returns<
     Array<{
       id: string;
       nombre: string;
+      tipo: "gastronomico" | "atractivo";
       destino_id: string;
       destinos: { nombre: string };
     }>
@@ -263,7 +274,7 @@ export async function listEntidadesAsignables(
   for (const l of lugs ?? []) {
     if (ocupadasLugar.has(l.id) && !incluir.has(l.id)) continue;
     out.push({
-      tipo: "gastronomico",
+      tipo: l.tipo,
       id: l.id,
       nombre: l.nombre,
       destinoId: l.destino_id,
@@ -274,7 +285,7 @@ export async function listEntidadesAsignables(
 }
 
 const entidadRefSchema = z.object({
-  tipo: z.enum(["hospedaje", "gastronomico"]),
+  tipo: z.enum(["hospedaje", "gastronomico", "atractivo"]),
   id: z.string().uuid(),
 });
 
@@ -344,7 +355,7 @@ export async function createResponsableAction(
   const sb = createAdminClient();
 
   const hospedajeIds = entidades.filter((e) => e.tipo === "hospedaje").map((e) => e.id);
-  const lugarIds = entidades.filter((e) => e.tipo === "gastronomico").map((e) => e.id);
+  const lugarIds = entidades.filter((e) => esTipoLugar(e.tipo)).map((e) => e.id);
 
   // Validar scope + existencia de hospedajes.
   if (hospedajeIds.length > 0) {
@@ -372,16 +383,16 @@ export async function createResponsableAction(
       .in("id", lugarIds)
       .returns<Array<{ id: string; destino_id: string; tipo: string }>>();
     if (!lugares || lugares.length !== lugarIds.length) {
-      return { error: "Alguno de los gastronómicos seleccionados no existe." };
+      return { error: "Alguno de los comercios seleccionados no existe." };
     }
-    const noGastro = lugares.find((l) => l.tipo !== "gastronomico");
-    if (noGastro) {
-      return { error: "Solo se pueden asignar lugares de tipo gastronómico." };
+    const noComercio = lugares.find((l) => !esTipoLugar(l.tipo));
+    if (noComercio) {
+      return { error: "Solo se pueden asignar comercios (gastronómico o qué hacer)." };
     }
     if (!me.isSuperAdmin) {
       const fueraScope = lugares.find((l) => l.destino_id !== me.destinoId);
       if (fueraScope) {
-        return { error: "No podés asignar gastronómicos de otro destino." };
+        return { error: "No podés asignar comercios de otro destino." };
       }
     }
   }
@@ -610,7 +621,7 @@ export async function updateResponsableAction(
   );
 
   const hospedajeIds = parsed.data.entidades.filter((e) => e.tipo === "hospedaje").map((e) => e.id);
-  const lugarIds = parsed.data.entidades.filter((e) => e.tipo === "gastronomico").map((e) => e.id);
+  const lugarIds = parsed.data.entidades.filter((e) => esTipoLugar(e.tipo)).map((e) => e.id);
 
   // Scope admin local: TODAS las entidades (actuales + nuevas) deben estar en su destino.
   if (!me.isSuperAdmin) {
@@ -635,11 +646,11 @@ export async function updateResponsableAction(
         .returns<Array<{ id: string; destino_id: string; tipo: string }>>();
       const fuera = (lugs ?? []).find((l) => l.destino_id !== me.destinoId);
       if (fuera) {
-        return { error: "No podés asignar gastronómicos de otro destino." };
+        return { error: "No podés asignar comercios de otro destino." };
       }
-      const noGastro = (lugs ?? []).find((l) => l.tipo !== "gastronomico");
-      if (noGastro) {
-        return { error: "Solo se pueden asignar lugares de tipo gastronómico." };
+      const noComercio = (lugs ?? []).find((l) => !esTipoLugar(l.tipo));
+      if (noComercio) {
+        return { error: "Solo se pueden asignar comercios (gastronómico o qué hacer)." };
       }
     }
 

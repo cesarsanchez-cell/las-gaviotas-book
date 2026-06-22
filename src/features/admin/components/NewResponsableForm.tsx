@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CheckCircle2, Mail, Building2, UtensilsCrossed } from "lucide-react";
+import { CheckCircle2, Mail, Building2, UtensilsCrossed, Compass } from "lucide-react";
 import {
   createResponsableAction,
   type EntidadAsignable,
@@ -126,6 +126,7 @@ export function NewResponsableForm({ entidades, showDestino }: Props) {
 
   const hospedajes = entidades.filter((e) => e.tipo === "hospedaje");
   const gastros = entidades.filter((e) => e.tipo === "gastronomico");
+  const queHacer = entidades.filter((e) => e.tipo === "atractivo");
 
   return (
     <form action={handleSubmit} className="space-y-4">
@@ -197,6 +198,14 @@ export function NewResponsableForm({ entidades, showDestino }: Props) {
           icon={<UtensilsCrossed className="h-3.5 w-3.5" />}
           label="Gastronómicos"
           items={gastros}
+          selected={selected}
+          onToggle={toggle}
+          showDestino={showDestino}
+        />
+        <EntidadSection
+          icon={<Compass className="h-3.5 w-3.5" />}
+          label="Qué hacer"
+          items={queHacer}
           selected={selected}
           onToggle={toggle}
           showDestino={showDestino}

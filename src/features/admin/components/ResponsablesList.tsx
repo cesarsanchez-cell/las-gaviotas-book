@@ -5,6 +5,7 @@ import {
   Trash2,
   Building2,
   UtensilsCrossed,
+  Compass,
   Pencil,
   X,
   Check,
@@ -227,6 +228,13 @@ export function ResponsablesList({ responsables, entidadesDisponibles }: Props) 
                   selected={editSelected}
                   onToggle={toggleEdit}
                 />
+                <EditEntidadSection
+                  icon={<Compass className="h-3.5 w-3.5" />}
+                  label="Qué hacer"
+                  items={opcionesEdit.filter((e) => e.tipo === "atractivo")}
+                  selected={editSelected}
+                  onToggle={toggleEdit}
+                />
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -252,18 +260,32 @@ export function ResponsablesList({ responsables, entidadesDisponibles }: Props) 
               <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                 {r.entidades.length === 0 ? (
                   <span className="text-muted-foreground italic">
-                    Sin entidades asignadas — editá para vincularle hospedajes
-                    o gastronómicos.
+                    Sin entidades asignadas — editá para vincularle hospedajes,
+                    gastronómicos o qué hacer.
                   </span>
                 ) : (
                   r.entidades.map((e) => (
                     <span
                       key={`${e.tipo}:${e.id}`}
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${e.tipo === "hospedaje" ? "bg-sky-100 text-sky-900" : "bg-amber-100 text-amber-900"}`}
-                      title={e.tipo === "hospedaje" ? "Hospedaje" : "Gastronómico"}
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${
+                        e.tipo === "hospedaje"
+                          ? "bg-sky-100 text-sky-900"
+                          : e.tipo === "atractivo"
+                            ? "bg-teal-100 text-teal-900"
+                            : "bg-amber-100 text-amber-900"
+                      }`}
+                      title={
+                        e.tipo === "hospedaje"
+                          ? "Hospedaje"
+                          : e.tipo === "atractivo"
+                            ? "Qué hacer"
+                            : "Gastronómico"
+                      }
                     >
                       {e.tipo === "hospedaje" ? (
                         <Building2 className="h-3 w-3" />
+                      ) : e.tipo === "atractivo" ? (
+                        <Compass className="h-3 w-3" />
                       ) : (
                         <UtensilsCrossed className="h-3 w-3" />
                       )}
