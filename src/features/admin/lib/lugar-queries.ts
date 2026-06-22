@@ -197,10 +197,12 @@ export async function listLugaresPendientesValidacion(
   >
 > {
   const sb = createAdminClient();
+  // Gastronómicos Y "qué hacer": ambos son comerciales con responsable, así que
+  // los dos pueden quedar en "pendiente_validacion" y deben verse en la cola.
   let q = sb
     .from("lugares")
     .select("*, lugar_fotos(*), destinos!inner(slug, nombre)")
-    .eq("tipo", "gastronomico")
+    .in("tipo", ["gastronomico", "atractivo"])
     .eq("estado", "pendiente_validacion")
     .order("updated_at", { ascending: true });
   if (destinoId) q = q.eq("destino_id", destinoId);
