@@ -26,7 +26,8 @@ export async function loginResponsable(
   await page.getByLabel(/email/i).fill(who.email);
   await page.getByLabel(/contrase/i).fill(who.password);
   await page.getByRole("button", { name: /ingresar|entrar|iniciar/i }).click();
-  await page.waitForURL(/\/panel/, { timeout: 15_000 });
+  // Timeout holgado: la 1ª vez `next dev` compila /panel on-demand (puede tardar).
+  await page.waitForURL(/\/panel/, { timeout: 60_000 });
 }
 
 export async function loginAdmin(page: Page) {
@@ -34,5 +35,6 @@ export async function loginAdmin(page: Page) {
   await page.getByLabel(/email/i).fill(ADMIN.email);
   await page.getByLabel(/contrase/i).fill(ADMIN.password);
   await page.getByRole("button", { name: /ingresar|entrar|iniciar/i }).click();
-  await page.waitForURL(/\/admin(?!\/login)/, { timeout: 15_000 });
+  // Timeout holgado: la 1ª vez `next dev` compila /admin on-demand (puede tardar).
+  await page.waitForURL(/\/admin(?!\/login)/, { timeout: 60_000 });
 }

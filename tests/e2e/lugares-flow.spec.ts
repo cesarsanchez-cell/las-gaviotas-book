@@ -75,15 +75,12 @@ for (const caso of CASOS) {
       // No debe aparecer error de RLS (regresión de la migración de responsable).
       await expect(page.getByText(/row-level security/i)).toHaveCount(0);
 
-      // Enviar a validación.
-      const enviar = page.getByRole("button", { name: /enviar a validaci/i });
-      await expect(enviar).toBeVisible({ timeout: 10_000 });
-      await enviar.click();
-
-      // El botón desaparece al pasar a "pendiente".
-      await expect(
-        page.getByRole("button", { name: /enviar a validaci/i })
-      ).toHaveCount(0, { timeout: 15_000 });
+      // A diferencia de hospedajes (borrador → "Enviar a validación"), el lugar
+      // creado por un responsable va DIRECTO a pendiente_validacion. Verificamos
+      // que quedó en revisión.
+      await expect(page.getByText(/pendiente de revisi/i)).toBeVisible({
+        timeout: 10_000,
+      });
     });
 
     test(`admin: aprobar ${caso.etiqueta} pendiente`, async ({ page }) => {

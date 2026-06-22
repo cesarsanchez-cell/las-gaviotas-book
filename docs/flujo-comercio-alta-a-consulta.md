@@ -68,14 +68,19 @@ Hay dos caminos, no excluyentes:
 
 1. **Cargar** — En `/panel` el responsable crea su entidad:
    - **Hospedaje**: `/panel/hospedajes/nuevo` (+ tipos de unidad, disponibilidad, tarifas).
-   - **Gastronómico / Qué hacer**: `/panel/lugares/nuevo` → elige el tipo (gastronómico o "qué hacer").
-   - Carga datos, fotos, ubicación, WhatsApp. Arranca en **borrador**.
-2. **Enviar a validación** — El responsable lo manda a revisión → **pendiente_validación**.
-3. **Confirmar** — El **admin local** lo ve en **`/admin/validaciones`** (Cola de
+     Arranca en **borrador** y el responsable lo manda a revisión con **"Enviar a
+     validación"** → **pendiente_validación**.
+   - **Gastronómico / Qué hacer**: `/panel/lugares/nuevo` → elige el tipo. Cuando
+     lo crea un **responsable** va **directo a `pendiente_validación`** (no hay paso
+     intermedio de "Enviar a validación"; como no puede autopublicar, crearlo ya
+     equivale a mandarlo a revisión). Si lo carga el **admin**, queda en borrador y
+     lo publica él.
+   - En ambos casos: datos, fotos, ubicación, WhatsApp.
+2. **Confirmar** — El **admin local** lo ve en **`/admin/validaciones`** (Cola de
    validación, con secciones Hospedajes / Gastronomía / Qué hacer / Combos) y:
    - **Aprueba** → **publicado** (se notifica al responsable por mail), o
    - **Rechaza** → **rechazado** (vuelve al responsable para corregir).
-4. **Publicado** — Ya aparece en el sitio público del destino.
+3. **Publicado** — Ya aparece en el sitio público del destino.
 
 Notificaciones: toda transición de estado dispara un mail (al responsable, con
 fallback a los admins del destino). Las aprobaciones/rechazos salen con el From
