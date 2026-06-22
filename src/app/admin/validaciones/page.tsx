@@ -15,6 +15,13 @@ export default async function ValidacionesPage() {
       listCombosPendientesValidacion(admin.destinoId),
     ]);
 
+  const pendientesGastro = pendientesLugares.filter(
+    (l) => l.tipo === "gastronomico"
+  );
+  const pendientesQueHacer = pendientesLugares.filter(
+    (l) => l.tipo === "atractivo"
+  );
+
   const total =
     pendientesHospedajes.length +
     pendientesLugares.length +
@@ -27,7 +34,7 @@ export default async function ValidacionesPage() {
           Cola de validación
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Hospedajes y gastronómicos en estado{" "}
+          Hospedajes, gastronómicos y actividades (qué hacer) en estado{" "}
           <span className="font-medium">pendiente de validación</span>{" "}
           esperando tu OK.
         </p>
@@ -59,13 +66,26 @@ export default async function ValidacionesPage() {
         </section>
       )}
 
-      {pendientesLugares.length > 0 && (
+      {pendientesGastro.length > 0 && (
         <section>
           <h2 className="mb-4 font-display text-xl tracking-tight">
-            Gastronomía ({pendientesLugares.length})
+            Gastronomía ({pendientesGastro.length})
           </h2>
           <div className="space-y-6">
-            {pendientesLugares.map((l) => (
+            {pendientesGastro.map((l) => (
+              <LugarValidacionCard key={l.id} lugar={l} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {pendientesQueHacer.length > 0 && (
+        <section>
+          <h2 className="mb-4 font-display text-xl tracking-tight">
+            Qué hacer ({pendientesQueHacer.length})
+          </h2>
+          <div className="space-y-6">
+            {pendientesQueHacer.map((l) => (
               <LugarValidacionCard key={l.id} lugar={l} />
             ))}
           </div>

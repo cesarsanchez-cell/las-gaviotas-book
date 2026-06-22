@@ -62,7 +62,8 @@ export default async function AdminDashboardPage() {
     getLugaresStats("atractivo", admin.destinoId),
   ]);
 
-  const totalPendientes = hostStats.pendientes + gastroStats.pendientes;
+  const totalPendientes =
+    hostStats.pendientes + gastroStats.pendientes + atrStats.pendientes;
 
   const hospedajeItems: CardStat[] = [
     {
@@ -160,6 +161,14 @@ export default async function AdminDashboardPage() {
       tone: "bg-emerald-50 text-emerald-700 border-emerald-200",
     },
     {
+      key: "a-pend",
+      label: "Pendientes",
+      value: atrStats.pendientes,
+      icon: Clock,
+      href: "/admin/atractivos?estado=pendiente_validacion",
+      tone: "bg-amber-50 text-amber-700 border-amber-200",
+    },
+    {
       key: "a-bor",
       label: "Borradores",
       value: atrStats.borradores,
@@ -228,6 +237,16 @@ export default async function AdminDashboardPage() {
                       : "gastronómicos"}
                   </Link>
                 )}
+                {atrStats.pendientes > 0 && (
+                  <Link
+                    href="/admin/validaciones"
+                    className="inline-flex items-center gap-1.5 rounded-md bg-white px-3 py-1.5 text-sm font-medium text-amber-900 ring-1 ring-amber-300 hover:bg-amber-100"
+                  >
+                    <Camera className="h-4 w-4" />
+                    {atrStats.pendientes}{" "}
+                    {atrStats.pendientes === 1 ? "actividad" : "actividades"}
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -263,7 +282,8 @@ export default async function AdminDashboardPage() {
         </header>
         <StatGrid items={atractivoItems} />
         <p className="mt-2 text-xs text-muted-foreground">
-          Las actividades las cargás y publicás vos — no pasan por validación.
+          Las que cargás vos se publican directo; las que manda un responsable
+          pasan por la cola de validación.
         </p>
       </section>
 
