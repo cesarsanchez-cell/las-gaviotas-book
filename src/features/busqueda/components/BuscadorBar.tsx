@@ -3,7 +3,7 @@
 import { useState, useId, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Minus, Plus } from "lucide-react";
-import { DateField } from "@/components/ui/DateField";
+import { DateRangeField } from "@/components/ui/DateRangeField";
 import { Button } from "@/components/ui/button";
 import { todayISO, tomorrowISO, addDaysISO } from "@/lib/date";
 import { cn } from "@/lib/utils";
@@ -107,9 +107,11 @@ export function BuscadorBar({
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    // Si solo se eligió la entrada, la salida cae al día siguiente.
+    const co = checkOut || (checkIn ? addDays(checkIn, 1) : tomorrowISO());
     const params = new URLSearchParams({
       check_in: checkIn,
-      check_out: checkOut,
+      check_out: co,
       adultos: String(adultos),
       ninos: String(ninos),
       bebes: String(bebes),
@@ -141,36 +143,22 @@ export function BuscadorBar({
           "grid gap-3",
           layout === "stack"
             ? "grid-cols-1"
-            : "md:grid-cols-[1fr_1fr_1fr_auto]"
+            : "md:grid-cols-[1.4fr_1fr_auto]"
         )}
       >
         <div>
-          <label className="text-xs font-medium text-muted-foreground" htmlFor={`${baseId}-ci`}>
-            Check-in
+          <label className="text-xs font-medium text-muted-foreground" htmlFor={`${baseId}-fechas`}>
+            Fechas
           </label>
-          <DateField
-            id={`${baseId}-ci`}
-            name="check_in"
-            value={checkIn}
+          <DateRangeField
+            id={`${baseId}-fechas`}
+            from={checkIn}
+            to={checkOut}
             min={todayISO()}
-            onChange={(iso) => {
-              setCheckIn(iso);
-              if (iso && checkOut && iso >= checkOut) {
-                setCheckOut(addDays(iso, 1));
-              }
+            onChange={({ from, to }) => {
+              setCheckIn(from);
+              setCheckOut(to);
             }}
-          />
-        </div>
-        <div>
-          <label className="text-xs font-medium text-muted-foreground" htmlFor={`${baseId}-co`}>
-            Check-out
-          </label>
-          <DateField
-            id={`${baseId}-co`}
-            name="check_out"
-            value={checkOut}
-            min={checkIn ? addDays(checkIn, 1) : tomorrowISO()}
-            onChange={(iso) => setCheckOut(iso)}
           />
         </div>
         <div className="relative">
