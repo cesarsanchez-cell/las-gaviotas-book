@@ -158,9 +158,18 @@ export function DateRangeField({
               mode="range"
               selected={selected}
               defaultMonth={fromD ?? minDate ?? new Date()}
-              onSelect={(range) => {
-                onChange({ from: toISO(range?.from), to: toISO(range?.to) });
-                if (range?.from && range?.to) setOpen(false);
+              // Manejo determinista: el 1er clic SIEMPRE reinicia la entrada
+              // (sin esto, con un rango pre-cargado react-day-picker completa el
+              // rango en el primer clic y cierra sin dejar elegir la salida).
+              onDayClick={(day, modifiers) => {
+                if (modifiers.disabled) return;
+                const clickedISO = toISO(day);
+                if (!fromD || toD || day <= fromD) {
+                  onChange({ from: clickedISO, to: "" });
+                  return; // queda abierto esperando la salida
+                }
+                onChange({ from, to: clickedISO });
+                setOpen(false);
               }}
               disabled={minDate ? { before: minDate } : undefined}
               locale={es}

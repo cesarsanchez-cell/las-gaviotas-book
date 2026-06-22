@@ -157,10 +157,19 @@ export function SearchPanel({
     ? { from: parseISO(fechaIn) as Date, to: parseISO(fechaOut) }
     : undefined;
 
-  function onSelectRange(range: DateRange | undefined) {
-    setFechaIn(toISO(range?.from));
-    setFechaOut(toISO(range?.to));
+  // 1er clic reinicia la entrada; 2º (posterior) fija la salida. Determinista
+  // para no depender de cómo react-day-picker resuelve un rango pre-cargado.
+  function onDayClickRange(day: Date) {
+    const iso = toISO(day);
+    const fromD = parseISO(fechaIn);
+    const toD = parseISO(fechaOut);
     setCuando("");
+    if (!fromD || toD || day <= fromD) {
+      setFechaIn(iso);
+      setFechaOut("");
+      return;
+    }
+    setFechaOut(iso);
   }
 
   function onSelectSingle(d: Date | undefined) {
@@ -321,7 +330,10 @@ export function SearchPanel({
                         disabled={{ before: parseISO(hoy) as Date }}
                         defaultMonth={parseISO(fechaIn) ?? new Date()}
                         selected={rangeSelected}
-                        onSelect={onSelectRange}
+                        onDayClick={(day, modifiers) => {
+                          if (modifiers.disabled) return;
+                          onDayClickRange(day);
+                        }}
                       />
                     ) : (
                       <DayPicker
