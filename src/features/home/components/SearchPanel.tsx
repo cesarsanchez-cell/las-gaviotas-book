@@ -1,7 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Search, LocateFixed, X, MapPin, Minus, Plus } from "lucide-react";
+import { Search, X, MapPin, Minus, Plus } from "lucide-react";
+import { DayPicker, type DateRange } from "react-day-picker";
+import { es } from "date-fns/locale";
+import "react-day-picker/style.css";
 import { cn } from "@/lib/utils";
 import {
   CATEGORIAS_GASTRONOMICO,
@@ -32,7 +35,6 @@ interface SearchPanelProps {
   destinos: DestinoPublicadoLite[];
   /** Vertical activa; null = landing (busca hospedajes por defecto). */
   vertical: HubTab | null;
-  onUseGeo: () => void;
 }
 
 /** ISO de hoy (local) para impedir elegir fechas pasadas. */
@@ -40,6 +42,23 @@ function todayISO(): string {
   const d = new Date();
   d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
   return d.toISOString().slice(0, 10);
+}
+
+/** ISO YYYY-MM-DD → Date local (o undefined). */
+function parseISO(s: string | undefined): Date | undefined {
+  if (!s) return undefined;
+  const [y, m, d] = s.split("-").map(Number);
+  if (!y || !m || !d) return undefined;
+  return new Date(y, m - 1, d);
+}
+
+/** Date → ISO YYYY-MM-DD local (o ""). */
+function toISO(d: Date | undefined): string {
+  if (!d) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const da = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${da}`;
 }
 
 function fmtFecha(s: string): string {
@@ -57,7 +76,6 @@ export function SearchPanel({
   onApply,
   destinos,
   vertical,
-  onUseGeo,
 }: SearchPanelProps) {
   const [donde, setDonde] = React.useState(search.donde);
   const [cuando, setCuando] = React.useState(search.cuando);
@@ -143,16 +161,21 @@ export function SearchPanel({
     setBebes(0);
   }
 
-  function useGeo() {
-    onUseGeo();
-    onClose();
+  // Rango seleccionado en el calendario (modo hospedaje).
+  const rangeSelected: DateRange | undefined = fechaIn
+    ? { from: parseISO(fechaIn) as Date, to: parseISO(fechaOut) }
+    : undefined;
+
+  function onSelectRange(range: DateRange | undefined) {
+    setFechaIn(toISO(range?.from));
+    setFechaOut(toISO(range?.to));
+    setCuando("");
   }
 
-  // Si la fecha de salida queda incoherente al cambiar la entrada, la limpiamos.
-  function onChangeFechaIn(v: string) {
-    setFechaIn(v);
+  function onSelectSingle(d: Date | undefined) {
+    setFechaIn(toISO(d));
+    setFechaOut("");
     setCuando("");
-    if (fechaOut && v && fechaOut <= v) setFechaOut("");
   }
 
   const secHeadClass =
@@ -204,26 +227,16 @@ export function SearchPanel({
             </button>
             {step === "donde" && (
               <div className="mt-2 rounded-xl border border-border bg-card p-3">
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <div className="flex flex-1 items-center gap-2 rounded-lg border border-border px-3">
-                    <Search className="h-4 w-4 text-muted-foreground" aria-hidden />
-                    <input
-                      type="search"
-                      autoFocus
-                      placeholder="ej: Las Gaviotas · Sierras de Córdoba"
-                      value={donde}
-                      onChange={(e) => setDonde(e.target.value)}
-                      className="h-10 w-full bg-transparent text-sm outline-none"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={useGeo}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
-                  >
-                    <LocateFixed className="h-4 w-4" aria-hidden />
-                    Mi ubicación
-                  </button>
+                <div className="flex items-center gap-2 rounded-lg border border-border px-3">
+                  <Search className="h-4 w-4 text-muted-foreground" aria-hidden />
+                  <input
+                    type="search"
+                    autoFocus
+                    placeholder="ej: Las Gaviotas · Sierras de Córdoba"
+                    value={donde}
+                    onChange={(e) => setDonde(e.target.value)}
+                    className="h-10 w-full bg-transparent text-sm outline-none"
+                  />
                 </div>
                 {matches.length > 0 && (
                   <ul className="mt-2 flex flex-col gap-1">
@@ -314,34 +327,42 @@ export function SearchPanel({
                   )}
                 </div>
                 <div className="mt-3 border-t border-border pt-3">
-                  <p className="mb-2 text-xs text-muted-foreground">
-                    O elegí la fecha exacta
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                      {esHospedaje ? "Check-in" : "Desde"}
-                      <input
-                        type="date"
-                        value={fechaIn}
-                        min={hoy}
-                        onChange={(e) => onChangeFechaIn(e.target.value)}
-                        className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none"
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="text-xs text-muted-foreground">
+                      {esHospedaje
+                        ? "O elegí las fechas en el calendario"
+                        : "O elegí el día"}
+                    </p>
+                    {esHospedaje && fechaIn && (
+                      <p className="text-xs font-medium text-foreground">
+                        {fmtFecha(fechaIn)}
+                        {fechaOut ? ` → ${fmtFecha(fechaOut)}` : " · elegí la salida"}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex justify-center">
+                    {esHospedaje ? (
+                      <DayPicker
+                        mode="range"
+                        locale={es}
+                        weekStartsOn={1}
+                        numberOfMonths={1}
+                        disabled={{ before: parseISO(hoy) as Date }}
+                        defaultMonth={parseISO(fechaIn) ?? new Date()}
+                        selected={rangeSelected}
+                        onSelect={onSelectRange}
                       />
-                    </label>
-                    {esHospedaje && (
-                      <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                        Check-out
-                        <input
-                          type="date"
-                          value={fechaOut}
-                          min={fechaIn || hoy}
-                          onChange={(e) => {
-                            setFechaOut(e.target.value);
-                            setCuando("");
-                          }}
-                          className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none"
-                        />
-                      </label>
+                    ) : (
+                      <DayPicker
+                        mode="single"
+                        locale={es}
+                        weekStartsOn={1}
+                        numberOfMonths={1}
+                        disabled={{ before: parseISO(hoy) as Date }}
+                        defaultMonth={parseISO(fechaIn) ?? new Date()}
+                        selected={parseISO(fechaIn)}
+                        onSelect={onSelectSingle}
+                      />
                     )}
                   </div>
                 </div>
