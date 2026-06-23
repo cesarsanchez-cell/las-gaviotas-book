@@ -1,16 +1,11 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/features/admin/lib/auth";
-import { parseFormDataToHospedaje } from "@/features/admin/lib/validation";
 import { notifyHospedajePublicado } from "@/features/admin/lib/notifications";
-import {
-  assertAdminCanAccessDestino,
-  assertAdminCanAccessHospedaje,
-} from "@/features/admin/lib/scope";
+import { assertAdminCanAccessHospedaje } from "@/features/admin/lib/scope";
 import type { EstadoHospedaje } from "@/types/database";
 
 export interface ActionResult {
@@ -32,47 +27,10 @@ function formatZodError(err: z.ZodError): ActionResult {
 export async function createHospedajeAction(
   formData: FormData
 ): Promise<ActionResult> {
-  const admin = await requireAdmin();
-
-  let input;
-  try {
-    input = parseFormDataToHospedaje(formData);
-  } catch (err) {
-    if (err instanceof z.ZodError) return formatZodError(err);
-    return { error: "Error inesperado al parsear el formulario." };
-  }
-
-  // Admin local: forzar destino_id al suyo, sin importar lo que vino del form.
-  // Super admin: puede elegir cualquier destino.
-  if (!admin.isSuperAdmin) {
-    input = { ...input, destino_id: admin.destinoId! };
-  }
-  try {
-    assertAdminCanAccessDestino(admin, input.destino_id);
-  } catch (e) {
-    return { error: (e as Error).message };
-  }
-
-  // Service role: ya validamos rol admin server-side, RLS es redundante.
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("hospedajes")
-    .insert(input as never)
-    .select("id")
-    .single<{ id: string }>();
-
-  if (error) {
-    if (error.code === "23505") {
-      return {
-        error: "Ya existe un hospedaje con ese slug en este destino.",
-        fieldErrors: { slug: "Slug duplicado" },
-      };
-    }
-    return { error: error.message };
-  }
-
-  revalidatePath("/admin/hospedajes");
-  redirect(`/admin/hospedajes/${data.id}`);
+  await requireAdmin();
+  return {
+    error: "Los hospedajes se crean desde /panel. Solo el responsable tiene los datos completos (fotos, detalles exactos, etc.).",
+  };
 }
 
 export async function updateHospedajeAction(

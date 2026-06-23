@@ -103,15 +103,12 @@ export const hospedajeSchema = z.object({
   responsable_documento: z.string().max(40).optional().or(z.literal("").transform(() => undefined)),
   responsable_email: z
     .string()
-    .email("Email inválido")
-    .optional()
-    .or(z.literal("").transform(() => undefined)),
+    .email("Email del responsable requerido"),
   responsable_whatsapp: z.preprocess(
     (v) => (typeof v === "string" ? normalizeWhatsApp(v) : v),
     z
       .string()
       .regex(whatsappRegex, "Ingresá un celular válido. Ej: 1155555555")
-      .optional()
   ),
   responsable_validado: z.coerce.boolean().default(false),
 

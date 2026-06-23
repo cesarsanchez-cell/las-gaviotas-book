@@ -186,6 +186,8 @@ export async function seedHospedajeAsResponsable(
       direccion: "Calle 1 entre 1 y 1",
       whatsapp: "+5492257000000",
       responsable_nombre: "Tester Seed",
+      responsable_email: "responsable@test.local",
+      responsable_whatsapp: "+5492257000000",
       estado,
     } as never)
     .select("id")

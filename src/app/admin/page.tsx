@@ -293,13 +293,6 @@ export default async function AdminDashboardPage() {
         </h2>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link
-            href="/admin/hospedajes/nuevo"
-            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            <Building2 className="h-4 w-4" />
-            Nuevo hospedaje
-          </Link>
-          <Link
             href="/admin/gastronomia/nuevo"
             className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >

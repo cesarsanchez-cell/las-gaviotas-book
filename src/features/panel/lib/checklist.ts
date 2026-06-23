@@ -96,6 +96,16 @@ export function evaluateChecklist(
         !!h.responsable_documento &&
         h.responsable_documento.trim().length >= 6,
     },
+    {
+      key: "responsable_whatsapp",
+      label: "WhatsApp del responsable",
+      ok: !!h.responsable_whatsapp && WHATSAPP_RE.test(h.responsable_whatsapp),
+    },
+    {
+      key: "responsable_email",
+      label: "Email del responsable",
+      ok: !!h.responsable_email && h.responsable_email.includes("@"),
+    },
   ];
 }
 
