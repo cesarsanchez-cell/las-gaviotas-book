@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { resetPasswordAction } from "@/features/panel/lib/session-actions";
 
@@ -45,10 +45,9 @@ export function ResetPasswordForm({ next = "/panel" }: ResetPasswordFormProps) {
     <form action={handleSubmit} className="space-y-5">
       <div className="space-y-2">
         <Label htmlFor="password">Nueva contraseña</Label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           required
           minLength={8}
           autoComplete="new-password"
@@ -60,10 +59,9 @@ export function ResetPasswordForm({ next = "/panel" }: ResetPasswordFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="confirm">Repetir contraseña</Label>
-        <Input
+        <PasswordInput
           id="confirm"
           name="confirm"
-          type="password"
           required
           minLength={8}
           autoComplete="new-password"
