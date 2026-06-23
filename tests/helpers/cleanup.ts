@@ -33,6 +33,13 @@ export async function cleanupTestHospedajes(slugPrefix: string) {
       await admin.storage.from("hospedajes").remove(fotos.map((f) => f.storage_path));
     }
 
+    // responsabilidades es polimórfica (sin FK con cascade): limpiar a mano.
+    await admin
+      .from("responsabilidades")
+      .delete()
+      .eq("entidad_tipo", "hospedaje")
+      .eq("entidad_id", h.id);
+
     await admin.from("hospedajes").delete().eq("id", h.id);
   }
 }
@@ -202,6 +209,18 @@ export async function seedHospedajeAsResponsable(
     .from("perfiles")
     .update({ hospedajes_ids: nuevosIds } as never)
     .eq("id", user.id);
+
+  // Fuente de verdad de propiedad: la tabla `responsabilidades` (hospedajes_ids
+  // quedó como legacy). Sin esta fila, requireResponsable no ve el hospedaje y
+  // /panel/hospedajes/[id] hace notFound() → 404.
+  await admin.from("responsabilidades").upsert(
+    {
+      perfil_id: user.id,
+      entidad_tipo: "hospedaje",
+      entidad_id: hospedaje.id,
+    } as never,
+    { onConflict: "perfil_id,entidad_tipo,entidad_id", ignoreDuplicates: true }
+  );
 
   return hospedaje.id;
 }

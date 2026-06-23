@@ -70,20 +70,23 @@ for (const caso of CASOS) {
       await page.locator('input[name="whatsapp"]').fill("+5492257111111");
 
       await page.getByRole("button", { name: /crear/i }).click();
-      await page.waitForURL(/\/panel\/lugares\/[^/]+$/, { timeout: 20_000 });
+      // Esperar el redirect a la ficha del lugar nuevo (un id UUID, NO "nuevo").
+      // El regex viejo /lugares/[^/]+$ matcheaba /lugares/nuevo?tipo=... y
+      // resolvía al instante, sin esperar de verdad a que el create redirija.
+      await page.waitForURL(/\/panel\/lugares\/[0-9a-f]{8}-[0-9a-f-]+/, {
+        timeout: 30_000,
+        waitUntil: "commit",
+      });
 
       // No debe aparecer error de RLS (regresión de la migración de responsable).
       await expect(page.getByText(/row-level security/i)).toHaveCount(0);
 
-      // Enviar a validación.
-      const enviar = page.getByRole("button", { name: /enviar a validaci/i });
-      await expect(enviar).toBeVisible({ timeout: 10_000 });
-      await enviar.click();
-
-      // El botón desaparece al pasar a "pendiente".
-      await expect(
-        page.getByRole("button", { name: /enviar a validaci/i })
-      ).toHaveCount(0, { timeout: 15_000 });
+      // A diferencia de hospedajes (borrador → "Enviar a validación"), el lugar
+      // creado por un responsable va DIRECTO a pendiente_validacion. Verificamos
+      // que quedó en revisión.
+      await expect(page.getByText(/pendiente de revisi/i)).toBeVisible({
+        timeout: 10_000,
+      });
     });
 
     test(`admin: aprobar ${caso.etiqueta} pendiente`, async ({ page }) => {

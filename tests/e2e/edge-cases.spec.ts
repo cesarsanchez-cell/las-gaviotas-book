@@ -39,11 +39,16 @@ test.describe("Edge cases — control de seguridad y UX", () => {
 
     await page.getByRole("button", { name: /crear cuenta/i }).click();
 
-    // Debe mostrar el mensaje del fix del bug #002, NO la FK violation cruda.
+    // Manejo limpio del email YA registrado: anti-enumeration (F-E3) muestra
+    // "Revisá tu email" igual que un alta nueva; y si Supabase limita el reenvío
+    // de mails, muestra un aviso claro de rate-limit. Cualquiera de los dos es
+    // válido. Lo inadmisible es filtrar el error CRUDO de FK (regresión bug #002).
     await expect(
-      page.getByText(/ya existe una cuenta|cuenta ya/i)
+      page.getByText(/revisá tu email|demasiados mails|esperá un rato/i)
     ).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText(/foreign key|fkey|violates/i)).toHaveCount(0);
+    await expect(
+      page.getByText(/foreign key|fkey|violates|duplicate key/i)
+    ).toHaveCount(0);
   });
 
   test("E03 — responsable A no puede acceder al hospedaje de B (404)", async ({
@@ -87,13 +92,16 @@ test.describe("Edge cases — control de seguridad y UX", () => {
     await expect(page.getByText(/te faltan \d+ ítems/i)).toBeVisible();
   });
 
-  test("E08 — admin logueado no puede acceder al panel responsable (redirect)", async ({
+  test("E08 — admin con sesión puede entrar al panel (modelo multi-rol)", async ({
     page,
   }) => {
+    // Cambio de modelo (roles múltiples): un admin —operador puro o admin local
+    // que también gestiona entidades propias— PUEDE usar /panel. requireResponsable
+    // solo expulsa a /login si no hay sesión. Verificamos que no lo bounce.
     await loginAdmin(page);
     await page.goto("/panel");
-    // requireResponsable detecta rol=admin y redirige a /admin
-    await expect(page).toHaveURL(/\/admin(?!\/login)/, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/panel/, { timeout: 10_000 });
+    await expect(page).not.toHaveURL(/\/login/);
   });
 
   test("E10 — responsable puede editar hospedaje publicado (regresión bug #003)", async ({
