@@ -578,6 +578,7 @@ export default async function UnidadDetallePage({
                     unidadTypeId={tipo.id}
                     unidadNombre={tipo.nombre}
                     hospedajeNombre={hospedaje.nombre}
+                    hospedajeWhatsapp={hospedaje.whatsapp}
                     checkIn={checkIn}
                     checkOut={checkOut}
                     adultos={adultos}
