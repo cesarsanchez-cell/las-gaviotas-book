@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export interface LoginResult {
   error?: string;
@@ -24,7 +25,25 @@ export async function signInAction(formData: FormData): Promise<LoginResult> {
   });
 
   if (error || !data.user) {
-    return { error: error?.message ?? "Credenciales inválidas." };
+    // Por anti-enumeration Supabase suele devolver el genérico "Invalid login
+    // credentials" aunque el problema real sea que falta confirmar el email.
+    // Lo distinguimos para no mostrar "contraseña inválida" engañoso.
+    try {
+      const admin = createAdminClient();
+      const { data: list } = await admin.auth.admin.listUsers({ perPage: 1000 });
+      const u = list.users.find(
+        (x) => x.email?.toLowerCase() === email.toLowerCase()
+      );
+      if (u && !u.email_confirmed_at) {
+        return {
+          error:
+            "Todavía no confirmaste tu email. Revisá tu casilla (incluido spam) y hacé click en el link que te enviamos.",
+        };
+      }
+    } catch {
+      // si el lookup falla, caemos al mensaje genérico
+    }
+    return { error: "Email o contraseña incorrectos." };
   }
 
   // Verificar rol admin

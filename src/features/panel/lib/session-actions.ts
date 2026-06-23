@@ -164,6 +164,25 @@ const signInSchema = z.object({
   password: z.string().min(1),
 });
 
+/**
+ * ¿Existe una cuenta con este email pero todavía SIN confirmar? Se usa para
+ * dar el mensaje correcto en el login: Supabase, por anti-enumeration, suele
+ * devolver "Invalid login credentials" aunque el problema real sea el email
+ * sin confirmar. Falla silencioso a `false` (cae al mensaje genérico).
+ */
+async function emailExisteSinConfirmar(email: string): Promise<boolean> {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
+    const u = data.users.find(
+      (x) => x.email?.toLowerCase() === email.toLowerCase()
+    );
+    return Boolean(u && !u.email_confirmed_at);
+  } catch {
+    return false;
+  }
+}
+
 export async function signInResponsableAction(
   formData: FormData
 ): Promise<AuthResult> {
@@ -181,13 +200,21 @@ export async function signInResponsableAction(
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error || !data.user) {
-    // Email no confirmado: Supabase devuelve code "email_not_confirmed" o
-    // mensaje "Email not confirmed". Lo detectamos para ofrecer reenvío.
+    // Email no confirmado: a veces Supabase devuelve code "email_not_confirmed"
+    // o mensaje "Email not confirmed"...
     const isUnconfirmed =
       error?.code === "email_not_confirmed" ||
       /not confirmed/i.test(error?.message ?? "");
 
-    if (isUnconfirmed) {
+    // ...pero por anti-enumeration MUCHAS veces devuelve el genérico "Invalid
+    // login credentials" aunque el problema real sea que falta confirmar el
+    // email. Eso hacía que el usuario viera "contraseña inválida" con la pass
+    // correcta. Si el error es genérico, miramos si la cuenta existe sin
+    // confirmar y damos el mensaje correcto.
+    const emailSinConfirmar =
+      isUnconfirmed || (await emailExisteSinConfirmar(parsed.data.email));
+
+    if (emailSinConfirmar) {
       return {
         error:
           "Todavía no confirmaste tu email. Revisá tu casilla (incluido spam) y hacé click en el link que te enviamos.",
@@ -196,7 +223,7 @@ export async function signInResponsableAction(
       };
     }
 
-    return { error: error?.message ?? "Credenciales inválidas." };
+    return { error: "Email o contraseña incorrectos." };
   }
 
   // Garantizar perfil (por si signUp falló en crear perfil o usuario migrado)
