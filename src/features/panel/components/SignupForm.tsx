@@ -4,6 +4,7 @@ import * as React from "react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { signUpResponsableAction } from "@/features/panel/lib/session-actions";
 
@@ -59,10 +60,9 @@ export function SignupForm() {
 
       <div className="space-y-2">
         <Label htmlFor="password">Contraseña</Label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           required
           autoComplete="new-password"
           minLength={8}

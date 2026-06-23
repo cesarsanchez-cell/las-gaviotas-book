@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { changePasswordAction } from "@/features/panel/lib/session-actions";
 
@@ -39,10 +39,9 @@ export function ChangePasswordForm() {
     <form ref={formRef} action={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="currentPassword">Contraseña actual</Label>
-        <Input
+        <PasswordInput
           id="currentPassword"
           name="currentPassword"
-          type="password"
           required
           autoComplete="current-password"
         />
@@ -50,10 +49,9 @@ export function ChangePasswordForm() {
 
       <div className="space-y-2">
         <Label htmlFor="newPassword">Nueva contraseña</Label>
-        <Input
+        <PasswordInput
           id="newPassword"
           name="newPassword"
-          type="password"
           required
           minLength={8}
           autoComplete="new-password"
@@ -63,10 +61,9 @@ export function ChangePasswordForm() {
 
       <div className="space-y-2">
         <Label htmlFor="confirm">Repetir nueva contraseña</Label>
-        <Input
+        <PasswordInput
           id="confirm"
           name="confirm"
-          type="password"
           required
           minLength={8}
           autoComplete="new-password"
