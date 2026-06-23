@@ -1,9 +1,31 @@
 import Link from "next/link";
-import { ArrowLeft, Info } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { requireAdmin } from "@/features/admin/lib/auth";
+import { listDestinosForSelect } from "@/features/admin/lib/queries";
+import { InvitacionFormulario } from "./components/invitacion-formulario";
 
-export default async function NuevoHospedajePage() {
-  await requireAdmin();
+interface NuevoHospedajePageProps {
+  searchParams?: Promise<{ destino_id?: string }>;
+}
+
+export default async function NuevoHospedajePage({
+  searchParams,
+}: NuevoHospedajePageProps) {
+  const admin = await requireAdmin();
+
+  const params = await (searchParams ?? Promise.resolve({ destino_id: "" }));
+  let destinoId = params.destino_id || "";
+
+  // Si es admin local, usar su destino automáticamente
+  if (!admin.isSuperAdmin && admin.destinoId) {
+    destinoId = admin.destinoId;
+  }
+
+  // Super admin necesita elegir destino
+  const destinos = await listDestinosForSelect();
+  const destinosDisponibles = admin.isSuperAdmin
+    ? destinos
+    : destinos.filter((d) => d.id === admin.destinoId);
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -16,33 +38,15 @@ export default async function NuevoHospedajePage() {
           Volver a hospedajes
         </Link>
         <h1 className="mt-3 font-display text-3xl tracking-tight">
-          Nuevo hospedaje
+          Invitar responsable
         </h1>
       </header>
 
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
-        <div className="flex gap-4">
-          <Info className="h-5 w-5 flex-shrink-0 text-amber-600 mt-0.5" />
-          <div className="space-y-3">
-            <p className="font-medium text-amber-900">
-              El responsable debe crear el hospedaje directamente
-            </p>
-            <p className="text-sm text-amber-800">
-              Los datos de un hospedaje (fotos, descripción, detalles exactos) solo los tiene el dueño/operador del comercio.
-              El flujo es:
-            </p>
-            <ol className="space-y-2 text-sm text-amber-800 list-decimal list-inside">
-              <li>El responsable hace login en <code className="bg-amber-100 px-1 rounded text-xs">/login</code></li>
-              <li>Va a <code className="bg-amber-100 px-1 rounded text-xs">/panel/hospedajes/nuevo</code> y carga sus datos</li>
-              <li>Vos lo validás desde <code className="bg-amber-100 px-1 rounded text-xs">/admin/validaciones</code></li>
-              <li>Aprobás y se publica</li>
-            </ol>
-            <p className="text-sm text-amber-800 pt-2">
-              <strong>Si también sos responsable de un hospedaje:</strong> accedé a <code className="bg-amber-100 px-1 rounded text-xs">/panel</code> con tu rol de responsable.
-            </p>
-          </div>
-        </div>
-      </div>
+      <InvitacionFormulario
+        destinoId={destinoId}
+        destinos={destinosDisponibles}
+        isSuperAdmin={admin.isSuperAdmin}
+      />
     </div>
   );
 }

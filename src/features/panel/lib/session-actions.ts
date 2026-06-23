@@ -36,6 +36,87 @@ async function getClientIp(): Promise<string | null> {
  *     que no es un vector de enumeración).
  * Devuelve un AuthResult con error si está limitado, o null si puede seguir.
  */
+/**
+ * Vincula hospedajes/lugares invitados (donde responsable_email coincide con el nuevo usuario).
+ * Se llama tras crear el perfil del responsable para establecer las responsabilidades.
+ */
+async function linkInvitedEntities(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+  email: string
+): Promise<void> {
+  try {
+    // Obtener nombre del perfil
+    const { data: perfil } = await admin
+      .from("perfiles")
+      .select("nombre")
+      .eq("id", userId)
+      .single<{ nombre: string | null }>();
+
+    const responsableName = perfil?.nombre || "";
+
+    // Buscar hospedajes invitados
+    const { data: hospedajes } = await admin
+      .from("hospedajes")
+      .select("id")
+      .eq("responsable_email", email)
+      .eq("estado", "borrador")
+      .returns<{ id: string }[]>();
+
+    if (hospedajes && hospedajes.length > 0) {
+      for (const h of hospedajes) {
+        // Actualizar responsable_nombre cuando se vincula
+        await admin
+          .from("hospedajes")
+          .update({ responsable_nombre: responsableName } as never)
+          .eq("id", h.id);
+
+        // Crear responsabilidad
+        await admin.from("responsabilidades").upsert(
+          {
+            perfil_id: userId,
+            entidad_tipo: "hospedaje",
+            entidad_id: h.id,
+          } as never,
+          { onConflict: "perfil_id,entidad_tipo,entidad_id", ignoreDuplicates: true }
+        );
+      }
+    }
+
+    // Buscar lugares gastronómicos invitados (si es que existen)
+    const { data: lugares } = await admin
+      .from("lugares")
+      .select("id")
+      .eq("responsable_email", email)
+      .eq("estado", "borrador")
+      .returns<{ id: string }[]>();
+
+    if (lugares && lugares.length > 0) {
+      for (const l of lugares) {
+        // Actualizar responsable_nombre cuando se vincula
+        await admin
+          .from("lugares")
+          .update({ responsable_nombre: responsableName } as never)
+          .eq("id", l.id);
+
+        // Crear responsabilidad
+        await admin.from("responsabilidades").upsert(
+          {
+            perfil_id: userId,
+            entidad_tipo: "lugar",
+            entidad_id: l.id,
+          } as never,
+          { onConflict: "perfil_id,entidad_tipo,entidad_id", ignoreDuplicates: true }
+        );
+      }
+    }
+  } catch (e) {
+    // Log pero no bloquea — si falla la vinculación, el responsable puede
+    // contactar al admin para que lo resuelva.
+    console.error("[linkInvitedEntities] Error vinculando entidades:", e);
+  }
+}
+
 async function authEmailRateLimited(email?: string): Promise<AuthResult | null> {
   const byIp = await checkRateLimit(await getClientIp(), {
     key: "auth",
@@ -149,6 +230,9 @@ export async function signUpResponsableAction(
         error: `Cuenta creada, error al setear perfil: ${perfilError.message}`,
       };
     }
+
+    // Vincular hospedajes/lugares invitados (responsable_email coincide con nuevo usuario)
+    await linkInvitedEntities(admin, data.user.id, parsed.data.email);
   }
 
   if (data.session) {

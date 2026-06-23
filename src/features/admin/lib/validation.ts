@@ -118,6 +118,35 @@ export const hospedajeSchema = z.object({
 
 export type HospedajeInput = z.infer<typeof hospedajeSchema>;
 
+/** Schema para invitación de admin al responsable. Solo datos mínimos. */
+export const hospedajeInvitacionSchema = z.object({
+  destino_id: z.string().uuid("Destino inválido"),
+  nombre: z.string().min(3, "Mínimo 3 caracteres").max(120),
+  responsable_email: z
+    .string()
+    .email("Email del responsable requerido"),
+  responsable_whatsapp: z.preprocess(
+    (v) => (typeof v === "string" ? normalizeWhatsApp(v) : v),
+    z
+      .string()
+      .regex(whatsappRegex, "Ingresá un celular válido. Ej: 1155555555")
+  ),
+});
+
+export type HospedajeInvitacionInput = z.infer<typeof hospedajeInvitacionSchema>;
+
+export function parseFormDataToHospedajeInvitacion(formData: FormData): HospedajeInvitacionInput {
+  const raw: Record<string, unknown> = {};
+  for (const [k, v] of formData.entries()) {
+    if (typeof v === "string" && v.trim() === "") {
+      // Empty string → key absent
+    } else {
+      raw[k] = v;
+    }
+  }
+  return hospedajeInvitacionSchema.parse(raw);
+}
+
 export function parseFormDataToHospedaje(formData: FormData): HospedajeInput {
   const raw: Record<string, unknown> = {};
   for (const [k, v] of formData.entries()) {

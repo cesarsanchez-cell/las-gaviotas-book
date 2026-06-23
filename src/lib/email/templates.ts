@@ -307,3 +307,21 @@ export function hospedajeRechazadoTemplate(args: {
     ),
   };
 }
+
+export function hospedajeInvitacionTemplate(args: {
+  hospedajeNombre: string;
+  destinoNombre: string;
+  urlPanel: string;
+}): SubjectAndHtml {
+  return {
+    subject: `Invitación: completá tu hospedaje en Mis Escapadas a ${args.destinoNombre}`,
+    html: wrap(
+      `<h2 style="font-size:24px;margin-bottom:16px;">Te invitamos a Mis Escapadas</h2>` +
+        `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">Hola, alguien del equipo de <strong>Mis Escapadas a ${args.destinoNombre}</strong> te está invitando a publicar <strong>${esc(args.hospedajeNombre)}</strong> en nuestro portal.</p>` +
+        `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">Para completar los datos de tu hospedaje (fotos, descripción detallada, amenities, etc.) tocá el botón de abajo.</p>` +
+        button(args.urlPanel, "Completar datos de mi hospedaje") +
+        `<p style="color:#64748b;font-size:14px;line-height:1.5;">Si no tenés una cuenta aún, la crearemos automáticamente usando este email. Una vez confirmés tu email podrás ingresar y completar todos los detalles.</p>` +
+        `<p style="color:#64748b;font-size:14px;line-height:1.5;">¿Preguntas? Respondé a este mail y te ayudamos.</p>`
+    ),
+  };
+}

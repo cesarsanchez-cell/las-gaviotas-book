@@ -7,7 +7,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/features/admin/lib/auth";
 import { notifyHospedajePublicado } from "@/features/admin/lib/notifications";
 import { assertAdminCanAccessHospedaje } from "@/features/admin/lib/scope";
-import { parseFormDataToHospedaje } from "@/features/admin/lib/validation";
+import { parseFormDataToHospedaje, parseFormDataToHospedajeInvitacion } from "@/features/admin/lib/validation";
+import { sendEmail } from "@/lib/email/resend";
+import { hospedajeInvitacionTemplate } from "@/lib/email/templates";
+import { siteConfig } from "@/config/site";
 import type { EstadoHospedaje } from "@/types/database";
 
 export interface ActionResult {
@@ -29,10 +32,77 @@ function formatZodError(err: z.ZodError): ActionResult {
 export async function createHospedajeAction(
   formData: FormData
 ): Promise<ActionResult> {
-  await requireAdmin();
-  return {
-    error: "Los hospedajes se crean desde /panel. Solo el responsable tiene los datos completos (fotos, detalles exactos, etc.).",
-  };
+  const admin = await requireAdmin();
+
+  let input;
+  try {
+    input = parseFormDataToHospedajeInvitacion(formData);
+  } catch (err) {
+    if (err instanceof z.ZodError) return formatZodError(err);
+    return { error: "Error inesperado al parsear el formulario." };
+  }
+
+  // Admin local no puede invitar responsables en otros destinos.
+  if (!admin.isSuperAdmin && input.destino_id !== admin.destinoId) {
+    return { error: "No podés invitar responsables de otro destino." };
+  }
+
+  const supabase = createAdminClient();
+
+  // Crear hospedaje en estado "borrador" con datos mínimos.
+  const { data: hospedaje, error: insertError } = await supabase
+    .from("hospedajes")
+    .insert({
+      destino_id: input.destino_id,
+      nombre: input.nombre,
+      responsable_email: input.responsable_email,
+      responsable_whatsapp: input.responsable_whatsapp,
+      whatsapp: input.responsable_whatsapp, // El whatsapp principal es el del responsable
+      responsable_nombre: "", // Será completado por el responsable al registrarse
+      tipo: "cabana", // tipo por defecto, el responsable puede cambiar
+      slug: "", // será completado por el responsable
+      direccion: "", // será completado por el responsable
+      descripcion_corta: "", // será completado por el responsable
+      estado: "borrador",
+    } as never)
+    .select("id")
+    .single<{ id: string }>();
+
+  if (insertError || !hospedaje) {
+    return { error: insertError?.message ?? "Error al crear invitación." };
+  }
+
+  // Obtener destino para armar el link
+  const { data: destino } = await supabase
+    .from("destinos")
+    .select("slug")
+    .eq("id", input.destino_id)
+    .maybeSingle<{ slug: string }>();
+
+  // Enviar mail de invitación
+  const urlPanel = `${siteConfig.url}/panel/hospedajes/${hospedaje.id}`;
+  const tpl = hospedajeInvitacionTemplate({
+    hospedajeNombre: input.nombre,
+    destinoNombre: destino?.slug ?? "Mis Escapadas",
+    urlPanel,
+  });
+
+  const emailResult = await sendEmail({
+    to: input.responsable_email,
+    ...tpl,
+  });
+
+  if (!emailResult.ok) {
+    console.error("[createHospedaje invitación] sendEmail falló:", emailResult.error);
+    // No bloqueamos la creación si falla el email, pero avisamos
+    return {
+      ok: true,
+      error: "Hospedaje creado pero hubo un problema al enviar la invitación por email. Podés intentar nuevamente desde la lista.",
+    };
+  }
+
+  revalidatePath("/admin/hospedajes");
+  return { ok: true };
 }
 
 export async function updateHospedajeAction(

@@ -1,0 +1,36 @@
+
+> las-gaviotas-book@0.1.0 build
+> next build
+
+   ▲ Next.js 15.5.18
+   - Environments: .env.local
+   - Experiments (use with caution):
+     · optimizePackageImports
+
+   Creating an optimized production build ...
+ ⚠ Compiled with warnings in 26.0s
+
+./src/app/admin/hospedajes/nuevo/components/invitacion-formulario.tsx
+Attempted import error: 'SelectTrigger' is not exported from '@/components/ui/select' (imported as 'SelectTrigger').
+
+Import trace for requested module:
+./src/app/admin/hospedajes/nuevo/components/invitacion-formulario.tsx
+
+./src/app/admin/hospedajes/nuevo/components/invitacion-formulario.tsx
+Attempted import error: 'SelectValue' is not exported from '@/components/ui/select' (imported as 'SelectValue').
+
+Import trace for requested module:
+./src/app/admin/hospedajes/nuevo/components/invitacion-formulario.tsx
+
+./src/app/admin/hospedajes/nuevo/components/invitacion-formulario.tsx
+Attempted import error: 'SelectContent' is not exported from '@/components/ui/select' (imported as 'SelectContent').
+
+Import trace for requested module:
+./src/app/admin/hospedajes/nuevo/components/invitacion-formulario.tsx
+
+./src/app/admin/hospedajes/nuevo/components/invitacion-formulario.tsx
+Attempted import error: 'SelectItem' is not exported from '@/components/ui/select' (imported as 'SelectItem').
+
+Import trace for requested module:
+./src/app/admin/hospedajes/nuevo/components/invitacion-formulario.tsx
+
