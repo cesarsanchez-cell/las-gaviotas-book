@@ -234,3 +234,34 @@ export async function updateUnidadTypeFotoAltAction(input: {
   revalidate(ctx.hospedajeId);
   return { ok: true };
 }
+
+/**
+ * Reordena las fotos de un tipo de unidad. `orderedIds` es la secuencia final
+ * deseada; se persiste `orden = índice`. El `.eq(unidad_type_id)` evita tocar
+ * fotos de otra unidad si llegara un id ajeno.
+ */
+export async function updateUnidadTypeFotoOrderAction(input: {
+  unidadTypeId: string;
+  orderedIds: string[];
+}) {
+  let ctx;
+  try {
+    ctx = await requireResponsableOwnsUnidadType(input.unidadTypeId);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+  const sb = createAdminClient();
+
+  await Promise.all(
+    input.orderedIds.map((id, i) =>
+      sb
+        .from("unidad_type_fotos")
+        .update({ orden: i } as never)
+        .eq("id", id)
+        .eq("unidad_type_id", input.unidadTypeId)
+    )
+  );
+
+  revalidate(ctx.hospedajeId);
+  return { ok: true };
+}

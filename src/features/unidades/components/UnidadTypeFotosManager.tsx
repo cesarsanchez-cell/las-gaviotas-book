@@ -2,7 +2,15 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Trash2, Star, StarOff, Upload, Loader2 } from "lucide-react";
+import {
+  Trash2,
+  Star,
+  StarOff,
+  Upload,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getFotoUrl, validateImageFile } from "@/lib/storage";
@@ -12,6 +20,7 @@ import {
   deleteUnidadTypeFotoAction,
   setUnidadTypeFotoPrincipalAction,
   updateUnidadTypeFotoAltAction,
+  updateUnidadTypeFotoOrderAction,
 } from "@/features/unidades/lib/foto-actions";
 import type { UnidadTypeFotoRow } from "@/types/database";
 
@@ -136,11 +145,56 @@ export function UnidadTypeFotosManager({ unidadTypeId, fotos }: Props) {
     router.refresh();
   }
 
-  const sortedFotos = [...fotos].sort((a, b) => {
-    if (a.es_principal && !b.es_principal) return -1;
-    if (!a.es_principal && b.es_principal) return 1;
-    return a.orden - b.orden;
-  });
+  // Orden de presentación: principal primero, el resto por `orden`.
+  function sortServer(list: UnidadTypeFotoRow[]) {
+    return [...list].sort((a, b) => {
+      if (a.es_principal && !b.es_principal) return -1;
+      if (!a.es_principal && b.es_principal) return 1;
+      return a.orden - b.orden;
+    });
+  }
+
+  // Orden local optimista (ver FotosManager para el detalle del approach).
+  const [order, setOrder] = React.useState<string[]>(() =>
+    sortServer(fotos).map((f) => f.id)
+  );
+  const principalId = fotos.find((f) => f.es_principal)?.id ?? "";
+  const signature =
+    fotos
+      .map((f) => f.id)
+      .sort()
+      .join(",") +
+    "|" +
+    principalId;
+  React.useEffect(() => {
+    setOrder(sortServer(fotos).map((f) => f.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature]);
+
+  const byId = new Map(fotos.map((f) => [f.id, f]));
+  const displayed: UnidadTypeFotoRow[] = order
+    .map((id) => byId.get(id))
+    .filter((f): f is UnidadTypeFotoRow => Boolean(f));
+  for (const f of sortServer(fotos)) {
+    if (!order.includes(f.id)) displayed.push(f);
+  }
+
+  async function move(i: number, dir: "left" | "right") {
+    const j = dir === "left" ? i - 1 : i + 1;
+    if (j < 0 || j >= displayed.length) return;
+    if (displayed[i].es_principal || displayed[j].es_principal) return;
+    const newOrder = displayed.map((f) => f.id);
+    [newOrder[i], newOrder[j]] = [newOrder[j], newOrder[i]];
+    setOrder(newOrder);
+    const res = await updateUnidadTypeFotoOrderAction({
+      unidadTypeId,
+      orderedIds: newOrder,
+    });
+    if (res.error) {
+      setError(res.error);
+      router.refresh();
+    }
+  }
 
   return (
     <section className="rounded-xl border border-border bg-card p-6">
@@ -191,8 +245,14 @@ export function UnidadTypeFotosManager({ unidadTypeId, fotos }: Props) {
         </div>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-3 md:grid-cols-4">
-          {sortedFotos.map((foto) => {
+          {displayed.map((foto, i) => {
             const isEditingAlt = editingAltId === foto.id;
+            const canLeft =
+              i > 0 && !foto.es_principal && !displayed[i - 1].es_principal;
+            const canRight =
+              i < displayed.length - 1 &&
+              !foto.es_principal &&
+              !displayed[i + 1].es_principal;
             return (
               <li
                 key={foto.id}
@@ -209,12 +269,35 @@ export function UnidadTypeFotosManager({ unidadTypeId, fotos }: Props) {
                     sizes="(max-width: 640px) 50vw, 25vw"
                     className="object-cover"
                   />
+                  {!foto.es_principal && (
+                    <span className="absolute right-2 top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-black/60 px-1.5 text-[10px] font-medium text-white">
+                      {i + 1}
+                    </span>
+                  )}
                   {foto.es_principal && (
                     <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
                       <Star className="h-3 w-3" /> Principal
                     </span>
                   )}
-                  <div className="absolute inset-x-0 bottom-0 flex justify-between bg-black/60 px-2 py-1.5 opacity-0 transition group-hover:opacity-100">
+                  <div className="absolute inset-x-0 bottom-0 flex items-center gap-1 bg-black/60 px-2 py-1.5 opacity-0 transition group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => move(i, "left")}
+                      disabled={!canLeft}
+                      className="inline-flex items-center text-white hover:text-primary disabled:cursor-not-allowed disabled:opacity-30"
+                      title="Mover antes"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => move(i, "right")}
+                      disabled={!canRight}
+                      className="inline-flex items-center text-white hover:text-primary disabled:cursor-not-allowed disabled:opacity-30"
+                      title="Mover después"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
                     {!foto.es_principal && (
                       <button
                         type="button"
