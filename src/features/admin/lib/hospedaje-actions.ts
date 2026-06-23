@@ -1,11 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/features/admin/lib/auth";
 import { notifyHospedajePublicado } from "@/features/admin/lib/notifications";
 import { assertAdminCanAccessHospedaje } from "@/features/admin/lib/scope";
+import { parseFormDataToHospedaje } from "@/features/admin/lib/validation";
 import type { EstadoHospedaje } from "@/types/database";
 
 export interface ActionResult {
@@ -64,10 +66,32 @@ export async function updateHospedajeAction(
   // notificación (ej. publicado desde el editor sin pasar por validaciones).
   const { data: previo } = await supabase
     .from("hospedajes")
-    .select("estado")
+    .select("estado, responsable_email, responsable_whatsapp")
     .eq("id", id)
-    .maybeSingle<{ estado: EstadoHospedaje }>();
+    .maybeSingle<{
+      estado: EstadoHospedaje;
+      responsable_email: string | null;
+      responsable_whatsapp: string | null;
+    }>();
   const estadoAnterior = previo?.estado ?? null;
+
+  // Si se intenta publicar, validar que tenga datos de contacto del responsable.
+  if (input.estado === "publicado") {
+    const email = input.responsable_email ?? previo?.responsable_email;
+    const whatsapp = input.responsable_whatsapp ?? previo?.responsable_whatsapp;
+
+    if (!email) {
+      return {
+        error: "No se puede publicar sin email del responsable.",
+      };
+    }
+
+    if (!whatsapp) {
+      return {
+        error: "No se puede publicar sin WhatsApp del responsable.",
+      };
+    }
+  }
 
   const { error } = await supabase
     .from("hospedajes")
@@ -122,6 +146,31 @@ export async function changeEstadoAction(input: {
   }
 
   const supabase = createAdminClient();
+
+  // Si se intenta publicar, validar que tenga datos de contacto del responsable.
+  if (parsed.data.estado === "publicado") {
+    const { data: h } = await supabase
+      .from("hospedajes")
+      .select("responsable_email, responsable_whatsapp")
+      .eq("id", parsed.data.id)
+      .maybeSingle<{
+        responsable_email: string | null;
+        responsable_whatsapp: string | null;
+      }>();
+
+    if (!h?.responsable_email) {
+      return {
+        error: "No se puede publicar sin email del responsable.",
+      };
+    }
+
+    if (!h?.responsable_whatsapp) {
+      return {
+        error: "No se puede publicar sin WhatsApp del responsable.",
+      };
+    }
+  }
+
   const { error } = await supabase
     .from("hospedajes")
     .update({ estado: parsed.data.estado } as never)
