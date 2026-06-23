@@ -2,7 +2,9 @@ import Link from "next/link";
 import {
   Plus,
   Building2,
+  Store,
   Utensils,
+  Compass,
   FileText,
   Clock,
   CheckCircle2,
@@ -14,6 +16,42 @@ import { listMyHospedajes } from "@/features/panel/lib/queries";
 import { listLugaresDelResponsable } from "@/features/lugares/lib/queries";
 import { buttonVariants } from "@/components/ui/button";
 import type { EstadoHospedaje, EstadoLugar } from "@/types/database";
+
+type LugarItem = {
+  id: string;
+  nombre: string;
+  categoria: string;
+  estado: EstadoLugar;
+};
+
+/** Lista de comercios (gastronómicos o "qué hacer") con su estado. */
+function LugarList({ items }: { items: LugarItem[] }) {
+  return (
+    <ul className="divide-y divide-border rounded-xl border border-border bg-card">
+      {items.map((l) => {
+        const info = ESTADO_INFO[l.estado];
+        const Icon = info.icon;
+        return (
+          <li key={l.id}>
+            <Link
+              href={`/panel/lugares/${l.id}`}
+              className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-muted/40"
+            >
+              <div className="min-w-0">
+                <p className="font-medium text-foreground">{l.nombre}</p>
+                <p className="text-xs text-muted-foreground">{l.categoria}</p>
+              </div>
+              <div className={`flex items-center gap-2 text-sm ${info.tone}`}>
+                <Icon className="h-4 w-4" />
+                {info.label}
+              </div>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 const ESTADO_INFO: Record<
   EstadoHospedaje | EstadoLugar,
@@ -42,6 +80,10 @@ export default async function PanelDashboardPage() {
   ]);
 
   const sinEntidades = hospedajes.length === 0 && lugares.length === 0;
+
+  // Dentro de "Mis comercios" separamos por tipo.
+  const gastronomicos = lugares.filter((l) => l.tipo === "gastronomico");
+  const queHacer = lugares.filter((l) => l.tipo === "atractivo");
 
   return (
     <div className="max-w-5xl space-y-10">
@@ -143,7 +185,7 @@ export default async function PanelDashboardPage() {
           <section className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="inline-flex items-center gap-2 font-display text-2xl tracking-tight">
-                <Utensils className="h-5 w-5 text-muted-foreground" aria-hidden />
+                <Store className="h-5 w-5 text-muted-foreground" aria-hidden />
                 Mis comercios
               </h2>
               <Link
@@ -161,33 +203,26 @@ export default async function PanelDashboardPage() {
                 para agregar uno.
               </div>
             ) : (
-              <ul className="divide-y divide-border rounded-xl border border-border bg-card">
-                {lugares.map((l) => {
-                  const info = ESTADO_INFO[l.estado];
-                  const Icon = info.icon;
-                  return (
-                    <li key={l.id}>
-                      <Link
-                        href={`/panel/lugares/${l.id}`}
-                        className="flex items-center justify-between gap-4 px-5 py-4 transition hover:bg-muted/40"
-                      >
-                        <div className="min-w-0">
-                          <p className="font-medium text-foreground">{l.nombre}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {l.categoria}
-                          </p>
-                        </div>
-                        <div
-                          className={`flex items-center gap-2 text-sm ${info.tone}`}
-                        >
-                          <Icon className="h-4 w-4" />
-                          {info.label}
-                        </div>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+              <div className="space-y-6">
+                {gastronomicos.length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <Utensils className="h-4 w-4" aria-hidden />
+                      Gastronómicos
+                    </h3>
+                    <LugarList items={gastronomicos} />
+                  </div>
+                )}
+                {queHacer.length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                      <Compass className="h-4 w-4" aria-hidden />
+                      Qué hacer
+                    </h3>
+                    <LugarList items={queHacer} />
+                  </div>
+                )}
+              </div>
             )}
           </section>
         </>
