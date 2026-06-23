@@ -12,7 +12,7 @@ let photoPaths: string[] = [];
 let hospedajeId = "";
 
 test.beforeAll(async () => {
-  photoPaths = await ensurePhotoFixtures(5);
+  photoPaths = await ensurePhotoFixtures(1);
   await cleanupTestHospedajes(SLUG_PREFIX);
   await resetResponsableHospedajes(RESPONSABLE.email);
 });
@@ -115,16 +115,16 @@ test.describe.serial("Golden path E2E: responsable → admin aprueba → publica
     // Esperar que aparezca el mensaje de "Cambios guardados" o que el botón vuelva a estado normal
     await page.waitForLoadState("networkidle");
 
-    // G05 — subir 5 fotos. El input es hidden detrás del label "Subir fotos".
+    // G05 — subir 1 foto (mínimo requerido). El input es hidden detrás del label "Subir fotos".
     await page.locator('input[type="file"][accept^="image"]').setInputFiles(photoPaths);
 
-    // El componente actualiza state tras cada upload. Esperar a que aparezcan
-    // las 5 li dentro de la sección de fotos. Damos tiempo generoso porque
+    // El componente actualiza state tras cada upload. Esperar a que aparezca
+    // la foto en la sección de fotos. Damos tiempo generoso porque
     // cada upload pasa por: storage upload + registerFotoAction + state update.
     const fotosSection = page.locator("section").filter({
       has: page.locator('input[type="file"][accept^="image"]'),
     });
-    await expect(fotosSection.locator("ul > li")).toHaveCount(5, {
+    await expect(fotosSection.locator("ul > li")).toHaveCount(1, {
       timeout: 90_000,
     });
 

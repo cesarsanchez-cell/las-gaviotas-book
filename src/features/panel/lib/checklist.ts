@@ -11,8 +11,7 @@ export interface ChecklistItem {
 }
 
 const WHATSAPP_RE = /^\+\d{10,15}$/;
-const MIN_FOTOS = 5;
-const MIN_FOTO_WIDTH = 1200;
+const MIN_FOTOS = 1;
 const MIN_AMENITIES = 3;
 const MIN_DESCRIPCION_LARGA = 200;
 
@@ -21,7 +20,6 @@ export function evaluateChecklist(
   fotos: Pick<HospedajeFotoRow, "es_principal" | "width">[]
 ): ChecklistItem[] {
   const amenities = h.amenities ?? [];
-  const fotosWithGoodWidth = fotos.filter((f) => (f.width ?? 0) >= MIN_FOTO_WIDTH);
 
   return [
     {
@@ -83,15 +81,6 @@ export function evaluateChecklist(
       key: "foto_principal",
       label: "Una foto marcada como principal",
       ok: fotos.some((f) => f.es_principal),
-    },
-    {
-      key: "fotos_calidad",
-      label: `Al menos ${MIN_FOTOS} fotos en alta resolución (${MIN_FOTO_WIDTH}px de ancho o más)`,
-      ok: fotosWithGoodWidth.length >= MIN_FOTOS,
-      hint:
-        fotos.length > 0
-          ? `${fotosWithGoodWidth.length}/${MIN_FOTOS} en alta resolución (tenés ${fotos.length} en total)`
-          : undefined,
     },
     {
       key: "amenities",

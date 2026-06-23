@@ -135,7 +135,7 @@ test.describe("Edge cases — control de seguridad y UX", () => {
     await expect(page.getByText(/estado:\s*publicado/i)).toBeVisible();
   });
 
-  test("E12 — no permite borrar foto si dejaría hospedaje publicado con <5 buenas", async ({
+  test("E12 — no permite borrar foto si dejaría hospedaje publicado sin fotos", async ({
     page,
   }) => {
     const slug = `${EDGE_SLUG_PREFIX}fotos-${TS}`;
@@ -145,8 +145,8 @@ test.describe("Edge cases — control de seguridad y UX", () => {
       `Hospedaje Fotos ${TS}`,
       "publicado"
     );
-    // Exactamente 5 fotos buenas → borrar una dejaría 4 (menor al mínimo)
-    await seedFotosForHospedaje(hospedajeId, 5, 1600, 1200);
+    // Exactamente 1 foto (mínimo requerido) → borrar dejaría 0 (menor al mínimo)
+    await seedFotosForHospedaje(hospedajeId, 1);
 
     await loginResponsable(page, RESPONSABLE);
     await page.goto(`/panel/hospedajes/${hospedajeId}`);
@@ -166,7 +166,7 @@ test.describe("Edge cases — control de seguridad y UX", () => {
     const fotosSection = page.locator("section").filter({
       has: page.locator('input[type="file"][accept^="image"]'),
     });
-    await expect(fotosSection.locator("ul > li")).toHaveCount(5);
+    await expect(fotosSection.locator("ul > li")).toHaveCount(1);
   });
 
   test("E11 — cambio de campo crítico en publicado vuelve a pendiente_validacion", async ({

@@ -121,8 +121,7 @@ export async function registerFotoAction(input: z.infer<typeof insertFotoSchema>
   return { ok: true };
 }
 
-const MIN_FOTOS_PUBLICADO = 5;
-const MIN_FOTO_WIDTH = 1200;
+const MIN_FOTOS_PUBLICADO = 1;
 
 export async function deleteFotoAction(input: {
   fotoId: string;
@@ -160,17 +159,17 @@ export async function deleteFotoAction(input: {
   if (hospedaje?.estado === "publicado") {
     const { data: fotos } = await admin
       .from("hospedaje_fotos")
-      .select("id, width")
+      .select("id")
       .eq("hospedaje_id", input.hospedajeId)
-      .returns<{ id: string; width: number | null }[]>();
+      .returns<{ id: string }[]>();
 
-    const remainingGoodWidth = (fotos ?? []).filter(
-      (f) => f.id !== input.fotoId && (f.width ?? 0) >= MIN_FOTO_WIDTH
+    const remainingFotos = (fotos ?? []).filter(
+      (f) => f.id !== input.fotoId
     ).length;
 
-    if (remainingGoodWidth < MIN_FOTOS_PUBLICADO) {
+    if (remainingFotos < MIN_FOTOS_PUBLICADO) {
       return {
-        error: `No podés borrar esta foto: el hospedaje quedaría con menos de ${MIN_FOTOS_PUBLICADO} fotos en alta resolución. Subí un reemplazo de buena calidad primero, o pausá el hospedaje antes de borrar.`,
+        error: `No podés borrar esta foto: el hospedaje quedaría sin fotos. Subí un reemplazo primero, o pausá el hospedaje antes de borrar.`,
       };
     }
   }

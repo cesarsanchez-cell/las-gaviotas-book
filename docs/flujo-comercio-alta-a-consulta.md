@@ -88,21 +88,133 @@ por defecto; las consultas llevan Reply-To al originador.
 
 ---
 
-## 5. Descubrimiento del cliente (sitio público)
+## 5. Descubrimiento e interacción del cliente (sitio público)
 
-- **Hub / Home (`/`)** y **Home de destino (`/[destino]`)**:
-  - **Hero emocional**: atracciones curadas (chip ⭐ "Recomendado") con su zona.
-  - **Banda "Imperdibles"**: promos + combos (ofertas comerciales) en un carrusel.
-  - **Verticales**: Hospedajes · Gastronomía · Qué hacer.
-  - **Buscador** (calendario de rango): "dónde", fechas, huéspedes.
-- **Búsqueda de disponibilidad** (hospedajes): `/[destino]/buscar` →
-  resultados por **unidad** según fechas y huéspedes (con precio si hay tarifa).
-- **Ficha pública**:
-  - Hospedaje: `/[destino]/hospedajes/[slug]` (galería, amenities, ubicación,
-    disponibilidad informativa, unidades).
-  - Gastronómico / Qué hacer: `/[destino]/gastronomia/[slug]` y
-    `/[destino]/atractivos/[slug]` (datos, fotos, contacto).
-- **Zona**: `/zona/[slug]` (atracciones + destinos de la zona).
+### 5.1 — Home / Landing (punto de entrada)
+
+El cliente llega a **`/`** y ve una página unificada (Hub) que muestra:
+
+- **Hero emocional** (banner superior):
+  - Atracciones curadas (playas, bosque, eventos) con chip ⭐ "Recomendado".
+  - **Buscador principal** (SearchPanel modal):
+    - Paso 1: **"¿Dónde?"** — input con autocomplete a destinos publicados.
+    - Paso 2: **"¿Tipo?"** — chips de categorías (solo para gastro/atractivos: Bar, Restaurante, Playa, Cultura, etc.).
+    - Paso 3: **"¿Cuándo?"** — calendario single/range. Para hospedajes: rango (check-in / check-out). Para gastro/atractivos: fecha única u omitida.
+    - Paso 4: **"¿Quién?"** — contadores de adultos, menores, bebés (solo para hospedajes).
+
+- **Bandas horizontales** (carruseles) por vertical:
+  - **Hospedajes**: 8-10 items destacados.
+  - **Gastronomía**: 8-10 items destacados.
+  - **Qué hacer** (atractivos): 8-10 items destacados.
+
+- **Banda "Imperdibles"**: promos + combos (ofertas comerciales especiales).
+
+- **Chips de región**: al clickear, filtran las bandas en vivo sin navegar (solo aplica el filtro).
+
+### 5.2 — Búsqueda y flujo del buscador
+
+Cuando el cliente presiona **"Buscar"** en el SearchPanel:
+
+1. **Si tiene destino + fechas + huéspedes (hospedajes)**:
+   - Navega a **`/[destino]/buscar?check_in=YYYY-MM-DD&check_out=YYYY-MM-DD&adultos=N&ninos=N&bebes=N`**
+   - Se abre la página de **disponibilidad** (paso 5.3).
+
+2. **Si no tiene destino claro o le faltan criterios**:
+   - La búsqueda **filtra las bandas en vivo** en el hub sin navegar.
+   - El cliente sigue viendo el listado, ahora filtrado.
+
+3. **Reutilización del buscador**:
+   - En cualquier página (hub, ficha de hospedaje, etc.) aparece un **BuscadorBar** compacto.
+   - El cliente puede editar sus criterios sin perder la página (si solo cambia región, se refiltra en vivo; si cambia fechas, navega a disponibilidad).
+
+### 5.3 — Búsqueda de disponibilidad (hospedajes)
+
+Ruta: **`/[destino]/buscar?check_in=...&check_out=...&adultos=...`**
+
+1. **Sin criterios en la URL**: pantalla vacía pidiendo que el cliente complete la búsqueda (buscador destacado).
+
+2. **Con criterios**:
+   - Muestra lista de **UnidadCards** (cabañas, apartamentos, etc.) que cumplen la capacidad y están disponibles en el rango.
+   - Cada card incluye:
+     - Fotos destacadas (carrusel).
+     - Nombre del hospedaje y la unidad.
+     - Capacidad máxima.
+     - **Precio para el rango buscado** (si la tarifa está cargada).
+     - Botón **"Ver detalles"** → navega a ficha de la unidad (paso 5.5).
+
+3. **Contexto preservado**:
+   - La URL pasea el contexto (check-in, check-out, pax) a lo largo de toda la jornada.
+   - Si el cliente cliquea en una unidad, ese contexto va a la URL: **`/[destino]/hospedajes/[slug]/unidades/[unidadTypeId]?check_in=...&check_out=...`**
+
+### 5.4 — Ficha de hospedaje (detalle del alojamiento)
+
+Ruta: **`/[destino]/hospedajes/[slug]`**
+
+1. **Galería de fotos**: carrusel con fotos principales del hospedaje (orden de presentación controlado por el responsable).
+
+2. **Información general**:
+   - Nombre, descripción, ubicación en mapa.
+   - Amenities del hospedaje (pileta, WiFi, estacionamiento, etc.).
+   - Calificación (si está implementada).
+
+3. **Listado de unidades**:
+   - Cada tipo de unidad (ej: "Cabaña de 2 dorm.", "Apart de 1 dorm.") tiene su propia card.
+   - Si el cliente viene del buscador, las cards heredan el contexto de fechas/pax.
+   - Botón **"Consultar disponibilidad"** → navega a ficha de la unidad.
+
+4. **Contacto directo**:
+   - Botón de **WhatsApp** (abre chat del hospedaje).
+   - Botón de **Formulario de consulta** (genérico, sin unidad específica).
+
+### 5.5 — Ficha de unidad (detalle específico)
+
+Ruta: **`/[destino]/hospedajes/[slug]/unidades/[unidadTypeId]`**
+
+1. **Fotos específicas** de la unidad (orden controlado por el responsable).
+
+2. **Información de la unidad**:
+   - Nombre (ej: "Cabaña Luna – 2 dormitorios").
+   - Descripción (distribución, servicios).
+   - Capacidad máxima (adultos, menores, bebés).
+   - Amenities específicos de la unidad (TV, aire, calefacción, etc.).
+   - Ubicación en el mapa.
+
+3. **Precio y disponibilidad**:
+   - **Precio resuelto** para el rango de fechas buscado (si viene del buscador).
+   - Indicador visual de disponibilidad (verde: disponible, rojo: ocupada).
+
+4. **Consulta/Reserva**:
+   - **Formulario de consulta a unidad** (pre-llenado con fechas + pax del search, cliente escribe mensaje).
+   - **Opción de canal**: email o WhatsApp.
+   - Botón de **WhatsApp directo** (abre chat del hospedaje).
+
+5. **Navegación hacia atrás**:
+   - Link a la ficha del hospedaje.
+   - Link a la búsqueda (preservando criterios).
+
+### 5.6 — Fichas de comercios (gastronómicos y "qué hacer")
+
+Rutas: **`/[destino]/gastronomia/[slug]`** y **`/[destino]/atractivos/[slug]`**
+
+1. **Galería de fotos** (orden controlado por el responsable).
+
+2. **Información**:
+   - Nombre, descripción, tipo de comercio.
+   - Ubicación en mapa.
+   - Horarios de atención (si están cargados).
+   - Contacto: teléfono, email, WhatsApp.
+
+3. **Sin formulario de consulta**:
+   - No hay tabla de `consultas` para estos comercios.
+   - El cliente contacta **directo por WhatsApp** desde el botón destacado.
+
+### 5.7 — Landing de zona (agrupación geográfica)
+
+Ruta: **`/zona/[slug]`**
+
+1. Muestra todas las **atracciones** de la zona (definidas por el admin/curador).
+2. Agrupa **destinos** de la zona (hospedajes, gastro, qué hacer de cada destino).
+3. Hero emocional con imágenes de la zona.
 
 ---
 
@@ -120,15 +232,35 @@ siguen el flujo comercial:
 
 ## 7. Consulta del cliente (el cierre del circuito)
 
-El canal depende del tipo:
+El canal y el flujo dependen del tipo de entidad:
 
 ### 7.A — Hospedajes → consulta formal (lead)
-1. El cliente, desde la ficha/unidad, completa el **formulario de consulta**
-   (fechas, huéspedes, mensaje).
-2. Se registra como **consulta/lead** en el sistema y se **notifica por mail al
-   responsable** (con **Reply-To** al cliente, así responde directo).
+
+Hay dos variantes, ambas generan un **lead** en la tabla `consultas`:
+
+#### 7.A.1 — Consulta genérica (desde ficha del hospedaje)
+1. El cliente, desde **`/[destino]/hospedajes/[slug]`**, completa el **formulario de
+   consulta** (nombre, email, WhatsApp, fechas, cantidad de huéspedes, mensaje libre).
+2. Se registra como **consulta/lead** con `origen: "form_publico"` y se **notifica por
+   mail al responsable** (con **Reply-To** al cliente, así responde directo).
 3. El responsable la gestiona en **`/panel/leads`** (y el admin tiene visibilidad
    en `/admin/consultas`).
+
+#### 7.A.2 — Consulta a unidad específica (desde ficha de la unidad)
+1. El cliente, desde **`/[destino]/hospedajes/[slug]/unidades/[unidadTypeId]`**,
+   viene con **contexto pre-llenado** del search:
+   - Fechas (check-in / check-out) ya completadas.
+   - Capacidad de huéspedes (adultos, niños, bebés).
+   - Unidad específica (ej: "Cabaña Luna – 2 dormitorios").
+2. El cliente solo escribe: nombre, email, WhatsApp, mensaje libre (dudas sobre la
+   unidad o servicios específicos).
+3. Se registra como **consulta/lead** con `origen: "form_unidad"` y se **notifica al
+   responsable** igual que 7.A.1.
+4. El responsable ve toda la información contextualizada en **`/panel/leads`**.
+
+> **Defensa anti-spam en ambas variantes**: honeypot (campo invisible), rate limit por
+> IP (5 consultas / 10 min), validación Zod, y verificación de que el hospedaje
+> esté publicado. Auditoría: se registran IP y user-agent.
 
 ### 7.B — Gastronómico / Qué hacer → contacto directo
 - No usan la tabla de consultas. El cliente contacta por **WhatsApp / teléfono**
