@@ -2,13 +2,22 @@
 
 import * as React from "react";
 import Image from "next/image";
-import { Trash2, Star, StarOff, Upload, Loader2 } from "lucide-react";
+import {
+  Trash2,
+  Star,
+  StarOff,
+  Upload,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getFotoUrl, validateImageFile } from "@/lib/storage";
 import {
   registerFotoAction,
   deleteFotoAction,
   setPrincipalAction,
+  updateFotoOrderAction,
 } from "@/features/admin/lib/foto-actions";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -118,11 +127,59 @@ export function FotosManager({ hospedajeId, fotos }: FotosManagerProps) {
     router.refresh();
   }
 
-  const sortedFotos = [...fotos].sort((a, b) => {
-    if (a.es_principal && !b.es_principal) return -1;
-    if (!a.es_principal && b.es_principal) return 1;
-    return a.orden - b.orden;
-  });
+  // Orden de presentación: la principal va siempre primero, el resto por `orden`.
+  function sortServer(list: HospedajeFotoRow[]) {
+    return [...list].sort((a, b) => {
+      if (a.es_principal && !b.es_principal) return -1;
+      if (!a.es_principal && b.es_principal) return 1;
+      return a.orden - b.orden;
+    });
+  }
+
+  // Estado local del orden (ids) para mover de forma optimista. Se resincroniza
+  // solo cuando cambia la estructura (alta/baja/cambio de principal), no en cada
+  // reordenamiento — así el movimiento se ve instantáneo.
+  const [order, setOrder] = React.useState<string[]>(() =>
+    sortServer(fotos).map((f) => f.id)
+  );
+  const principalId = fotos.find((f) => f.es_principal)?.id ?? "";
+  const signature =
+    fotos
+      .map((f) => f.id)
+      .sort()
+      .join(",") +
+    "|" +
+    principalId;
+  React.useEffect(() => {
+    setOrder(sortServer(fotos).map((f) => f.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature]);
+
+  const byId = new Map(fotos.map((f) => [f.id, f]));
+  const displayed: HospedajeFotoRow[] = order
+    .map((id) => byId.get(id))
+    .filter((f): f is HospedajeFotoRow => Boolean(f));
+  for (const f of sortServer(fotos)) {
+    if (!order.includes(f.id)) displayed.push(f);
+  }
+
+  async function move(i: number, dir: "left" | "right") {
+    const j = dir === "left" ? i - 1 : i + 1;
+    if (j < 0 || j >= displayed.length) return;
+    // La principal queda fija primera: no se mueve ni se la pasa por encima.
+    if (displayed[i].es_principal || displayed[j].es_principal) return;
+    const newOrder = displayed.map((f) => f.id);
+    [newOrder[i], newOrder[j]] = [newOrder[j], newOrder[i]];
+    setOrder(newOrder);
+    const res = await updateFotoOrderAction({
+      hospedajeId,
+      orderedIds: newOrder,
+    });
+    if (res.error) {
+      setError(res.error);
+      router.refresh();
+    }
+  }
 
   return (
     <section className="rounded-xl border border-border bg-card p-6">
@@ -131,7 +188,8 @@ export function FotosManager({ hospedajeId, fotos }: FotosManagerProps) {
           <h2 className="font-display text-xl tracking-tight">Fotos</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             {fotos.length} {fotos.length === 1 ? "foto" : "fotos"}. La marcada
-            como principal aparece en el card y como hero del detalle.
+            como principal aparece en el card y como hero del detalle. Pasá el
+            cursor sobre una foto y usá ◀ ▶ para ordenar la presentación.
           </p>
         </div>
         <label
@@ -170,48 +228,78 @@ export function FotosManager({ hospedajeId, fotos }: FotosManagerProps) {
         </div>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-3 md:grid-cols-4">
-          {sortedFotos.map((foto) => (
-            <li
-              key={foto.id}
-              className={cn(
-                "group relative aspect-[4/3] overflow-hidden rounded-md border bg-muted",
-                foto.es_principal && "ring-2 ring-primary"
-              )}
-            >
-              <Image
-                src={getFotoUrl(foto.storage_path)}
-                alt={foto.alt ?? ""}
-                fill
-                sizes="(max-width: 640px) 50vw, 25vw"
-                className="object-cover"
-              />
-              {foto.es_principal && (
-                <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
-                  <Star className="h-3 w-3" /> Principal
-                </span>
-              )}
-              <div className="absolute inset-x-0 bottom-0 flex justify-between bg-black/60 px-2 py-1.5 opacity-0 transition group-hover:opacity-100">
+          {displayed.map((foto, i) => {
+            const canLeft = i > 0 && !foto.es_principal && !displayed[i - 1].es_principal;
+            const canRight =
+              i < displayed.length - 1 &&
+              !foto.es_principal &&
+              !displayed[i + 1].es_principal;
+            return (
+              <li
+                key={foto.id}
+                className={cn(
+                  "group relative aspect-[4/3] overflow-hidden rounded-md border bg-muted",
+                  foto.es_principal && "ring-2 ring-primary"
+                )}
+              >
+                <Image
+                  src={getFotoUrl(foto.storage_path)}
+                  alt={foto.alt ?? ""}
+                  fill
+                  sizes="(max-width: 640px) 50vw, 25vw"
+                  className="object-cover"
+                />
                 {!foto.es_principal && (
+                  <span className="absolute right-2 top-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-black/60 px-1.5 text-[10px] font-medium text-white">
+                    {i + 1}
+                  </span>
+                )}
+                {foto.es_principal && (
+                  <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
+                    <Star className="h-3 w-3" /> Principal
+                  </span>
+                )}
+                <div className="absolute inset-x-0 bottom-0 flex items-center gap-1 bg-black/60 px-2 py-1.5 opacity-0 transition group-hover:opacity-100">
                   <button
                     type="button"
-                    onClick={() => onSetPrincipal(foto)}
-                    className="inline-flex items-center gap-1 text-xs text-white hover:text-amber-300"
-                    title="Marcar como principal"
+                    onClick={() => move(i, "left")}
+                    disabled={!canLeft}
+                    className="inline-flex items-center text-white hover:text-primary disabled:cursor-not-allowed disabled:opacity-30"
+                    title="Mover antes"
                   >
-                    <StarOff className="h-3.5 w-3.5" />
+                    <ChevronLeft className="h-4 w-4" />
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => onDelete(foto)}
-                  className="ml-auto inline-flex items-center gap-1 text-xs text-white hover:text-rose-300"
-                  title="Borrar foto"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            </li>
-          ))}
+                  <button
+                    type="button"
+                    onClick={() => move(i, "right")}
+                    disabled={!canRight}
+                    className="inline-flex items-center text-white hover:text-primary disabled:cursor-not-allowed disabled:opacity-30"
+                    title="Mover después"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                  {!foto.es_principal && (
+                    <button
+                      type="button"
+                      onClick={() => onSetPrincipal(foto)}
+                      className="inline-flex items-center gap-1 text-xs text-white hover:text-amber-300"
+                      title="Marcar como principal"
+                    >
+                      <StarOff className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onDelete(foto)}
+                    className="ml-auto inline-flex items-center gap-1 text-xs text-white hover:text-rose-300"
+                    title="Borrar foto"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
