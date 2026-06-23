@@ -10,6 +10,7 @@ import {
 } from "react";
 import { CheckCircle2, Mail, MessageCircle } from "lucide-react";
 import { createConsultaUnidadAction } from "@/features/consultas/lib/consulta-unidad-actions";
+import { buildWhatsAppUrl } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -17,12 +18,29 @@ interface Props {
   unidadTypeId: string;
   unidadNombre: string;
   hospedajeNombre: string;
+  /** WhatsApp del alojamiento — para abrir el chat directo si el canal es WA. */
+  hospedajeWhatsapp: string | null;
   /** Contexto del flow de búsqueda — preserva fechas y pax. */
   checkIn: string;
   checkOut: string;
   adultos: number;
   ninos: number;
   bebes: number;
+}
+
+function formatDMY(iso: string): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return d && m && y ? `${d}/${m}/${y}` : iso;
+}
+
+function paxResumen(adultos: number, ninos: number, bebes: number): string {
+  const partes = [
+    adultos ? `${adultos} adulto${adultos > 1 ? "s" : ""}` : "",
+    ninos ? `${ninos} niño${ninos > 1 ? "s" : ""}` : "",
+    bebes ? `${bebes} bebé${bebes > 1 ? "s" : ""}` : "",
+  ].filter(Boolean);
+  return partes.join(", ");
 }
 
 const FIELD_ORDER = [
@@ -42,6 +60,7 @@ export function ConsultaUnidadForm({
   unidadTypeId,
   unidadNombre,
   hospedajeNombre,
+  hospedajeWhatsapp,
   checkIn,
   checkOut,
   adultos,
@@ -54,6 +73,8 @@ export function ConsultaUnidadForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
   const [canal, setCanal] = useState<Canal>("mail");
+  // URL de WhatsApp del alojamiento (si el canal elegido fue WA y hay número).
+  const [waUrl, setWaUrl] = useState<string | null>(null);
 
   const refs: Record<FieldKey, React.RefObject<HTMLElement | null>> = {
     nombre: useRef<HTMLInputElement | null>(null),
@@ -105,11 +126,66 @@ export function ConsultaUnidadForm({
         setFieldErrors(res.fieldErrors ?? {});
         return;
       }
+
+      // Canal WhatsApp: además de guardar el lead, abrimos el chat del
+      // alojamiento con la consulta ya escrita (el huésped solo aprieta enviar).
+      if (canal === "whatsapp" && hospedajeWhatsapp) {
+        const pax = paxResumen(adultos, ninos, bebes);
+        const mensajeWa =
+          `Hola! Soy ${input.nombre}. Quería consultar por ${unidadNombre} ` +
+          `en ${hospedajeNombre}` +
+          (checkIn && checkOut
+            ? `, del ${formatDMY(checkIn)} al ${formatDMY(checkOut)}`
+            : "") +
+          (pax ? ` para ${pax}` : "") +
+          `.\n\n${input.mensaje}`;
+        const url = buildWhatsAppUrl({
+          whatsapp: hospedajeWhatsapp,
+          mensaje: mensajeWa,
+        });
+        setWaUrl(url);
+        // Best-effort: intentamos abrirlo automáticamente. Si el navegador lo
+        // bloquea (popup), queda el botón explícito en la pantalla de éxito.
+        if (typeof window !== "undefined") {
+          window.open(url, "_blank", "noopener,noreferrer");
+        }
+      }
+
       setSuccess(true);
     });
   }
 
   if (success) {
+    // Caso WhatsApp: el lead quedó guardado y abrimos (o ofrecemos abrir) el
+    // chat del alojamiento con la consulta lista.
+    if (waUrl) {
+      return (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center">
+          <MessageCircle
+            className="mx-auto h-10 w-10 text-emerald-600"
+            aria-hidden
+          />
+          <h3 className="mt-3 font-display text-xl tracking-tight text-emerald-900">
+            Te llevamos a WhatsApp
+          </h3>
+          <p className="mt-2 text-sm text-emerald-800">
+            Tu consulta sobre <strong>{unidadNombre}</strong> quedó registrada y
+            abrimos el WhatsApp de <strong>{hospedajeNombre}</strong> con el
+            mensaje listo. Si no se abrió solo, tocá el botón:
+          </p>
+          <a
+            href={waUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-emerald-700"
+          >
+            <MessageCircle className="h-4 w-4" aria-hidden />
+            Abrir WhatsApp del alojamiento
+          </a>
+        </div>
+      );
+    }
+
     return (
       <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center">
         <CheckCircle2
@@ -123,8 +199,7 @@ export function ConsultaUnidadForm({
           Le avisamos al responsable de <strong>{hospedajeNombre}</strong> que
           querés <strong>{unidadNombre}</strong> entre el{" "}
           <strong>{checkIn}</strong> y el <strong>{checkOut}</strong>. Te
-          contesta por {canal === "whatsapp" ? "WhatsApp" : "email"} a la
-          brevedad.
+          contesta por email a la brevedad.
         </p>
       </div>
     );
@@ -227,7 +302,11 @@ export function ConsultaUnidadForm({
       </div>
 
       <div ref={refs.canalPreferido as React.RefObject<HTMLDivElement>}>
-        <p className="text-sm font-medium">¿Cómo querés que te respondamos?</p>
+        <p className="text-sm font-medium">¿Cómo querés contactar al alojamiento?</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          Por email: dejás la consulta y el responsable te escribe. Por WhatsApp:
+          te abrimos su chat con el mensaje listo para enviar.
+        </p>
         <div className="mt-2 grid grid-cols-2 gap-2">
           <label
             className={cn(

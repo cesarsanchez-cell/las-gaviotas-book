@@ -119,7 +119,13 @@ export async function createConsultaUnidadAction(
     return { error: "No pudimos guardar la consulta. Probá más tarde." };
   }
 
-  await notifyConsultaNueva(data.id);
+  // Canal WhatsApp: el huésped contacta directo por el chat del alojamiento
+  // (el cliente abre wa.me con la consulta lista). El lead igual queda en
+  // /panel/leads, pero NO mandamos el mail de notificación — la vía es el chat.
+  // Canal email: notificamos al responsable como siempre.
+  if (input.canalPreferido !== "whatsapp") {
+    await notifyConsultaNueva(data.id);
+  }
 
   return { ok: true };
 }
