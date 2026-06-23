@@ -26,8 +26,10 @@ export async function loginResponsable(
   await page.getByLabel(/email/i).fill(who.email);
   await page.getByLabel(/contrase/i).fill(who.password);
   await page.getByRole("button", { name: /ingresar|entrar|iniciar/i }).click();
-  // Timeout holgado: la 1ª vez `next dev` compila /panel on-demand (puede tardar).
-  await page.waitForURL(/\/panel/, { timeout: 60_000 });
+  // `commit` (no `load`): nos alcanza con que la navegación a /panel ocurra. Si
+  // esperáramos `load`, una foto con URL rota (tests que seedean storage_path
+  // falso) podría colgar el evento. Timeout holgado por el compile de `next dev`.
+  await page.waitForURL(/\/panel/, { timeout: 60_000, waitUntil: "commit" });
 }
 
 export async function loginAdmin(page: Page) {
@@ -35,6 +37,10 @@ export async function loginAdmin(page: Page) {
   await page.getByLabel(/email/i).fill(ADMIN.email);
   await page.getByLabel(/contrase/i).fill(ADMIN.password);
   await page.getByRole("button", { name: /ingresar|entrar|iniciar/i }).click();
-  // Timeout holgado: la 1ª vez `next dev` compila /admin on-demand (puede tardar).
-  await page.waitForURL(/\/admin(?!\/login)/, { timeout: 60_000 });
+  // `commit` (no `load`): basta con que ocurra la navegación a /admin. Timeout
+  // holgado por el compile on-demand de `next dev`.
+  await page.waitForURL(/\/admin(?!\/login)/, {
+    timeout: 60_000,
+    waitUntil: "commit",
+  });
 }

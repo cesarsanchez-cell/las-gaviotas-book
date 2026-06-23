@@ -18,6 +18,18 @@ npm run dev            # en una terminal
 npm run test:e2e       # en otra (o test:e2e:ui para modo interactivo)
 ```
 
+> **Cómo corre `test:e2e`**: ejecuta cada spec en su **propio proceso** de
+> Playwright (runner `tests/run-e2e.mjs`). Es a propósito: en `next dev` un único
+> proceso largo (los 19 tests de un saque) degrada el dev server —compile
+> on-demand + memoria— y aparecen flakes de timeout. Spec por spec, cada corrida
+> es corta y el server respira → verde estable. Para correr todo en un solo
+> proceso (ideal con build de prod en CI): `npm run test:e2e:all`.
+>
+> **Ojo dependencias**: el proyecto es **npm** (`package-lock.json`). Si alguien
+> corre `pnpm install`, deja un `node_modules` híbrido que rompe el bundle de
+> cliente ("Application error / invariant expected layout router"). Si pasa:
+> `rm -rf node_modules .next pnpm-lock.yaml pnpm-workspace.yaml && npm ci`.
+
 Cobertura actual:
 
 | Spec | Qué valida |

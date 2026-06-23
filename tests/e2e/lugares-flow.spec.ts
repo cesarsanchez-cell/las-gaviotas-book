@@ -70,7 +70,13 @@ for (const caso of CASOS) {
       await page.locator('input[name="whatsapp"]').fill("+5492257111111");
 
       await page.getByRole("button", { name: /crear/i }).click();
-      await page.waitForURL(/\/panel\/lugares\/[^/]+$/, { timeout: 20_000 });
+      // Esperar el redirect a la ficha del lugar nuevo (un id UUID, NO "nuevo").
+      // El regex viejo /lugares/[^/]+$ matcheaba /lugares/nuevo?tipo=... y
+      // resolvía al instante, sin esperar de verdad a que el create redirija.
+      await page.waitForURL(/\/panel\/lugares\/[0-9a-f]{8}-[0-9a-f-]+/, {
+        timeout: 30_000,
+        waitUntil: "commit",
+      });
 
       // No debe aparecer error de RLS (regresión de la migración de responsable).
       await expect(page.getByText(/row-level security/i)).toHaveCount(0);

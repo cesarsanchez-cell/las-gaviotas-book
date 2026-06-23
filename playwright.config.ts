@@ -22,7 +22,10 @@ export default defineConfig({
   timeout: 120_000,
   expect: { timeout: 10_000 },
   use: {
-    baseURL: "http://localhost:3005",
+    // Por defecto el dev server (3005). Para correr la suite completa de forma
+    // estable conviene un build de prod (`next build && next start`) y apuntar
+    // acá con E2E_BASE_URL, ej: E2E_BASE_URL=http://localhost:3100.
+    baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3005",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",

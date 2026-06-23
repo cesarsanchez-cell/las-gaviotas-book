@@ -38,6 +38,23 @@ test.describe.serial("Golden path E2E: responsable → admin aprueba → publica
     await page.locator('input[name="slug"]').fill(SLUG);
     await page.locator('select[name="tipo"]').selectOption("cabana");
 
+    // Destino Las Gaviotas: el admin que aprueba es admin LOCAL de ese destino,
+    // así que el hospedaje tiene que caer ahí para aparecer en su cola.
+    const destinoSelect = page.locator('select[name="destino_id"]');
+    if (await destinoSelect.count()) {
+      const opts = destinoSelect.locator("option");
+      const n = await opts.count();
+      for (let i = 0; i < n; i++) {
+        const txt = (await opts.nth(i).textContent())?.toLowerCase() ?? "";
+        if (txt.includes("gaviotas")) {
+          await destinoSelect.selectOption(
+            (await opts.nth(i).getAttribute("value")) ?? { index: i }
+          );
+          break;
+        }
+      }
+    }
+
     const localidadSelect = page.locator('select[name="localidad_id"]');
     const localidadOptionsCount = await localidadSelect.locator("option").count();
     if (localidadOptionsCount > 1) {
@@ -52,7 +69,13 @@ test.describe.serial("Golden path E2E: responsable → admin aprueba → publica
     await page.locator('input[name="responsable_nombre"]').fill("Responsable Uno");
 
     await page.getByRole("button", { name: /crear hospedaje/i }).click();
-    await page.waitForURL(/\/panel\/hospedajes\/[^/]+$/, { timeout: 20_000 });
+    // Esperar el redirect a la ficha del hospedaje nuevo (id UUID, NO "nuevo").
+    // El regex viejo /hospedajes/[^/]+$ matcheaba /hospedajes/nuevo y resolvía al
+    // instante sin esperar de verdad al create.
+    await page.waitForURL(/\/panel\/hospedajes\/[0-9a-f]{8}-[0-9a-f-]+/, {
+      timeout: 30_000,
+      waitUntil: "commit",
+    });
 
     const match = page.url().match(/\/panel\/hospedajes\/([^/?#]+)/);
     expect(match).not.toBeNull();
@@ -76,10 +99,11 @@ test.describe.serial("Golden path E2E: responsable → admin aprueba → publica
     await page.locator('input[name="cantidad_unidades"]').fill("4");
     await page.locator('input[name="responsable_documento"]').fill("30123456");
 
-    // Amenities (al menos 3) — son <label> con texto, click sobre el label togglea
-    await page.locator("label", { hasText: /^WiFi$/ }).click();
-    await page.locator("label", { hasText: /^Aire acondicionado$/ }).click();
-    await page.locator("label", { hasText: /^Cochera techada$/ }).click();
+    // Amenities (al menos 3) — son <label> con texto, click sobre el label togglea.
+    // Amenities de PROPERTY (modelo 3-scopes); aire/cochera ahora son de unidad.
+    await page.locator("label", { hasText: /^WiFi en áreas comunes$/ }).click();
+    await page.locator("label", { hasText: /^Estacionamiento$/ }).click();
+    await page.locator("label", { hasText: /^Piscina$/ }).click();
 
     await page.getByRole("button", { name: /guardar cambios/i }).click();
 
@@ -109,6 +133,13 @@ test.describe.serial("Golden path E2E: responsable → admin aprueba → publica
     await expect(submitBtn).toBeEnabled({ timeout: 15_000 });
     await submitBtn.click();
 
+    // La acción server confirma con un mensaje de éxito. Luego recargamos para
+    // leer el estado fresco del server component (evita la carrera entre
+    // router.refresh() y el recompile on-demand de `next dev`).
+    await expect(page.getByText(/enviado a revisión/i)).toBeVisible({
+      timeout: 15_000,
+    });
+    await page.reload();
     await expect(page.getByText(/estado:\s*pendiente/i)).toBeVisible({
       timeout: 15_000,
     });
