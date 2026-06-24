@@ -86,7 +86,7 @@ export async function createHospedajeAction(
     .maybeSingle<{ slug: string }>();
 
   // Enviar mail de invitación
-  const urlPanel = `${siteConfig.url}/panel/hospedajes/${hospedaje.id}/onboarding`;
+  const urlPanel = `${siteConfig.url}/onboarding/hospedajes/${hospedaje.id}`;
   const tpl = hospedajeInvitacionTemplate({
     hospedajeNombre: input.nombre,
     destinoNombre: destino?.slug ?? "Mis Escapadas",

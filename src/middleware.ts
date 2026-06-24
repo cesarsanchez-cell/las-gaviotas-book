@@ -44,9 +44,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Panel routes (responsable) — excluyendo /onboarding para nuevos responsables
-  const isOnboardingRoute = pathname.includes("/onboarding");
-  if (isPanelRoute && !isOnboardingRoute && !user) {
+  // Panel routes (responsable) requieren autenticación
+  if (isPanelRoute && !user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("next", pathname);

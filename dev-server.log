@@ -1,0 +1,137 @@
+
+> las-gaviotas-book@0.1.0 dev
+> next dev -p 3005
+
+   ▲ Next.js 15.5.18
+   - Local:        http://localhost:3005
+   - Network:      http://192.168.1.74:3005
+   - Environments: .env.local
+   - Experiments (use with caution):
+     · optimizePackageImports
+
+ ✓ Starting...
+ ✓ Ready in 6.9s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 723ms (168 modules)
+ ○ Compiling /admin/login ...
+ ✓ Compiled /admin/login in 8.5s (767 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 9.4s (3026 modules)
+ GET /admin/login?next=%2Fadmin 200 in 425ms
+ ○ Compiling /[destino] ...
+ ✓ Compiled /[destino] in 2.3s (3047 modules)
+ GET /favicon.ico 404 in 5040ms
+ ○ Compiling /admin ...
+ ✓ Compiled /admin in 3.1s (3066 modules)
+ GET /admin 200 in 4541ms
+ POST /admin/login?next=%2Fadmin 303 in 5288ms
+ ○ Compiling /admin/hospedajes ...
+ ✓ Compiled /admin/hospedajes in 8.5s (3089 modules)
+ GET /admin/hospedajes?estado=publicado 200 in 2183ms
+ GET /admin/hospedajes 200 in 10553ms
+ GET /admin/hospedajes?estado=borrador 200 in 463ms
+ GET /admin/hospedajes?estado=borrador 200 in 372ms
+ ○ Compiling /admin/hospedajes/[id] ...
+ ✓ Compiled /admin/hospedajes/[id] in 7.9s (3317 modules)
+ GET /admin/hospedajes/85aa884e-049b-43a0-845c-5e33049873a2 200 in 12957ms
+ GET /admin/hospedajes/85aa884e-049b-43a0-845c-5e33049873a2 200 in 1867ms
+ GET /admin/hospedajes/85aa884e-049b-43a0-845c-5e33049873a2 200 in 1006ms
+ GET /admin/hospedajes/85aa884e-049b-43a0-845c-5e33049873a2 200 in 723ms
+ GET /admin/hospedajes 200 in 729ms
+ GET /admin/hospedajes 200 in 461ms
+ GET /admin/hospedajes?estado=borrador 200 in 405ms
+ GET /admin/hospedajes?estado=pendiente_validacion 200 in 336ms
+ GET /admin/hospedajes?estado=publicado 200 in 400ms
+ GET /admin/hospedajes 200 in 437ms
+ ○ Compiling /admin/gastronomia ...
+ ✓ Compiled /admin/gastronomia in 4.2s (2281 modules)
+ GET /admin/gastronomia 200 in 5305ms
+ GET /admin/hospedajes 200 in 406ms
+ GET /admin/gastronomia 200 in 551ms
+ ○ Compiling /admin/atractivos ...
+ ✓ Compiled /admin/atractivos in 2.5s (2283 modules)
+ GET /admin/atractivos 200 in 3421ms
+ GET /admin/hospedajes 200 in 449ms
+ ○ Compiling /admin/hospedajes/nuevo ...
+ ✓ Compiled /admin/hospedajes/nuevo in 5.1s (2321 modules)
+ GET /admin/hospedajes/nuevo 200 in 6493ms
+ GET /admin 200 in 889ms
+ GET /admin/hospedajes?estado=publicado 200 in 430ms
+ ○ Compiling /admin/responsables ...
+ ✓ Compiled /admin/responsables in 4.6s (2203 modules)
+ GET /admin/responsables 200 in 6832ms
+ GET /admin/responsables 200 in 1355ms
+ GET /admin/atractivos 200 in 526ms
+ GET /admin 200 in 873ms
+ GET /admin 200 in 6369ms
+ GET /admin/hospedajes 200 in 501ms
+ GET /admin/hospedajes?estado=publicado 200 in 379ms
+ GET /admin/hospedajes?estado=pendiente_validacion 200 in 332ms
+ GET /admin/hospedajes?estado=borrador 200 in 424ms
+ GET /admin/hospedajes?estado=rechazado 200 in 387ms
+ GET /admin/hospedajes?estado=pausado 200 in 916ms
+ ✓ Compiled in 5.3s (2215 modules)
+ GET /admin 200 in 4813ms
+ GET /admin 200 in 758ms
+ GET /admin/responsables 200 in 1287ms
+ POST /admin/responsables 200 in 1747ms
+ POST /admin/responsables 200 in 3582ms
+ GET /admin/responsables 200 in 2019ms
+ GET /admin/responsables 200 in 1827ms
+ GET /admin 200 in 735ms
+ GET /admin/hospedajes 200 in 746ms
+ GET /admin/hospedajes/nuevo 200 in 402ms
+ POST /admin/hospedajes/nuevo 200 in 687ms
+ ✓ Compiled in 21.8s (2215 modules)
+ GET /admin/hospedajes/nuevo 200 in 2073ms
+ ○ Compiling /admin/login ...
+ ✓ Compiled /admin/login in 3.5s (806 modules)
+ ⨯ Error: Could not find the module "C:\Users\LENOVO\Las Gaviotas book\node_modules\next\dist\next-devtools\userspace\app\segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>) {
+  digest: '2073870801'
+}
+ ⨯ Error: Could not find the module "C:\Users\LENOVO\Las Gaviotas book\node_modules\next\dist\next-devtools\userspace\app\segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>)
+    at stringify (<anonymous>) {
+  digest: '2418588853'
+}
+ ⨯ Error: Could not find the module "C:\Users\LENOVO\Las Gaviotas book\node_modules\next\dist\next-devtools\userspace\app\segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>)
+    at stringify (<anonymous>) {
+  digest: '2418588853'
+}
+ ⨯ Error: Could not find the module "C:\Users\LENOVO\Las Gaviotas book\node_modules\next\dist\next-devtools\userspace\app\segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>)
+    at stringify (<anonymous>) {
+  digest: '2418588853'
+}
+ ⨯ Error: Could not find the module "C:\Users\LENOVO\Las Gaviotas book\node_modules\next\dist\next-devtools\userspace\app\segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>) {
+  digest: '2073870801'
+}
+ ⨯ Error: Could not find the module "C:\Users\LENOVO\Las Gaviotas book\node_modules\next\dist\next-devtools\userspace\app\segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>) {
+  digest: '2073870801'
+}
+ ⨯ Error: Could not find the module "C:\Users\LENOVO\Las Gaviotas book\node_modules\next\dist\next-devtools\userspace\app\segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>) {
+  digest: '2073870801'
+}
+ ⨯ [TypeError: __webpack_modules__[moduleId] is not a function] {
+  digest: '4122075961'
+}
+ ⨯ Error: Could not find the module "C:\Users\LENOVO\Las Gaviotas book\node_modules\next\dist\next-devtools\userspace\app\segment-explorer-node.js#SegmentViewNode" in the React Client Manifest. This is probably a bug in the React Server Components bundler.
+    at stringify (<anonymous>) {
+  digest: '2073870801'
+}
+[TypeError: __webpack_modules__[moduleId] is not a function]
+ ⨯ [TypeError: __webpack_modules__[moduleId] is not a function]
+ ⨯ [TypeError: __webpack_modules__[moduleId] is not a function] {
+  page: '/admin/login'
+}
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 7.3s (2575 modules)
+ GET /admin/login 500 in 19931ms
+ GET /admin/hospedajes/nuevo 200 in 995ms
+ GET /admin/hospedajes/nuevo 200 in 225ms
+ GET /admin/hospedajes/nuevo 200 in 313ms
