@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hospedajeInvitacionTemplate } from "@/lib/email/templates";
-import { Resend } from "resend";
+import { sendEmail } from "@/lib/email/resend";
 import { siteConfig } from "@/config/site";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(request: NextRequest) {
   const { hospedajeId } = await request.json();
@@ -19,11 +17,19 @@ export async function POST(request: NextRequest) {
   const supabase = createAdminClient();
 
   // Cargar hospedaje
-  const { data: hospedaje } = await supabase
+  const result = await supabase
     .from("hospedajes")
     .select("id, nombre, destino_id, responsable_email, responsable_whatsapp")
     .eq("id", hospedajeId)
-    .single();
+    .maybeSingle();
+
+  const hospedaje = result.data as {
+    id: string;
+    nombre: string;
+    destino_id: string;
+    responsable_email: string | null;
+    responsable_whatsapp: string | null;
+  } | null;
 
   if (!hospedaje) {
     return NextResponse.json(
@@ -40,34 +46,36 @@ export async function POST(request: NextRequest) {
   }
 
   // Cargar destino
-  const { data: destino } = await supabase
+  const destinoResult = await supabase
     .from("destinos")
     .select("slug")
     .eq("id", hospedaje.destino_id)
-    .single();
+    .maybeSingle();
+
+  const destino = destinoResult.data as { slug: string } | null;
 
   // Generar URL de onboarding
   const urlPanel = `${siteConfig.url}/onboarding/hospedajes/${hospedaje.id}`;
 
   // Generar template del email
-  const tpl = hospedajeInvitacionTemplate({
+  const { subject, html } = hospedajeInvitacionTemplate({
     hospedajeNombre: hospedaje.nombre,
     destinoNombre: destino?.slug ?? "Mis Escapadas",
     urlPanel,
   });
 
   // Enviar email
-  const result = await resend.emails.send({
+  const emailResult = await sendEmail({
     from: "Mis Escapadas <invitaciones@misescapadas.com.ar>",
     to: hospedaje.responsable_email,
-    subject: `Completa tu hospedaje: ${hospedaje.nombre}`,
-    html: tpl,
+    subject,
+    html,
   });
 
-  if (result.error) {
-    console.error("❌ Error al enviar email:", result.error);
+  if (!emailResult.ok) {
+    console.error("❌ Error al enviar email:", emailResult.error);
     return NextResponse.json(
-      { error: "Error al enviar email", details: result.error },
+      { error: "Error al enviar email", details: emailResult.error },
       { status: 500 }
     );
   }
@@ -75,7 +83,7 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     ok: true,
     message: `Email enviado a ${hospedaje.responsable_email}`,
-    emailId: result.data?.id,
+    emailId: emailResult.id,
     hospedajeName: hospedaje.nombre,
     onboardingUrl: urlPanel,
   });
