@@ -54,8 +54,8 @@ export async function POST(request: NextRequest) {
 
   const destino = destinoResult.data as { slug: string } | null;
 
-  // Generar URL de onboarding
-  const urlPanel = `${siteConfig.url}/onboarding/hospedajes/${hospedaje.id}`;
+  // TODO: Este endpoint debe eliminarse. El flujo de invitación fue reemplazado por registro directo en /registro.
+  const urlPanel = `${siteConfig.url}/registro`;
 
   // Generar template del email
   const { subject, html } = hospedajeInvitacionTemplate({

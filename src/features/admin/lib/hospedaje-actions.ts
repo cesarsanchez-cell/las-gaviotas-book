@@ -85,8 +85,8 @@ export async function createHospedajeAction(
     .eq("id", input.destino_id)
     .maybeSingle<{ slug: string }>();
 
-  // Enviar mail de invitación
-  const urlPanel = `${siteConfig.url}/onboarding/hospedajes/${hospedaje.id}`;
+  // TODO: Este endpoint debe eliminarse. El flujo de invitación fue reemplazado por registro directo en /registro.
+  const urlPanel = `${siteConfig.url}/registro`;
   const tpl = hospedajeInvitacionTemplate({
     hospedajeNombre: input.nombre,
     destinoNombre: destino?.slug ?? "Mis Escapadas",
