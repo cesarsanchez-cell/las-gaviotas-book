@@ -63,17 +63,13 @@ export async function completeInvitacionAction(
 
   if (authUserResult.error || !authUserResult.data?.user) {
     console.error("[completeInvitacion] auth.admin.createUser error:", authUserResult.error);
-    // Si el error es "User already exists", es ok (probablemente fue creado en otro intento)
+    // Si el error es "User already exists", el responsable debe iniciar sesión primero
     if (authUserResult.error?.message?.includes("already exists")) {
-      // Continuar con el usuario existente
-      const existingUser = await supabase.auth.admin.getUserById(input.responsable_email);
-      if (!existingUser.data?.user) {
-        return { error: "Error al obtener usuario existente." };
-      }
-      userId = existingUser.data.user.id;
-    } else {
-      return { error: authUserResult.error?.message ?? "Error al crear usuario." };
+      return {
+        error: "Este email ya está registrado. Por favor inicia sesión en /login y completa tu perfil.",
+      };
     }
+    return { error: authUserResult.error?.message ?? "Error al crear usuario." };
   } else {
     userId = authUserResult.data.user.id;
   }
