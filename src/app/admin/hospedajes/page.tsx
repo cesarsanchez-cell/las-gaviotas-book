@@ -26,11 +26,19 @@ export default async function HospedajesAdminPage({ searchParams }: PageProps) {
 
   return (
     <div className="max-w-7xl space-y-6">
-      <header>
-        <h1 className="font-display text-3xl tracking-tight">Hospedajes</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Gestión de alojamientos del directorio. Los responsables crean desde <code className="text-xs bg-muted px-1 rounded">/panel</code>.
-        </p>
+      <header className="flex items-start justify-between">
+        <div>
+          <h1 className="font-display text-3xl tracking-tight">Hospedajes</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Gestión de alojamientos del directorio. Los responsables crean desde <code className="text-xs bg-muted px-1 rounded">/panel</code>.
+          </p>
+        </div>
+        <Link
+          href="/admin/hospedajes/nuevo"
+          className="rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition"
+        >
+          + Invitar responsable
+        </Link>
       </header>
 
       <nav className="flex flex-wrap gap-1 border-b border-border">

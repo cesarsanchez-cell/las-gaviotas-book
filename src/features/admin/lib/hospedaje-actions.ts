@@ -50,6 +50,7 @@ export async function createHospedajeAction(
   const supabase = createAdminClient();
 
   // Crear hospedaje en estado "borrador" con datos mínimos.
+  const tempSlug = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   const { data: hospedaje, error: insertError } = await supabase
     .from("hospedajes")
     .insert({
@@ -60,7 +61,7 @@ export async function createHospedajeAction(
       whatsapp: input.responsable_whatsapp, // El whatsapp principal es el del responsable
       responsable_nombre: "", // Será completado por el responsable al registrarse
       tipo: "cabana", // tipo por defecto, el responsable puede cambiar
-      slug: "", // será completado por el responsable
+      slug: tempSlug, // temporal, será reemplazado por el responsable
       direccion: "", // será completado por el responsable
       descripcion_corta: "", // será completado por el responsable
       estado: "borrador",
@@ -69,6 +70,11 @@ export async function createHospedajeAction(
     .single<{ id: string }>();
 
   if (insertError || !hospedaje) {
+    if (insertError?.code === "23505") {
+      return {
+        error: "Ya existe un hospedaje con ese slug. Contacta al admin si es un error.",
+      };
+    }
     return { error: insertError?.message ?? "Error al crear invitación." };
   }
 
@@ -80,7 +86,7 @@ export async function createHospedajeAction(
     .maybeSingle<{ slug: string }>();
 
   // Enviar mail de invitación
-  const urlPanel = `${siteConfig.url}/panel/hospedajes/${hospedaje.id}`;
+  const urlPanel = `${siteConfig.url}/panel/hospedajes/${hospedaje.id}/onboarding`;
   const tpl = hospedajeInvitacionTemplate({
     hospedajeNombre: input.nombre,
     destinoNombre: destino?.slug ?? "Mis Escapadas",
