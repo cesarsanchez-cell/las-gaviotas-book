@@ -32,18 +32,14 @@ export default async function ResponsablesPage() {
 
       <section className="rounded-xl border border-border bg-card p-6">
         <h2 className="font-display text-xl tracking-tight">
-          Invitar responsable
+          Contactar responsable
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Le da acceso al panel de las entidades que le asignes. Recibe un mail
-          con un link para activar su cuenta y definir su propia contraseña.
-          Una entidad solo puede tener un responsable a la vez.
+          Genera un link de registro que podés enviar por WhatsApp. El responsable se registra,
+          confirma su email, y luego crea su hospedaje, gastronómico o atracción desde su panel.
         </p>
         <div className="mt-5">
-          <NewResponsableForm
-            entidades={entidadesDisponibles}
-            showDestino={me.isSuperAdmin}
-          />
+          <NewResponsableForm />
         </div>
       </section>
 
