@@ -78,9 +78,8 @@ export function HospedajeForm({
   isSuperAdmin = true,
 }: HospedajeFormProps) {
   const isAdmin = mode === "admin";
-  // Todos (super admin, admin local, responsable) pueden editar a nivel UI.
-  // El servidor (RLS) valida permisos reales: admin local solo en su destino, responsable solo sus hospedajes.
-  const canEditCommercialFields = true;
+  // Admin local (isSuperAdmin=false) solo cambia estado. Responsable edita todos sus datos.
+  const canEditCommercialFields = isAdmin ? isSuperAdmin : true;
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
   const [result, setResult] = React.useState<ActionResult | null>(null);
