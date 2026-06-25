@@ -192,27 +192,17 @@ export async function updateHospedajeAction(
   // Admin local: validar que solo cambió el estado ANTES de restaurar.
   // Esto es sobre qué intentó cambiar el usuario, no qué campos restauramos después.
   if (!admin.isSuperAdmin) {
-    const { data: previo } = await createAdminClient()
-      .from("hospedajes")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle<Record<string, unknown>>();
-
-    if (previo) {
-      // Comparar qué campos vinieron en raw (lo que el usuario intentó cambiar) vs previo (lo que está en BD).
-      const changedFields = Object.keys(raw).filter(
+    if (previousHospedaje) {
+      // Comparar SOLO campos comerciales (los que admin local no puede editar).
+      // Si alguno de estos campos cambió, rechazar.
+      const changedCommercialFields = Array.from(COMMERCIAL_FIELDS).filter(
         (key) =>
           (raw as Record<string, unknown>)[key] !==
-          (previo as Record<string, unknown>)[key]
+          (previousHospedaje as Record<string, unknown>)[key]
       );
 
-      // Campos permitidos para admin local: solo estado
-      const allowedFields = new Set(["estado"]);
-
-      for (const field of changedFields) {
-        if (!allowedFields.has(field)) {
-          return { error: "No podés editar datos comerciales del hospedaje. Solo podés cambiar el estado." };
-        }
+      if (changedCommercialFields.length > 0) {
+        return { error: "No podés editar datos comerciales del hospedaje. Solo podés cambiar el estado." };
       }
     }
   }
