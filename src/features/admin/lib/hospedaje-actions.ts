@@ -156,7 +156,7 @@ export async function updateHospedajeAction(
     return { error: (e as Error).message };
   }
 
-  // Admin local: lee el hospedaje previo para preservar campos comerciales deshabilitados.
+  // Admin local: lee el hospedaje previo para restaurar campos comerciales deshabilitados.
   let previousHospedaje: Record<string, unknown> | null = null;
   if (!admin.isSuperAdmin) {
     const { data } = await createAdminClient()
@@ -192,25 +192,12 @@ export async function updateHospedajeAction(
   if (raw.destacado === undefined) raw.destacado = false;
   if (raw.responsable_validado === undefined) raw.responsable_validado = false;
 
-  // Admin local: validar que solo cambió el estado ANTES de restaurar.
-  // Esto es sobre qué intentó cambiar el usuario, no qué campos restauramos después.
+  // Admin local: solo puede cambiar estado. Rechazar cualquier otro campo.
   if (!admin.isSuperAdmin) {
-    if (previousHospedaje) {
-      // Comparar SOLO campos comerciales (los que admin local no puede editar),
-      // pero SOLO si realmente vinieron en FormData (no defaults).
-      const changedCommercialFields = Array.from(COMMERCIAL_FIELDS).filter((key) => {
-        // Si el campo no vino en FormData, no es intento de cambio
-        if (!fieldsFromForm.has(key)) return false;
-        // Si vino y cambió respecto a previousHospedaje, es cambio no permitido
-        return (
-          (raw as Record<string, unknown>)[key] !==
-          (previousHospedaje as Record<string, unknown>)[key]
-        );
-      });
-
-      if (changedCommercialFields.length > 0) {
-        return { error: "No podés editar datos comerciales del hospedaje. Solo podés cambiar el estado." };
-      }
+    // Campos que vinieron en FormData, excluir "estado"
+    const nonEstadoFields = Array.from(fieldsFromForm).filter((k) => k !== "estado");
+    if (nonEstadoFields.length > 0) {
+      return { error: "No podés editar datos comerciales del hospedaje. Solo podés cambiar el estado." };
     }
   }
 
