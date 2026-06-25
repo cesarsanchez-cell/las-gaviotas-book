@@ -169,7 +169,10 @@ export async function updateHospedajeAction(
 
   // Parsear FormData a raw sin validar (para admin local pueda restaurar después).
   const raw: Record<string, unknown> = {};
+  const fieldsFromForm = new Set<string>(); // Trackear qué campos realmente vinieron en FormData
+
   for (const [k, v] of formData.entries()) {
+    fieldsFromForm.add(k);
     if (k === "amenities") {
       raw.amenities ??= [];
       (raw.amenities as string[]).push(String(v));
@@ -193,13 +196,17 @@ export async function updateHospedajeAction(
   // Esto es sobre qué intentó cambiar el usuario, no qué campos restauramos después.
   if (!admin.isSuperAdmin) {
     if (previousHospedaje) {
-      // Comparar SOLO campos comerciales (los que admin local no puede editar).
-      // Si alguno de estos campos cambió, rechazar.
-      const changedCommercialFields = Array.from(COMMERCIAL_FIELDS).filter(
-        (key) =>
+      // Comparar SOLO campos comerciales (los que admin local no puede editar),
+      // pero SOLO si realmente vinieron en FormData (no defaults).
+      const changedCommercialFields = Array.from(COMMERCIAL_FIELDS).filter((key) => {
+        // Si el campo no vino en FormData, no es intento de cambio
+        if (!fieldsFromForm.has(key)) return false;
+        // Si vino y cambió respecto a previousHospedaje, es cambio no permitido
+        return (
           (raw as Record<string, unknown>)[key] !==
           (previousHospedaje as Record<string, unknown>)[key]
-      );
+        );
+      });
 
       if (changedCommercialFields.length > 0) {
         return { error: "No podés editar datos comerciales del hospedaje. Solo podés cambiar el estado." };
