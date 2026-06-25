@@ -11,8 +11,8 @@ Estado consolidado del proyecto. Visión y reglas detalladas en [CLAUDE.md](CLAU
 
 | Item              | Valor                                                                            |
 |-------------------|----------------------------------------------------------------------------------|
-| Etapa vigente     | **Core en prod**: Etapas 1-7 cerradas. En desarrollo: **Reorganización admin panel responsable-centric** (Fases 1-3 ✅: búsqueda dual, dashboard por responsable, agregaciones). Siguiente: permisos diferenciados (admin local no edita datos, solo estados). Backlog: visión producto (home emocional + sinergia comercial) — ver sección final |
-| Último commit     | `994aac3` — FEAT: Fase 3 - Dashboard agregado por responsable con stats |
+| Etapa vigente     | **Core en prod**: Etapas 1-7 cerradas. En desarrollo: **Reorganización admin panel responsable-centric** (Fases 1-4 ✅: búsqueda dual, dashboard, agregaciones, permisos). Próximo: Fase 5 (consolidar estados). Backlog: visión producto (home emocional + sinergia comercial) — ver sección final |
+| Último commit     | `5fa6320` — FEAT: Fase 4 - Permisos diferenciados (admin local no edita datos) |
 | Fecha             | 2026-06-25                                                                       |
 | Entorno local     | PM2 → `las-gaviotas-book` en `http://localhost:3005`                             |
 | **Deploy producción** | ✅ https://www.misescapadas.com.ar (canónico) + redirects desde apex y vercel.app |
@@ -300,11 +300,12 @@ Refactor de la arquitectura admin de comercio-centric a responsable-centric. El 
 - [x] `ResponsablesStatsCard`: componente que muestra top 5 responsables con pendientes. Total pendientes, total comercios, comercios publicados por responsable
 - [x] `/admin/page.tsx`: nuevo bloque "Responsables con pendientes" insertado en el dashboard principal después de "Necesitan tu OK"
 
-**Fase 4 — Permisos diferenciados** (planeada)
-- [ ] Admin local NO edita datos comerciales (nombre, descripción, ubicación, etc.) — solo super admin
-- [ ] Admin local SÍ puede cambiar estado: publicar, pausar, rechazar
-- [ ] UI: campos deshabilitados en `/admin/{hospedajes,gastronomia,atractivos}/[id]` para admin local
-- [ ] Resolver diferencia semántica: **borrador** (nunca se validó) vs **pendiente_validacion** (fue validado, cambios penden) — consolidar a uno solo
+**Fase 4 — Permisos diferenciados** ✅ (`5fa6320`)
+- [x] Admin local NO edita datos comerciales (nombre, descripción, ubicación, amenities, etc.) — solo super admin
+- [x] Admin local SÍ puede cambiar estado: publicar, pausar, rechazar
+- [x] UI: campos deshabilitados en `/admin/{hospedajes,gastronomia,atractivos}/[id]` para admin local. Props `isSuperAdmin` en `HospedajeForm` y `LugarForm`
+- [x] Server-side: `updateHospedajeAction` rechaza cambios de campos comerciales si `!isSuperAdmin`
+- [ ] Resolver diferencia semántica: **borrador** (nunca se validó) vs **pendiente_validacion** (fue validado, cambios penden) — consolidar a uno solo (Fase 5, pendiente decisión del usuario)
 
 ### Etapa post-rediseño — Reservas online (planeada)
 - [ ] Motor de reservas con bloqueo de fechas
