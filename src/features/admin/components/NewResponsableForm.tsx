@@ -19,6 +19,7 @@ export function NewResponsableForm() {
     const input = {
       email: String(formData.get("email") ?? "").trim(),
       nombre: String(formData.get("nombre") ?? "").trim(),
+      whatsapp: String(formData.get("whatsapp") ?? "").trim() || undefined,
       entidades: [], // No asignamos entidades aquí
     };
 
@@ -53,7 +54,7 @@ export function NewResponsableForm() {
               <code className="break-all text-xs text-muted-foreground">{inviteLink}</code>
             </div>
             <p className="mt-2 text-xs text-emerald-700">
-              Ahí se registra, confirma su email, y puede crear su hospedaje, gastronómico o atracción desde su panel.
+              Ahí se registra y puede crear hospedajes, gastronómicos o atracciones desde su panel.
             </p>
           </div>
         </div>
@@ -112,6 +113,22 @@ export function NewResponsableForm() {
             <p className="mt-1 text-xs text-rose-600">{fieldErrors.email}</p>
           )}
         </div>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium" htmlFor="resp-whatsapp">
+          WhatsApp (opcional)
+        </label>
+        <input
+          id="resp-whatsapp"
+          name="whatsapp"
+          type="tel"
+          placeholder="+54 9 223 123-4567"
+          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+        />
+        {fieldErrors.whatsapp && (
+          <p className="mt-1 text-xs text-rose-600">{fieldErrors.whatsapp}</p>
+        )}
       </div>
 
       <button

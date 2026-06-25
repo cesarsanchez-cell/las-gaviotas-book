@@ -222,7 +222,7 @@ export function HospedajeForm({
             </Select>
           </Field>
 
-          <Field label="Localidad (zona)" error={fieldError("localidad_id")}>
+          <Field label="Ubicación (en el destino)" error={fieldError("localidad_id")}>
             <Select
               name="localidad_id"
               defaultValue={initial?.localidad_id ?? ""}

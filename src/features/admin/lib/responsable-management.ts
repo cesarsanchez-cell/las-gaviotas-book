@@ -292,6 +292,7 @@ const entidadRefSchema = z.object({
 const createResponsableSchema = z.object({
   email: z.string().email("Email inválido"),
   nombre: z.string().min(2, "Nombre requerido").max(120),
+  whatsapp: z.string().optional(),
   // Se permite arreglo vacío (invite "suelto" — asignar entidades después).
   entidades: z.array(entidadRefSchema).default([]),
 });
