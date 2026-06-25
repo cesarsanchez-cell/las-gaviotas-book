@@ -29,12 +29,8 @@ export function NewResponsableForm() {
         setFieldErrors(res.fieldErrors ?? {});
         return;
       }
-      if (res.ok) {
-        const params = new URLSearchParams({
-          email: input.email,
-          nombre: input.nombre,
-        });
-        setInviteLink(`${window.location.origin}/registro?${params.toString()}`);
+      if (res.ok && res.registroUrl) {
+        setInviteLink(res.registroUrl);
         setResponsableName(input.nombre);
       }
     });
@@ -46,9 +42,12 @@ export function NewResponsableForm() {
         <div className="flex items-start gap-3">
           <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-700" aria-hidden />
           <div className="flex-1">
-            <p className="font-medium text-emerald-900">Listo, enviá por WhatsApp</p>
+            <p className="font-medium text-emerald-900">✅ Email enviado</p>
             <p className="mt-1 text-sm text-emerald-800">
-              Copia este link y envíaselo a <strong>{responsableName}</strong>:
+              Le enviamos un email a <strong>{responsableName}</strong> con el link para registrarse.
+            </p>
+            <p className="mt-3 text-sm text-emerald-800">
+              Si querés también podés copiar el link y enviarlo por WhatsApp:
             </p>
             <div className="mt-2 rounded-md bg-white px-3 py-2">
               <code className="break-all text-xs text-muted-foreground">{inviteLink}</code>

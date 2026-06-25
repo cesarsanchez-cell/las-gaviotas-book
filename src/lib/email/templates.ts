@@ -325,3 +325,21 @@ export function hospedajeInvitacionTemplate(args: {
     ),
   };
 }
+
+export function responsableInvitacionTemplate(args: {
+  nombre: string;
+  registroUrl: string;
+}): SubjectAndHtml {
+  return {
+    subject: `Te invitamos a publicar tu hospedaje, gastronómico o atracción en Mis Escapadas`,
+    html: wrap(
+      `<h2 style="font-size:24px;margin-bottom:16px;">¡Te invitamos a Mis Escapadas!</h2>` +
+        `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">Hola ${esc(args.nombre)},</p>` +
+        `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">El equipo de <strong>Mis Escapadas</strong> te está invitando a publicar tu hospedaje, gastronómico o atracción en nuestro portal turístico.</p>` +
+        `<p style="color:#334155;line-height:1.6;margin:0 0 16px;">Tocá el botón de abajo para crear tu cuenta y comenzar a cargar tus datos.</p>` +
+        button(args.registroUrl, "Crear mi cuenta") +
+        `<p style="color:#64748b;font-size:14px;line-height:1.5;">Una vez te registres, confirmás tu email y accedés a tu panel donde podés cargar fotos, datos de contacto, horarios, amenities y mucho más.</p>` +
+        `<p style="color:#64748b;font-size:14px;line-height:1.5;">¿Preguntas? Respondé a este mail y te ayudamos.</p>`
+    ),
+  };
+}

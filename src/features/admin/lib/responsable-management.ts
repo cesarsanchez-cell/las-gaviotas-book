@@ -299,6 +299,8 @@ const createResponsableSchema = z.object({
 export interface CreateResponsableResult extends ActionResult {
   /** Email al que se envió la invitación o al que se le sumaron entidades. */
   email?: string;
+  /** URL de registro con parámetros prefillados (para mostrar como backup en UI). */
+  registroUrl?: string;
   /** true si el email ya existía y se sumaron entidades a su cuenta. */
   merged?: boolean;
   /** Cantidad de entidades nuevas sumadas (solo en caso merged). */
@@ -337,7 +339,7 @@ async function findAuthUserByEmail(
 export async function createResponsableAction(
   input: z.infer<typeof createResponsableSchema>
 ): Promise<CreateResponsableResult> {
-  const me = await requireAdmin();
+  await requireAdmin();
   const parsed = createResponsableSchema.safeParse(input);
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
@@ -359,11 +361,41 @@ export async function createResponsableAction(
     };
   }
 
-  // No creamos nada en BD. Solo devolvemos OK con el email.
-  // El front generará un link /registro?email=...&nombre=...
+  // Generar link de registro con email y nombre prefillados
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3006";
+  const params = new URLSearchParams({ email, nombre });
+  const registroUrl = `${siteUrl}/registro?${params.toString()}`;
+
+  // Enviar email con el link
+  const { sendEmail } = await import("@/lib/email/resend");
+  const { responsableInvitacionTemplate } = await import(
+    "@/lib/email/templates"
+  );
+  const emailTemplate = responsableInvitacionTemplate({
+    nombre,
+    registroUrl,
+  });
+  const emailResult = await sendEmail({
+    to: email,
+    subject: emailTemplate.subject,
+    html: emailTemplate.html,
+  });
+
+  if (!emailResult.ok) {
+    console.error(
+      `[createResponsableAction] Error enviando email a ${email}:`,
+      emailResult.error
+    );
+    return {
+      error: "Error al enviar el email. Intentá más tarde.",
+    };
+  }
+
+  // Email enviado OK. Devolvemos el link también (para mostrar como backup en UI).
   return {
     ok: true,
     email,
+    registroUrl,
   };
 }
 
