@@ -78,7 +78,8 @@ export function HospedajeForm({
   isSuperAdmin = true,
 }: HospedajeFormProps) {
   const isAdmin = mode === "admin";
-  const canEditCommercialFields = isSuperAdmin;
+  // Responsable puede editar sus propios datos. Admin local (isSuperAdmin=false) solo cambios de estado.
+  const canEditCommercialFields = isAdmin ? isSuperAdmin : true;
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
   const [result, setResult] = React.useState<ActionResult | null>(null);
