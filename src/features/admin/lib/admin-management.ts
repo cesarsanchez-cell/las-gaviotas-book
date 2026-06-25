@@ -140,11 +140,13 @@ export async function createAdminLocalAction(
   }
 
   // 3. Generar magic link de recovery (password reset)
+  // generateLink usa PKCE (sesión vía #access_token), no OAuth (code=).
+  // Redirigimos directamente a /reset-password que detecta la sesión PKCE.
   const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
     type: "recovery",
     email,
     options: {
-      redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
+      redirectTo: `${siteUrl}/reset-password`,
     },
   });
   if (linkErr || !linkData?.properties?.action_link) {
@@ -155,8 +157,7 @@ export async function createAdminLocalAction(
   }
 
   // 4. Enviar email manualmente (Resend)
-  // generateLink ignora redirectTo, así que agregamos ?next= manualmente al link
-  const actionLink = `${linkData.properties.action_link}&next=/reset-password`;
+  const actionLink = linkData.properties.action_link;
   const emailResult = await sendEmail({
     to: email,
     subject: "Activa tu cuenta de administrador",
