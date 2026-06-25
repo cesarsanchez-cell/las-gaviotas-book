@@ -68,6 +68,8 @@ const createAdminLocalSchema = z.object({
 export interface CreateAdminLocalResult extends ActionResult {
   /** Email al que se mandó la invitación. */
   email?: string;
+  /** Link de recuperación para que el admin defina su contraseña (para debugging/testing). */
+  actionLink?: string;
 }
 
 /**
@@ -173,7 +175,7 @@ export async function createAdminLocalAction(
   }
 
   revalidatePath("/admin/admins");
-  return { ok: true, email };
+  return { ok: true, email, actionLink };
 }
 
 /**

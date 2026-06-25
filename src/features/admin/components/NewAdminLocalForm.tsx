@@ -14,6 +14,7 @@ export function NewAdminLocalForm({ destinos }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [invitedEmail, setInvitedEmail] = useState<string | null>(null);
+  const [actionLink, setActionLink] = useState<string | null>(null);
 
   function handleSubmit(formData: FormData) {
     setError(null);
@@ -35,6 +36,7 @@ export function NewAdminLocalForm({ destinos }: Props) {
       }
       if (res.ok && res.email) {
         setInvitedEmail(res.email);
+        setActionLink(res.actionLink ?? null);
       }
     });
   }
@@ -44,12 +46,29 @@ export function NewAdminLocalForm({ destinos }: Props) {
       <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5">
         <div className="flex items-start gap-3">
           <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-700" aria-hidden />
-          <div>
+          <div className="flex-1">
             <p className="font-medium text-emerald-900">Invitación enviada</p>
             <p className="mt-1 text-sm text-emerald-800">
               Le mandamos un mail a <strong>{invitedEmail}</strong> con el link
               para activar su cuenta y definir su contraseña.
             </p>
+            {actionLink && (
+              <div className="mt-3 rounded bg-white p-3">
+                <p className="text-xs font-medium text-emerald-700">Link directo (para testing):</p>
+                <div className="mt-1 flex items-center gap-2">
+                  <code className="flex-1 break-all rounded bg-emerald-100 px-2 py-1 text-xs text-emerald-900">
+                    {actionLink}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard.writeText(actionLink)}
+                    className="whitespace-nowrap rounded bg-emerald-700 px-2 py-1 text-xs text-white hover:bg-emerald-800"
+                  >
+                    Copiar
+                  </button>
+                </div>
+              </div>
+            )}
             <p className="mt-2 text-xs text-emerald-700">
               El link es válido por 24 horas. Si no le llega, revisá la carpeta
               de spam o reintentá.
@@ -58,7 +77,10 @@ export function NewAdminLocalForm({ destinos }: Props) {
         </div>
         <button
           type="button"
-          onClick={() => setInvitedEmail(null)}
+          onClick={() => {
+            setInvitedEmail(null);
+            setActionLink(null);
+          }}
           className="mt-4 text-sm text-emerald-800 underline"
         >
           Invitar a otro admin
