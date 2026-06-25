@@ -153,13 +153,15 @@ export async function createAdminLocalAction(
   }
 
   // 4. Enviar email manualmente (Resend)
+  // generateLink ignora redirectTo, así que agregamos ?next= manualmente al link
+  const actionLink = `${linkData.properties.action_link}&next=/reset-password`;
   const emailResult = await sendEmail({
     to: email,
     subject: "Activa tu cuenta de administrador",
     html: `
       <p>Hola ${nombre},</p>
       <p>Haz click en el link para definir tu contraseña y activar tu cuenta:</p>
-      <a href="${linkData.properties.action_link}">Activar cuenta</a>
+      <a href="${actionLink}">Activar cuenta</a>
       <p>El link es válido por 24 horas.</p>
     `,
   });
