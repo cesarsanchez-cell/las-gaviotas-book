@@ -16,43 +16,51 @@ export default function AdminSetupPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+    let timeout: NodeJS.Timeout;
+    let subscription: (() => void) | null = null;
+
     async function checkSession() {
       const supabase = await createClient();
 
-      // Escuchar cambios de sesión (PKCE se procesa asincronamente)
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event, session) => {
-          if (session?.user) {
-            const { data } = await supabase.auth.getUser();
+      // Listener para cambios de sesión (PKCE token se procesa aquí)
+      const { data } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          if (!mounted) return;
 
+          if (session?.user) {
             // Solo admins pueden estar en esta ruta
-            if (data.user?.user_metadata?.role !== "admin") {
+            if (session.user.user_metadata?.role !== "admin") {
               router.push("/login");
               return;
             }
 
-            setEmail(data.user?.email ?? null);
+            setEmail(session.user.email ?? null);
             setLoading(false);
+            if (timeout) clearTimeout(timeout);
             return;
-          }
-
-          // Si no hay sesión después de esperar un poco, mostrar error
-          if (event !== "SIGNED_IN") {
-            setTimeout(() => {
-              const { data } = supabase.auth.getUser();
-              if (!data.user) {
-                setError("Sesión expirada. Solicita un nuevo link.");
-                setLoading(false);
-              }
-            }, 1000);
           }
         }
       );
 
-      return () => subscription?.unsubscribe();
+      subscription = data?.subscription?.unsubscribe || null;
+
+      // Timeout: si no hay sesión en 2s, error
+      timeout = setTimeout(() => {
+        if (mounted) {
+          setError("Sesión expirada. Solicita un nuevo link.");
+          setLoading(false);
+        }
+      }, 2000);
     }
 
     checkSession();
+
+    return () => {
+      mounted = false;
+      if (timeout) clearTimeout(timeout);
+      if (subscription) subscription();
+    };
   }, [router]);
 
   if (loading) {
