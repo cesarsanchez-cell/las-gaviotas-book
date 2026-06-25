@@ -235,12 +235,20 @@ export async function signUpResponsableAction(
     await linkInvitedEntities(admin, data.user.id, parsed.data.email);
   }
 
-  if (data.session) {
-    revalidatePath("/panel", "layout");
-    redirect("/panel");
+  // Loguearlo automáticamente sin esperar confirmación de email
+  // (el email ya fue validado por admin al invitar, o es responsable de validar si es auto-registro)
+  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+    email: parsed.data.email,
+    password: parsed.data.password,
+  });
+
+  if (signInError || !signInData.session) {
+    // Si falla, es raro pero devolvemos error claro
+    return { error: signInError?.message ?? "No se pudo iniciar sesión." };
   }
 
-  return { ok: true, pendingConfirmation: true };
+  revalidatePath("/panel", "layout");
+  redirect("/panel");
 }
 
 const signInSchema = z.object({
