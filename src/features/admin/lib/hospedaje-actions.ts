@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/features/admin/lib/auth";
 import { notifyHospedajePublicado } from "@/features/admin/lib/notifications";
 import { assertAdminCanAccessHospedaje } from "@/features/admin/lib/scope";
-import { parseFormDataToHospedaje, parseFormDataToHospedajeInvitacion } from "@/features/admin/lib/validation";
+import { parseFormDataToHospedaje, parseFormDataToHospedajeInvitacion, hospedajeSchema } from "@/features/admin/lib/validation";
 import { sendEmail } from "@/lib/email/resend";
 import { hospedajeInvitacionTemplate } from "@/lib/email/templates";
 import { siteConfig } from "@/config/site";
@@ -167,15 +167,29 @@ export async function updateHospedajeAction(
     previousHospedaje = data;
   }
 
-  let input;
-  try {
-    input = parseFormDataToHospedaje(formData);
-  } catch (err) {
-    if (err instanceof z.ZodError) return formatZodError(err);
-    return { error: "Error inesperado al parsear el formulario." };
+  // Parsear FormData a raw sin validar (para admin local pueda restaurar después).
+  const raw: Record<string, unknown> = {};
+  for (const [k, v] of formData.entries()) {
+    if (k === "amenities") {
+      raw.amenities ??= [];
+      (raw.amenities as string[]).push(String(v));
+    } else if (k === "amenities_operational") {
+      raw.amenities_operational ??= [];
+      (raw.amenities_operational as string[]).push(String(v));
+    } else if (k === "destacado" || k === "responsable_validado") {
+      raw[k] = v === "on" || v === "true";
+    } else if (typeof v === "string" && v.trim() === "") {
+      // Empty string → key absent
+    } else {
+      raw[k] = v;
+    }
   }
+  raw.amenities ??= [];
+  raw.amenities_operational ??= [];
+  if (raw.destacado === undefined) raw.destacado = false;
+  if (raw.responsable_validado === undefined) raw.responsable_validado = false;
 
-  // Admin local: restaurar campos comerciales desde previousHospedaje si vinieron undefined.
+  // Admin local: restaurar campos comerciales desde previousHospedaje si no vinieron en FormData.
   if (!admin.isSuperAdmin && previousHospedaje) {
     const COMMERCIAL_FIELDS_ARRAY = [
       "nombre",
@@ -209,12 +223,21 @@ export async function updateHospedajeAction(
       "orden_listado",
     ];
     for (const field of COMMERCIAL_FIELDS_ARRAY) {
-      const current = (input as Record<string, unknown>)[field];
-      // Si el campo no vino en FormData (es undefined/default), restaurar desde previousHospedaje.
-      if (current === undefined || (Array.isArray(current) && current.length === 0 && previousHospedaje[field])) {
-        (input as Record<string, unknown>)[field] = previousHospedaje[field];
+      const current = raw[field];
+      // Si el campo no vino en FormData (undefined/empty array), restaurar desde previousHospedaje.
+      if (current === undefined || (Array.isArray(current) && current.length === 0)) {
+        raw[field] = previousHospedaje[field];
       }
     }
+  }
+
+  // Ahora validar el raw con Zod.
+  let input;
+  try {
+    input = hospedajeSchema.parse(raw);
+  } catch (err) {
+    if (err instanceof z.ZodError) return formatZodError(err);
+    return { error: "Error inesperado al parsear el formulario." };
   }
 
   // Admin local no puede mover el hospedaje a otro destino.
