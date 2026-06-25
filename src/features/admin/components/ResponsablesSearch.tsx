@@ -13,10 +13,10 @@ interface SearchResult {
 }
 
 interface Props {
-  onClose: () => void;
+  onClose?: () => void;
 }
 
-export function ResponsablesSearch({ onClose }: Props) {
+export function ResponsablesSearch({ onClose }: Props = {}) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [pending, startTransition] = useTransition();
@@ -68,7 +68,7 @@ export function ResponsablesSearch({ onClose }: Props) {
               <a
                 key={`${result.id}-${result.matchType}`}
                 href={`/admin/responsables/${result.id}`}
-                onClick={onClose}
+                onClick={onClose && (() => onClose())}
                 className="flex items-center justify-between gap-3 border-b border-border px-4 py-2 last:border-0 hover:bg-muted/40 transition"
               >
                 <div className="min-w-0 flex-1">

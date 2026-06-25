@@ -52,7 +52,7 @@ export default async function ResponsablesPage() {
           <p className="text-sm text-muted-foreground">
             Busca por nombre del responsable o por nombre de su comercio.
           </p>
-          <ResponsablesSearch onClose={() => {}} />
+          <ResponsablesSearch />
         </div>
         <ResponsablesList
           responsables={responsables}
