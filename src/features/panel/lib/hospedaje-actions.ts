@@ -11,7 +11,6 @@ import {
   evaluateChecklist,
   checklistPasses,
 } from "@/features/panel/lib/checklist";
-import { diffCriticalFields } from "@/features/panel/lib/critical-fields";
 import type { ActionResult } from "@/features/admin/lib/hospedaje-actions";
 import type {
   EstadoHospedaje,
@@ -130,14 +129,12 @@ export async function updateHospedajeAsResponsableAction(
   input.destacado = false;
   input.responsable_validado = false;
 
-  // Preservar estado actual — las transiciones van por acciones dedicadas
-  // (submitForReview, withdrawFromReview, etc.). Save edits no debe revertir
-  // un pendiente a borrador silenciosamente.
-  //
-  // Excepción: si el hospedaje está `publicado` o `pausado` y el responsable
-  // cambia un campo crítico (ver critical-fields.ts), volvemos a
-  // `pendiente_validacion` para que el admin re-apruebe. El hospedaje sale
-  // del listado público hasta que se reapruebe.
+  // Lógica de estado:
+  // - borrador → borrador (sin cambios de estado en edición)
+  // - pausado → pausado (admin pausó, responsable no lo reactiva editando)
+  // - publicado → pendiente_validacion (TODA edición requiere re-validación)
+  // - pendiente_validacion → pendiente_validacion (sigue esperando admin)
+  // - rechazado → rechazado (solo admin puede volver a enviar)
   const supabase = await createClient();
   const { data: current } = await supabase
     .from("hospedajes")
@@ -146,12 +143,8 @@ export async function updateHospedajeAsResponsableAction(
     .maybeSingle<HospedajeRow>();
 
   const estadoActual: EstadoHospedaje = current?.estado ?? "borrador";
-  const necesitaRevalidacion =
-    (estadoActual === "publicado" || estadoActual === "pausado") &&
-    !!current &&
-    diffCriticalFields(current, input).length > 0;
-
-  input.estado = necesitaRevalidacion ? "pendiente_validacion" : estadoActual;
+  input.estado =
+    estadoActual === "publicado" ? "pendiente_validacion" : estadoActual;
 
   const { error } = await supabase
     .from("hospedajes")
