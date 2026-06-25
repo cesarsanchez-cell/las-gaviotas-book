@@ -168,7 +168,7 @@ export async function updateHospedajeAction(
   }
 
   // Parsear FormData a raw sin validar (para admin local pueda restaurar después).
-  const raw: Record<string, unknown> = {};
+  let raw: Record<string, unknown> = {};
 
   for (const [k, v] of formData.entries()) {
     if (k === "amenities") {
