@@ -24,7 +24,7 @@ export async function loginResponsable(
 ) {
   await page.goto("/login");
   await page.getByLabel(/email/i).fill(who.email);
-  await page.getByLabel(/contrase/i).fill(who.password);
+  await page.getByRole("textbox", { name: /contraseña/i }).fill(who.password);
   await page.getByRole("button", { name: /ingresar|entrar|iniciar/i }).click();
   // `commit` (no `load`): nos alcanza con que la navegación a /panel ocurra. Si
   // esperáramos `load`, una foto con URL rota (tests que seedean storage_path
@@ -35,7 +35,7 @@ export async function loginResponsable(
 export async function loginAdmin(page: Page) {
   await page.goto("/admin/login");
   await page.getByLabel(/email/i).fill(ADMIN.email);
-  await page.getByLabel(/contrase/i).fill(ADMIN.password);
+  await page.getByRole("textbox", { name: /contraseña/i }).fill(ADMIN.password);
   await page.getByRole("button", { name: /ingresar|entrar|iniciar/i }).click();
   // `commit` (no `load`): basta con que ocurra la navegación a /admin. Timeout
   // holgado por el compile on-demand de `next dev`.
