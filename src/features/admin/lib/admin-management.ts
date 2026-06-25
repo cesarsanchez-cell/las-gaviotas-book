@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireAdmin } from "@/features/admin/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendEmail } from "@/lib/email/resend";
 import type { ActionResult } from "@/features/admin/lib/hospedaje-actions";
 
 export interface AdminListRow {
@@ -107,19 +108,22 @@ export async function createAdminLocalAction(
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.misescapadas.com.ar";
 
-  const { data: invited, error: inviteErr } =
-    await sb.auth.admin.inviteUserByEmail(email, {
-      data: { nombre },
-      redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
+  // 1. Crear usuario sin contraseña
+  const { data: newUser, error: createErr } =
+    await sb.auth.admin.createUser({
+      email,
+      user_metadata: { nombre, role: "admin" },
+      email_confirm: false,
     });
-  if (inviteErr || !invited.user) {
+  if (createErr || !newUser.user) {
     return {
-      error: inviteErr?.message ?? "No se pudo enviar la invitación.",
+      error: createErr?.message ?? "No se pudo crear el usuario.",
     };
   }
 
+  // 2. Crear perfil
   const { error: perfilErr } = await sb.from("perfiles").insert({
-    id: invited.user.id,
+    id: newUser.user.id,
     nombre,
     rol: "admin",
     destino_id: destinoId,
@@ -127,10 +131,42 @@ export async function createAdminLocalAction(
   } as never);
 
   if (perfilErr) {
-    // Rollback: borrar el user invitado si el perfil falló.
-    await sb.auth.admin.deleteUser(invited.user.id);
+    await sb.auth.admin.deleteUser(newUser.user.id);
     return {
-      error: `Invitación enviada pero falló el perfil: ${perfilErr.message}`,
+      error: `Perfil fallo: ${perfilErr.message}`,
+    };
+  }
+
+  // 3. Generar magic link de recovery (password reset)
+  const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
+    type: "recovery",
+    email,
+    options: {
+      redirectTo: `${siteUrl}/auth/callback?next=/reset-password`,
+    },
+  });
+  if (linkErr || !linkData?.properties?.action_link) {
+    await sb.auth.admin.deleteUser(newUser.user.id);
+    return {
+      error: linkErr?.message ?? "No se pudo generar el link de recuperación.",
+    };
+  }
+
+  // 4. Enviar email manualmente (Resend)
+  const emailResult = await sendEmail({
+    to: email,
+    subject: "Activa tu cuenta de administrador",
+    html: `
+      <p>Hola ${nombre},</p>
+      <p>Haz click en el link para definir tu contraseña y activar tu cuenta:</p>
+      <a href="${linkData.properties.action_link}">Activar cuenta</a>
+      <p>El link es válido por 24 horas.</p>
+    `,
+  });
+  if (!emailResult.ok) {
+    await sb.auth.admin.deleteUser(newUser.user.id);
+    return {
+      error: `Email fallo: ${emailResult.error}`,
     };
   }
 

@@ -35,12 +35,13 @@ export default async function ResetPasswordPage({ searchParams }: PageProps) {
         ? "responsable"
         : null;
 
-  // Si el query string trae el contexto, lo usamos directo. Sino caemos al
-  // perfil del usuario en BD. Este fallback cubre el caso patológico de un
-  // admin sin perfil cargado en `perfiles` (creado manual en Supabase Studio).
+  // Si el query string trae el contexto, lo usamos directo. Sino buscamos en
+  // user_metadata (guardado en inviteUserByEmail). Fallback: perfil en BD.
   let role: "admin" | "responsable" = "responsable";
   if (hintFromUrl) {
     role = hintFromUrl;
+  } else if (data.user.user_metadata?.role === "admin") {
+    role = "admin";
   } else {
     const admin = createAdminClient();
     const { data: perfil } = await admin
