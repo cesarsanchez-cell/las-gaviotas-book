@@ -156,12 +156,65 @@ export async function updateHospedajeAction(
     return { error: (e as Error).message };
   }
 
+  // Admin local: lee el hospedaje previo para preservar campos comerciales deshabilitados.
+  let previo: Record<string, unknown> | null = null;
+  if (!admin.isSuperAdmin) {
+    const { data } = await createAdminClient()
+      .from("hospedajes")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle<Record<string, unknown>>();
+    previo = data;
+  }
+
   let input;
   try {
     input = parseFormDataToHospedaje(formData);
   } catch (err) {
     if (err instanceof z.ZodError) return formatZodError(err);
     return { error: "Error inesperado al parsear el formulario." };
+  }
+
+  // Admin local: restaurar campos comerciales desde previo si vinieron undefined.
+  if (!admin.isSuperAdmin && previo) {
+    const COMMERCIAL_FIELDS_ARRAY = [
+      "nombre",
+      "slug",
+      "tipo",
+      "destino_id",
+      "localidad_id",
+      "descripcion_corta",
+      "descripcion_larga",
+      "capacidad_min",
+      "capacidad_max",
+      "cantidad_unidades",
+      "direccion",
+      "lat",
+      "lng",
+      "google_maps_url",
+      "whatsapp",
+      "email",
+      "telefono",
+      "instagram",
+      "website",
+      "amenities",
+      "amenities_operational",
+      "responsable_nombre",
+      "responsable_documento",
+      "responsable_email",
+      "responsable_whatsapp",
+      "meta_title",
+      "meta_description",
+      "destacado",
+      "orden_listado",
+    ];
+    for (const field of COMMERCIAL_FIELDS_ARRAY) {
+      const current = (input as Record<string, unknown>)[field];
+      // Si el campo no vino en FormData (es undefined/default), restaurar desde previo.
+      if (current === undefined || (Array.isArray(current) && current.length === 0 && previo[field])) {
+        (input as Record<string, unknown>)[field] = previo[field];
+      }
+    }
   }
 
   // Admin local no puede mover el hospedaje a otro destino.
