@@ -169,16 +169,8 @@ export async function updateHospedajeAction(
 
   // Parsear FormData a raw sin validar (para admin local pueda restaurar después).
   const raw: Record<string, unknown> = {};
-  const fieldsFromForm = new Set<string>(); // Trackear qué campos realmente vinieron en FormData
-
-  // DEBUG: log campos que vienen en FormData
-  if (!admin.isSuperAdmin) {
-    const allFields = Array.from(formData.keys());
-    console.log("[DEBUG] Admin local - FormData fields:", allFields);
-  }
 
   for (const [k, v] of formData.entries()) {
-    fieldsFromForm.add(k);
     if (k === "amenities") {
       raw.amenities ??= [];
       (raw.amenities as string[]).push(String(v));
