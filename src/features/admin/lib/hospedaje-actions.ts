@@ -198,13 +198,10 @@ export async function updateHospedajeAction(
   if (raw.destacado === undefined) raw.destacado = false;
   if (raw.responsable_validado === undefined) raw.responsable_validado = false;
 
-  // Admin local: solo puede cambiar estado. Rechazar cualquier otro campo.
+  // Admin local: solo puede cambiar estado. Extraer solo ese campo.
   if (!admin.isSuperAdmin) {
-    // Campos que vinieron en FormData, excluir "estado"
-    const nonEstadoFields = Array.from(fieldsFromForm).filter((k) => k !== "estado");
-    if (nonEstadoFields.length > 0) {
-      return { error: "No podés editar datos comerciales del hospedaje. Solo podés cambiar el estado." };
-    }
+    const estadoValue = raw.estado;
+    raw = { estado: estadoValue };
   }
 
   // Admin local: restaurar campos comerciales desde previousHospedaje si no vinieron en FormData.
