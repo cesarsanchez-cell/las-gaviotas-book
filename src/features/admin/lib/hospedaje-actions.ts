@@ -189,6 +189,34 @@ export async function updateHospedajeAction(
   if (raw.destacado === undefined) raw.destacado = false;
   if (raw.responsable_validado === undefined) raw.responsable_validado = false;
 
+  // Admin local: validar que solo cambió el estado ANTES de restaurar.
+  // Esto es sobre qué intentó cambiar el usuario, no qué campos restauramos después.
+  if (!admin.isSuperAdmin) {
+    const { data: previo } = await createAdminClient()
+      .from("hospedajes")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle<Record<string, unknown>>();
+
+    if (previo) {
+      // Comparar qué campos vinieron en raw (lo que el usuario intentó cambiar) vs previo (lo que está en BD).
+      const changedFields = Object.keys(raw).filter(
+        (key) =>
+          (raw as Record<string, unknown>)[key] !==
+          (previo as Record<string, unknown>)[key]
+      );
+
+      // Campos permitidos para admin local: solo estado
+      const allowedFields = new Set(["estado"]);
+
+      for (const field of changedFields) {
+        if (!allowedFields.has(field)) {
+          return { error: "No podés editar datos comerciales del hospedaje. Solo podés cambiar el estado." };
+        }
+      }
+    }
+  }
+
   // Admin local: restaurar campos comerciales desde previousHospedaje si no vinieron en FormData.
   if (!admin.isSuperAdmin && previousHospedaje) {
     // Campos que DEBEN estar presentes (required en schema).
@@ -263,33 +291,6 @@ export async function updateHospedajeAction(
   // Admin local no puede mover el hospedaje a otro destino.
   if (!admin.isSuperAdmin && input.destino_id !== admin.destinoId) {
     return { error: "No podés mover el hospedaje a otro destino." };
-  }
-
-  // Admin local solo puede cambiar estado. Si intenta editar datos comerciales, rechazar.
-  if (!admin.isSuperAdmin) {
-    // Lee el estado anterior para validar que admin local solo cambió el estado.
-    const { data: previo } = await createAdminClient()
-      .from("hospedajes")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle<typeof input>();
-
-    if (previo) {
-      const changedFields = Object.keys(input).filter(
-        (key) =>
-          (input as Record<string, unknown>)[key] !==
-          (previo as Record<string, unknown>)[key]
-      );
-
-      // Campos permitidos para admin local: solo estado
-      const allowedFields = new Set(["estado"]);
-
-      for (const field of changedFields) {
-        if (!allowedFields.has(field)) {
-          return { error: "No podés editar datos comerciales del hospedaje. Solo podés cambiar el estado." };
-        }
-      }
-    }
   }
 
   // Service role: ya validamos rol admin server-side, RLS es redundante.
