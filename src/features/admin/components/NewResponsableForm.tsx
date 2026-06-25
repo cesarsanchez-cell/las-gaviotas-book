@@ -30,7 +30,11 @@ export function NewResponsableForm() {
         return;
       }
       if (res.ok) {
-        setInviteLink(`${window.location.origin}/registro`);
+        const params = new URLSearchParams({
+          email: input.email,
+          nombre: input.nombre,
+        });
+        setInviteLink(`${window.location.origin}/registro?${params.toString()}`);
         setResponsableName(input.nombre);
       }
     });
@@ -42,15 +46,15 @@ export function NewResponsableForm() {
         <div className="flex items-start gap-3">
           <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-700" aria-hidden />
           <div className="flex-1">
-            <p className="font-medium text-emerald-900">Listo, contactá por WhatsApp</p>
+            <p className="font-medium text-emerald-900">Listo, enviá por WhatsApp</p>
             <p className="mt-1 text-sm text-emerald-800">
-              Enviá este link a <strong>{responsableName}</strong>:
+              Copia este link y envíaselo a <strong>{responsableName}</strong>:
             </p>
             <div className="mt-2 rounded-md bg-white px-3 py-2">
               <code className="break-all text-xs text-muted-foreground">{inviteLink}</code>
             </div>
             <p className="mt-2 text-xs text-emerald-700">
-              Desde ese link se registra, confirma email, y puede crear su hospedaje, gastronómico o atracción.
+              Ahí se registra, confirma su email, y puede crear su hospedaje, gastronómico o atracción desde su panel.
             </p>
           </div>
         </div>

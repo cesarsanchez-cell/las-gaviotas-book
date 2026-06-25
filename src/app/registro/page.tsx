@@ -12,7 +12,15 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function RegistroPage() {
+interface Props {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function RegistroPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const email = typeof params.email === "string" ? params.email : "";
+  const nombre = typeof params.nombre === "string" ? params.nombre : "";
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/30 py-12">
       <Container size="sm">
@@ -36,7 +44,7 @@ export default function RegistroPage() {
               datos. Una vez completo, lo enviás a revisión al equipo.
             </p>
             <OtherSessionWarning />
-            <SignupForm />
+            <SignupForm initialEmail={email} initialNombre={nombre} />
           </div>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">

@@ -17,7 +17,12 @@ function SubmitButton() {
   );
 }
 
-export function SignupForm() {
+interface SignupFormProps {
+  initialEmail?: string;
+  initialNombre?: string;
+}
+
+export function SignupForm({ initialEmail = "", initialNombre = "" }: SignupFormProps) {
   const [error, setError] = React.useState<string | null>(null);
   const [pendingConfirmation, setPendingConfirmation] = React.useState(false);
 
@@ -44,7 +49,13 @@ export function SignupForm() {
     <form action={handleSubmit} className="space-y-5">
       <div className="space-y-2">
         <Label htmlFor="nombre">Nombre completo</Label>
-        <Input id="nombre" name="nombre" required autoComplete="name" />
+        <Input
+          id="nombre"
+          name="nombre"
+          required
+          autoComplete="name"
+          defaultValue={initialNombre}
+        />
       </div>
 
       <div className="space-y-2">
@@ -55,6 +66,7 @@ export function SignupForm() {
           type="email"
           required
           autoComplete="email"
+          defaultValue={initialEmail}
         />
       </div>
 
