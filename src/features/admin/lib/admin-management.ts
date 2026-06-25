@@ -139,14 +139,14 @@ export async function createAdminLocalAction(
     };
   }
 
-  // 3. Generar magic link de recovery (password reset)
+  // 3. Generar magic link de recovery (password setup)
   // generateLink usa PKCE (sesión vía #access_token), no OAuth (code=).
-  // Redirigimos directamente a /reset-password que detecta la sesión PKCE.
+  // Redirigimos a /admin/setup donde el admin define su contraseña por primera vez.
   const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
     type: "recovery",
     email,
     options: {
-      redirectTo: `${siteUrl}/reset-password`,
+      redirectTo: `${siteUrl}/admin/setup`,
     },
   });
   if (linkErr || !linkData?.properties?.action_link) {
