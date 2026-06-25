@@ -11,8 +11,8 @@ Estado consolidado del proyecto. Visión y reglas detalladas en [CLAUDE.md](CLAU
 
 | Item              | Valor                                                                            |
 |-------------------|----------------------------------------------------------------------------------|
-| Etapa vigente     | **Core en prod**: Etapas 1-7 cerradas. En desarrollo: **Reorganización admin panel responsable-centric** (Fases 1-4 ✅: búsqueda dual, dashboard, agregaciones, permisos). Próximo: Fase 5 (consolidar estados). Backlog: visión producto (home emocional + sinergia comercial) — ver sección final |
-| Último commit     | `5fa6320` — FEAT: Fase 4 - Permisos diferenciados (admin local no edita datos) |
+| Etapa vigente     | **Core en prod**: Etapas 1-7 cerradas. En desarrollo: **Reorganización admin panel responsable-centric** (Fases 1-5 ✅: búsqueda dual, dashboard, agregaciones, permisos, consolidación de estados). Backlog: visión producto (home emocional + sinergia comercial) — ver sección final |
+| Último commit     | `247f6b5` — FEAT: Fase 5 - Consolidar borrador vs pendiente_validacion |
 | Fecha             | 2026-06-25                                                                       |
 | Entorno local     | PM2 → `las-gaviotas-book` en `http://localhost:3005`                             |
 | **Deploy producción** | ✅ https://www.misescapadas.com.ar (canónico) + redirects desde apex y vercel.app |
@@ -305,7 +305,7 @@ Refactor de la arquitectura admin de comercio-centric a responsable-centric. El 
 - [x] Admin local SÍ puede cambiar estado: publicar, pausar, rechazar
 - [x] UI: campos deshabilitados en `/admin/{hospedajes,gastronomia,atractivos}/[id]` para admin local. Props `isSuperAdmin` en `HospedajeForm` y `LugarForm`
 - [x] Server-side: `updateHospedajeAction` rechaza cambios de campos comerciales si `!isSuperAdmin`
-- [ ] Resolver diferencia semántica: **borrador** (nunca se validó) vs **pendiente_validacion** (fue validado, cambios penden) — consolidar a uno solo (Fase 5, pendiente decisión del usuario)
+- [x] Resolver diferencia semántica: **borrador** (nunca se validó) vs **pendiente_validacion** (fue validado, cambios penden) — consolidar a uno solo (Fase 5 ✅ `247f6b5`: TODA edición de publicado → pendiente_validacion)
 
 ### Etapa post-rediseño — Reservas online (planeada)
 - [ ] Motor de reservas con bloqueo de fechas
