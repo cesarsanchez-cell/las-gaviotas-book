@@ -191,6 +191,20 @@ export async function updateHospedajeAction(
 
   // Admin local: restaurar campos comerciales desde previousHospedaje si no vinieron en FormData.
   if (!admin.isSuperAdmin && previousHospedaje) {
+    // Campos que DEBEN estar presentes (required en schema).
+    const REQUIRED_FIELDS = new Set([
+      "nombre",
+      "slug",
+      "tipo",
+      "destino_id",
+      "descripcion_corta",
+      "direccion",
+      "whatsapp",
+      "responsable_nombre",
+      "responsable_email",
+      "responsable_whatsapp",
+    ]);
+    // Todos los campos comerciales que no se editaron en el form.
     const COMMERCIAL_FIELDS_ARRAY = [
       "nombre",
       "slug",
@@ -227,8 +241,10 @@ export async function updateHospedajeAction(
       // Si el campo no vino en FormData (undefined/empty array), restaurar desde previousHospedaje.
       if (current === undefined || (Array.isArray(current) && current.length === 0)) {
         const prevValue = previousHospedaje[field];
-        // Solo restaurar si el valor previo no es null. Para campos opcionales, dejar undefined.
-        if (prevValue !== null && prevValue !== undefined) {
+        const isRequired = REQUIRED_FIELDS.has(field);
+        // Required: restaurar siempre (incluso null, para que Zod lance error si es necesario).
+        // Optional: restaurar solo si no es null (evita "Invalid input" en campos opcionales).
+        if (isRequired || (prevValue !== null && prevValue !== undefined)) {
           raw[field] = prevValue;
         }
       }
