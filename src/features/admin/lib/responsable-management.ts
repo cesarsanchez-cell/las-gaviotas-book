@@ -67,26 +67,31 @@ type ResponsabilidadDB = {
  * primario.
  */
 export async function listResponsablesAction(): Promise<ResponsableListRow[]> {
-  const me = await requireAdmin();
-  const sb = createAdminClient();
+  try {
+    const me = await requireAdmin();
+    const sb = createAdminClient();
 
-  // Traemos perfiles con rol=responsable Y todos los rol=admin que tengan
-  // al menos una responsabilidad (admin local con doble función).
-  const { data: perfilesResp } = await sb
-    .from("perfiles")
-    .select("id, nombre, rol, destino_id, created_at")
-    .in("rol", ["responsable", "admin"])
-    .order("created_at", { ascending: true })
-    .returns<
-      Array<{
-        id: string;
-        nombre: string | null;
-        rol: string;
-        destino_id: string | null;
-        created_at: string;
-      }>
-    >();
-  if (!perfilesResp) return [];
+    console.log("[listResponsablesAction] Starting...");
+
+    // Traemos perfiles con rol=responsable Y todos los rol=admin que tengan
+    // al menos una responsabilidad (admin local con doble función).
+    const { data: perfilesResp } = await sb
+      .from("perfiles")
+      .select("id, nombre, rol, destino_id, created_at")
+      .in("rol", ["responsable", "admin"])
+      .order("created_at", { ascending: true })
+      .returns<
+        Array<{
+          id: string;
+          nombre: string | null;
+          rol: string;
+          destino_id: string | null;
+          created_at: string;
+        }>
+      >();
+
+    console.log("[listResponsablesAction] perfilesResp:", perfilesResp?.length ?? 0);
+    if (!perfilesResp) return [];
 
   // De los admins, solo conservamos los que tienen al menos una responsabilidad.
   // Los admins puros (sin entidades) ya se gestionan desde /admin/admins.
@@ -164,35 +169,43 @@ export async function listResponsablesAction(): Promise<ResponsableListRow[]> {
     respsByPerfil.set(r.perfil_id, arr);
   }
 
-  const rows: ResponsableListRow[] = [];
-  for (const p of perfiles) {
-    let entidades = respsByPerfil.get(p.id) ?? [];
+    const rows: ResponsableListRow[] = [];
+    console.log("[listResponsablesAction] Processing", perfiles.length, 'perfiles');
+    for (const p of perfiles) {
+      let entidades = respsByPerfil.get(p.id) ?? [];
 
-    // Scope: admin local solo ve responsables con al menos una entidad en su destino.
-    // Los "sueltos" (sin entidades) solo los ve el super admin.
-    if (!me.isSuperAdmin) {
-      if (entidades.length === 0) continue;
-      const hasInScope = entidades.some((e) => e.destinoId === me.destinoId);
-      if (!hasInScope) continue;
-      // Recortamos a las entidades de SU destino: el admin local no debe ver
-      // (ni recibir en el payload) las que el responsable tenga en otros
-      // destinos. Como el row solo expone vínculos in-scope, mostrar su email
-      // es legítimo (gestiona ese negocio en este destino).
-      entidades = entidades.filter((e) => e.destinoId === me.destinoId);
+      // Scope: admin local solo ve responsables con al menos una entidad en su destino.
+      // Los "sueltos" (sin entidades) solo los ve el super admin.
+      if (!me.isSuperAdmin) {
+        if (entidades.length === 0) continue;
+        const hasInScope = entidades.some((e) => e.destinoId === me.destinoId);
+        if (!hasInScope) continue;
+        // Recortamos a las entidades de SU destino: el admin local no debe ver
+        // (ni recibir en el payload) las que el responsable tenga en otros
+        // destinos. Como el row solo expone vínculos in-scope, mostrar su email
+        // es legítimo (gestiona ese negocio en este destino).
+        entidades = entidades.filter((e) => e.destinoId === me.destinoId);
+      }
+
+      console.log(`[listResponsablesAction] Getting user for perfil ${p.id}`);
+      const { data: u } = await sb.auth.admin.getUserById(p.id);
+      console.log(`[listResponsablesAction] Got user, email:`, u?.user?.email ?? "(sin email)");
+      rows.push({
+        id: p.id,
+        nombre: p.nombre,
+        email: u?.user?.email ?? "(sin email)",
+        entidades,
+        createdAt: p.created_at,
+        isAlsoAdmin: p.rol === "admin",
+        isSuperAdmin: p.rol === "admin" && p.destino_id == null,
+      });
     }
-
-    const { data: u } = await sb.auth.admin.getUserById(p.id);
-    rows.push({
-      id: p.id,
-      nombre: p.nombre,
-      email: u?.user?.email ?? "(sin email)",
-      entidades,
-      createdAt: p.created_at,
-      isAlsoAdmin: p.rol === "admin",
-      isSuperAdmin: p.rol === "admin" && p.destino_id == null,
-    });
+    console.log("[listResponsablesAction] Done, returning", rows.length, 'rows');
+    return rows;
+  } catch (error) {
+    console.error("[listResponsablesAction] ERROR:", error);
+    throw error;
   }
-  return rows;
 }
 
 /**
@@ -210,9 +223,11 @@ export async function listResponsablesAction(): Promise<ResponsableListRow[]> {
 export async function listEntidadesAsignables(
   opts: { incluirIds?: string[] } = {}
 ): Promise<EntidadAsignable[]> {
-  const me = await requireAdmin();
-  const sb = createAdminClient();
-  const incluir = new Set(opts.incluirIds ?? []);
+  try {
+    console.log("[listEntidadesAsignables] Starting...");
+    const me = await requireAdmin();
+    const sb = createAdminClient();
+    const incluir = new Set(opts.incluirIds ?? []);
 
   // 1) Hospedajes (scoped por destino si admin local).
   let qH = sb
@@ -260,28 +275,34 @@ export async function listEntidadesAsignables(
     (resps ?? []).filter((r) => r.entidad_tipo === "lugar").map((r) => r.entidad_id)
   );
 
-  const out: EntidadAsignable[] = [];
-  for (const h of hosps ?? []) {
-    if (ocupadasHospedaje.has(h.id) && !incluir.has(h.id)) continue;
-    out.push({
-      tipo: "hospedaje",
-      id: h.id,
-      nombre: h.nombre,
-      destinoId: h.destino_id,
-      destinoNombre: h.destinos.nombre,
-    });
+    const out: EntidadAsignable[] = [];
+    console.log("[listEntidadesAsignables] Hospedajes:", hosps?.length ?? 0, "Lugares:", lugs?.length ?? 0);
+    for (const h of hosps ?? []) {
+      if (ocupadasHospedaje.has(h.id) && !incluir.has(h.id)) continue;
+      out.push({
+        tipo: "hospedaje",
+        id: h.id,
+        nombre: h.nombre,
+        destinoId: h.destino_id,
+        destinoNombre: h.destinos.nombre,
+      });
+    }
+    for (const l of lugs ?? []) {
+      if (ocupadasLugar.has(l.id) && !incluir.has(l.id)) continue;
+      out.push({
+        tipo: l.tipo,
+        id: l.id,
+        nombre: l.nombre,
+        destinoId: l.destino_id,
+        destinoNombre: l.destinos.nombre,
+      });
+    }
+    console.log("[listEntidadesAsignables] Done, returning", out.length, 'entidades');
+    return out;
+  } catch (error) {
+    console.error("[listEntidadesAsignables] ERROR:", error);
+    throw error;
   }
-  for (const l of lugs ?? []) {
-    if (ocupadasLugar.has(l.id) && !incluir.has(l.id)) continue;
-    out.push({
-      tipo: l.tipo,
-      id: l.id,
-      nombre: l.nombre,
-      destinoId: l.destino_id,
-      destinoNombre: l.destinos.nombre,
-    });
-  }
-  return out;
 }
 
 const entidadRefSchema = z.object({
