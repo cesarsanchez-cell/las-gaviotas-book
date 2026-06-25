@@ -226,7 +226,11 @@ export async function updateHospedajeAction(
       const current = raw[field];
       // Si el campo no vino en FormData (undefined/empty array), restaurar desde previousHospedaje.
       if (current === undefined || (Array.isArray(current) && current.length === 0)) {
-        raw[field] = previousHospedaje[field];
+        const prevValue = previousHospedaje[field];
+        // Solo restaurar si el valor previo no es null. Para campos opcionales, dejar undefined.
+        if (prevValue !== null && prevValue !== undefined) {
+          raw[field] = prevValue;
+        }
       }
     }
   }
