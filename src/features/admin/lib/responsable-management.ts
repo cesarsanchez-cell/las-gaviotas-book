@@ -670,3 +670,293 @@ export async function deleteResponsableAction(
  * @deprecated Usar EntidadAsignable.
  */
 export type HospedajeOption = EntidadAsignable;
+
+export interface ComercioConEstado {
+  id: string;
+  tipo: "hospedaje" | "gastronomico" | "atractivo";
+  nombre: string;
+  destinoId: string;
+  estado: "borrador" | "pendiente_validacion" | "publicado" | "pausado" | "rechazado";
+}
+
+export interface ResponsableConComercios extends ResponsableListRow {
+  comercios: ComercioConEstado[];
+}
+
+/**
+ * Obtiene un responsable con todos sus comercios y sus estados.
+ * Solo super admin puede ver todos los comercios de un responsable.
+ * Admin local solo ve los comercios en su destino.
+ */
+export async function getResponsableWithComerciosAction(
+  responsableId: string
+): Promise<ResponsableConComercios | null> {
+  const me = await requireAdmin();
+  const sb = createAdminClient();
+
+  // Traer el responsable
+  const { data: perfil } = await sb
+    .from("perfiles")
+    .select("id, nombre, rol")
+    .eq("id", responsableId)
+    .maybeSingle<{ id: string; nombre: string | null; rol: string }>();
+
+  if (!perfil) return null;
+
+  // Obtener email del auth user
+  const { data: authUser } = await sb.auth.admin.getUserById(responsableId);
+  const email = authUser?.user?.email ?? "(sin email)";
+
+  // Responsabilidades del responsable
+  const { data: resps } = await sb
+    .from("responsabilidades")
+    .select("entidad_tipo, entidad_id")
+    .eq("perfil_id", responsableId)
+    .returns<ResponsabilidadDB[]>();
+
+  const hospedajeIds = Array.from(
+    new Set((resps ?? []).filter((r) => r.entidad_tipo === "hospedaje").map((r) => r.entidad_id))
+  );
+  const lugarIds = Array.from(
+    new Set((resps ?? []).filter((r) => r.entidad_tipo === "lugar").map((r) => r.entidad_id))
+  );
+
+  // Traer hospedajes con estado
+  const hospedajesConEstado: ComercioConEstado[] = [];
+  if (hospedajeIds.length > 0) {
+    let qH = sb
+      .from("hospedajes")
+      .select("id, nombre, destino_id, estado")
+      .in("id", hospedajeIds);
+    if (!me.isSuperAdmin) qH = qH.eq("destino_id", me.destinoId!);
+    const { data: hosps } = await qH.returns<
+      Array<{ id: string; nombre: string; destino_id: string; estado: string }>
+    >();
+    for (const h of hosps ?? []) {
+      hospedajesConEstado.push({
+        id: h.id,
+        tipo: "hospedaje",
+        nombre: h.nombre,
+        destinoId: h.destino_id,
+        estado: h.estado as ComercioConEstado["estado"],
+      });
+    }
+  }
+
+  // Traer lugares (gastro + atractivos) con estado
+  const lugaresConEstado: ComercioConEstado[] = [];
+  if (lugarIds.length > 0) {
+    let qL = sb
+      .from("lugares")
+      .select("id, nombre, tipo, destino_id, estado")
+      .in("id", lugarIds)
+      .in("tipo", ["gastronomico", "atractivo"]);
+    if (!me.isSuperAdmin) qL = qL.eq("destino_id", me.destinoId!);
+    const { data: lugs } = await qL.returns<
+      Array<{
+        id: string;
+        nombre: string;
+        tipo: "gastronomico" | "atractivo";
+        destino_id: string;
+        estado: string;
+      }>
+    >();
+    for (const l of lugs ?? []) {
+      lugaresConEstado.push({
+        id: l.id,
+        tipo: l.tipo,
+        nombre: l.nombre,
+        destinoId: l.destino_id,
+        estado: l.estado as ComercioConEstado["estado"],
+      });
+    }
+  }
+
+  // Combinar todos los comercios ordenados por estado y nombre
+  const comercios = [...hospedajesConEstado, ...lugaresConEstado].sort((a, b) => {
+    // Primero los borrador y pendientes, luego los publicados
+    const estadoOrder: Record<string, number> = {
+      borrador: 1,
+      pendiente_validacion: 2,
+      publicado: 3,
+      pausado: 4,
+      rechazado: 5,
+    };
+    const cmp = (estadoOrder[a.estado] ?? 99) - (estadoOrder[b.estado] ?? 99);
+    if (cmp !== 0) return cmp;
+    return a.nombre.localeCompare(b.nombre);
+  });
+
+  // Build entidades para ResponsableListRow
+  const entidades = comercios.map((c) => ({
+    id: c.id,
+    nombre: c.nombre,
+    destinoId: c.destinoId,
+    tipo: c.tipo as "hospedaje" | "gastronomico" | "atractivo",
+  }));
+
+  return {
+    id: perfil.id,
+    nombre: perfil.nombre,
+    email,
+    entidades,
+    createdAt: "",
+    isAlsoAdmin: false,
+    isSuperAdmin: false,
+    comercios,
+  };
+}
+
+/**
+ * Busca responsables por nombre o comercios.
+ * Devuelve responsables que coincidan con el nombre O tengan comercios con nombre coincidente.
+ */
+export async function searchResponsablesByNameOrComercio(
+  query: string
+): Promise<
+  Array<{
+    id: string;
+    nombre: string | null;
+    email: string;
+    matchType: "responsable" | "comercio";
+    matchedComercio?: { id: string; nombre: string; tipo: string };
+  }>
+> {
+  const me = await requireAdmin();
+  const sb = createAdminClient();
+  const q = query.toLowerCase().trim();
+
+  if (q.length === 0) {
+    return [];
+  }
+
+  // 1) Buscar responsables por nombre
+  const { data: perfiles } = await sb
+    .from("perfiles")
+    .select("id, nombre, rol, destino_id")
+    .in("rol", ["responsable", "admin"])
+    .returns<
+      Array<{
+        id: string;
+        nombre: string | null;
+        rol: string;
+        destino_id: string | null;
+      }>
+    >();
+
+  const resultados = new Map<
+    string,
+    {
+      id: string;
+      nombre: string | null;
+      email: string;
+      matchType: "responsable" | "comercio";
+      matchedComercio?: { id: string; nombre: string; tipo: string };
+    }
+  >();
+
+  // Buscar por nombre de responsable
+  for (const p of perfiles ?? []) {
+    if (p.nombre?.toLowerCase().includes(q)) {
+      // Scope: admin local
+      if (!me.isSuperAdmin && p.destino_id !== me.destinoId) continue;
+
+      const { data: u } = await sb.auth.admin.getUserById(p.id);
+      const email = u?.user?.email ?? "";
+      resultados.set(p.id, {
+        id: p.id,
+        nombre: p.nombre,
+        email,
+        matchType: "responsable",
+      });
+    }
+  }
+
+  // 2) Buscar comercios por nombre y traer su responsable
+  // Hospedajes
+  let qH = sb
+    .from("hospedajes")
+    .select("id, nombre, destino_id")
+    .ilike("nombre", `%${q}%`);
+  if (!me.isSuperAdmin) qH = qH.eq("destino_id", me.destinoId!);
+  const { data: hosps } = await qH.returns<
+    Array<{ id: string; nombre: string; destino_id: string }>
+  >();
+
+  // Lugares
+  let qL = sb
+    .from("lugares")
+    .select("id, nombre, tipo, destino_id")
+    .ilike("nombre", `%${q}%`)
+    .in("tipo", ["gastronomico", "atractivo"]);
+  if (!me.isSuperAdmin) qL = qL.eq("destino_id", me.destinoId!);
+  const { data: lugs } = await qL.returns<
+    Array<{ id: string; nombre: string; tipo: string; destino_id: string }>
+  >();
+
+  // Traer responsabilidades para mapear comercios a responsables
+  const comercioIds = [
+    ...(hosps ?? []).map((h) => h.id),
+    ...(lugs ?? []).map((l) => l.id),
+  ];
+
+  if (comercioIds.length > 0) {
+    const { data: resps } = await sb
+      .from("responsabilidades")
+      .select("perfil_id, entidad_tipo, entidad_id")
+      .in("entidad_id", comercioIds)
+      .returns<
+        Array<{
+          perfil_id: string;
+          entidad_tipo: "hospedaje" | "lugar";
+          entidad_id: string;
+        }>
+      >();
+
+    for (const resp of resps ?? []) {
+      const perfil = perfiles?.find((p) => p.id === resp.perfil_id);
+      if (!perfil) continue;
+
+      // Scope: admin local
+      if (!me.isSuperAdmin && perfil.destino_id !== me.destinoId) continue;
+
+      const hospedaje = (hosps ?? []).find((h) => h.id === resp.entidad_id);
+      const lugar = (lugs ?? []).find((l) => l.id === resp.entidad_id);
+
+      if (!hospedaje && !lugar) continue;
+
+      const { data: u } = await sb.auth.admin.getUserById(resp.perfil_id);
+      const email = u?.user?.email ?? "";
+
+      const key = resp.perfil_id;
+      const existing = resultados.get(key);
+      if (!existing) {
+        const matchedComercio = hospedaje
+          ? {
+              id: hospedaje.id,
+              nombre: hospedaje.nombre,
+              tipo: "hospedaje",
+            }
+          : lugar
+            ? {
+                id: lugar.id,
+                nombre: lugar.nombre,
+                tipo: lugar.tipo,
+              }
+            : null;
+
+        if (matchedComercio) {
+          resultados.set(key, {
+            id: resp.perfil_id,
+            nombre: perfil.nombre,
+            email,
+            matchType: "comercio",
+            matchedComercio,
+          });
+        }
+      }
+    }
+  }
+
+  return Array.from(resultados.values());
+}

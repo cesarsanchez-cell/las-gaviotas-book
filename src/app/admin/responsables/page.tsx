@@ -5,6 +5,7 @@ import {
 } from "@/features/admin/lib/responsable-management";
 import { ResponsablesList } from "@/features/admin/components/ResponsablesList";
 import { NewResponsableForm } from "@/features/admin/components/NewResponsableForm";
+import { ResponsablesSearch } from "@/features/admin/components/ResponsablesSearch";
 
 export default async function ResponsablesPage() {
   const me = await requireAdmin();
@@ -47,6 +48,12 @@ export default async function ResponsablesPage() {
         <h2 className="mb-4 font-display text-xl tracking-tight">
           Responsables existentes
         </h2>
+        <div className="mb-4 space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Busca por nombre del responsable o por nombre de su comercio.
+          </p>
+          <ResponsablesSearch onClose={() => {}} />
+        </div>
         <ResponsablesList
           responsables={responsables}
           entidadesDisponibles={entidadesDisponibles}

@@ -135,11 +135,14 @@ export function ResponsablesList({ responsables, entidadesDisponibles }: Props) 
             className="rounded-xl border border-border bg-card p-5"
           >
             <header className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-display text-lg tracking-tight">
+                  <a
+                    href={`/admin/responsables/${r.id}`}
+                    className="font-display text-lg tracking-tight hover:text-primary hover:underline"
+                  >
                     {r.nombre ?? "—"}
-                  </h3>
+                  </a>
                   {r.isAlsoAdmin && (
                     <span
                       title={
@@ -257,41 +260,48 @@ export function ResponsablesList({ responsables, entidadesDisponibles }: Props) 
                 </div>
               </div>
             ) : (
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+              <div className="mt-3 space-y-2">
                 {r.entidades.length === 0 ? (
-                  <span className="text-muted-foreground italic">
+                  <span className="inline-block text-sm text-muted-foreground italic">
                     Sin entidades asignadas — editá para vincularle hospedajes,
                     gastronómicos o qué hacer.
                   </span>
                 ) : (
-                  r.entidades.map((e) => (
-                    <span
-                      key={`${e.tipo}:${e.id}`}
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${
-                        e.tipo === "hospedaje"
-                          ? "bg-sky-100 text-sky-900"
-                          : e.tipo === "atractivo"
-                            ? "bg-teal-100 text-teal-900"
-                            : "bg-amber-100 text-amber-900"
-                      }`}
-                      title={
-                        e.tipo === "hospedaje"
-                          ? "Hospedaje"
-                          : e.tipo === "atractivo"
-                            ? "Qué hacer"
-                            : "Gastronómico"
-                      }
-                    >
-                      {e.tipo === "hospedaje" ? (
-                        <Building2 className="h-3 w-3" />
-                      ) : e.tipo === "atractivo" ? (
-                        <Compass className="h-3 w-3" />
-                      ) : (
-                        <UtensilsCrossed className="h-3 w-3" />
-                      )}
-                      {e.nombre}
-                    </span>
-                  ))
+                  <div>
+                    <p className="mb-2 text-xs font-medium text-muted-foreground">
+                      {r.entidades.length} comercio{r.entidades.length !== 1 ? "s" : ""}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {r.entidades.map((e) => (
+                        <span
+                          key={`${e.tipo}:${e.id}`}
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${
+                            e.tipo === "hospedaje"
+                              ? "bg-sky-100 text-sky-900"
+                              : e.tipo === "atractivo"
+                                ? "bg-teal-100 text-teal-900"
+                                : "bg-amber-100 text-amber-900"
+                          }`}
+                          title={
+                            e.tipo === "hospedaje"
+                              ? "Hospedaje"
+                              : e.tipo === "atractivo"
+                                ? "Qué hacer"
+                                : "Gastronómico"
+                          }
+                        >
+                          {e.tipo === "hospedaje" ? (
+                            <Building2 className="h-3 w-3" />
+                          ) : e.tipo === "atractivo" ? (
+                            <Compass className="h-3 w-3" />
+                          ) : (
+                            <UtensilsCrossed className="h-3 w-3" />
+                          )}
+                          {e.nombre}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
