@@ -18,22 +18,38 @@ export default function AdminSetupPage() {
   useEffect(() => {
     async function checkSession() {
       const supabase = await createClient();
-      const { data } = await supabase.auth.getUser();
 
-      if (!data.user) {
-        setError("Sesión expirada. Solicita un nuevo link.");
-        setLoading(false);
-        return;
-      }
+      // Escuchar cambios de sesión (PKCE se procesa asincronamente)
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (session?.user) {
+            const { data } = await supabase.auth.getUser();
 
-      // Solo admins pueden estar en esta ruta
-      if (data.user.user_metadata?.role !== "admin") {
-        router.push("/login");
-        return;
-      }
+            // Solo admins pueden estar en esta ruta
+            if (data.user?.user_metadata?.role !== "admin") {
+              router.push("/login");
+              return;
+            }
 
-      setEmail(data.user.email ?? null);
-      setLoading(false);
+            setEmail(data.user?.email ?? null);
+            setLoading(false);
+            return;
+          }
+
+          // Si no hay sesión después de esperar un poco, mostrar error
+          if (event !== "SIGNED_IN") {
+            setTimeout(() => {
+              const { data } = supabase.auth.getUser();
+              if (!data.user) {
+                setError("Sesión expirada. Solicita un nuevo link.");
+                setLoading(false);
+              }
+            }, 1000);
+          }
+        }
+      );
+
+      return () => subscription?.unsubscribe();
     }
 
     checkSession();
