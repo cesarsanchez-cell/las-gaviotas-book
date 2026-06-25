@@ -29,6 +29,40 @@ function formatZodError(err: z.ZodError): ActionResult {
   return { error: "Hay errores en el formulario.", fieldErrors };
 }
 
+// Campos que solo super admin puede editar. Admin local solo puede cambiar estado.
+const COMMERCIAL_FIELDS = new Set([
+  "nombre",
+  "slug",
+  "tipo",
+  "destino_id",
+  "localidad_id",
+  "descripcion_corta",
+  "descripcion_larga",
+  "capacidad_min",
+  "capacidad_max",
+  "cantidad_unidades",
+  "direccion",
+  "lat",
+  "lng",
+  "google_maps_url",
+  "whatsapp",
+  "email",
+  "telefono",
+  "instagram",
+  "website",
+  "amenities",
+  "amenities_operational",
+  "responsable_nombre",
+  "responsable_documento",
+  "responsable_email",
+  "responsable_whatsapp",
+  "meta_title",
+  "meta_description",
+  "responsable_validado",
+  "destacado",
+  "orden_listado",
+]);
+
 export async function createHospedajeAction(
   formData: FormData
 ): Promise<ActionResult> {
@@ -133,6 +167,33 @@ export async function updateHospedajeAction(
   // Admin local no puede mover el hospedaje a otro destino.
   if (!admin.isSuperAdmin && input.destino_id !== admin.destinoId) {
     return { error: "No podés mover el hospedaje a otro destino." };
+  }
+
+  // Admin local solo puede cambiar estado. Si intenta editar datos comerciales, rechazar.
+  if (!admin.isSuperAdmin) {
+    // Lee el estado anterior para validar que admin local solo cambió el estado.
+    const { data: previo } = await createAdminClient()
+      .from("hospedajes")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle<typeof input>();
+
+    if (previo) {
+      const changedFields = Object.keys(input).filter(
+        (key) =>
+          (input as Record<string, unknown>)[key] !==
+          (previo as Record<string, unknown>)[key]
+      );
+
+      // Campos permitidos para admin local: solo estado
+      const allowedFields = new Set(["estado"]);
+
+      for (const field of changedFields) {
+        if (!allowedFields.has(field)) {
+          return { error: "No podés editar datos comerciales del hospedaje. Solo podés cambiar el estado." };
+        }
+      }
+    }
   }
 
   // Service role: ya validamos rol admin server-side, RLS es redundante.

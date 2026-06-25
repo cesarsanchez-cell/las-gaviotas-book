@@ -36,6 +36,11 @@ interface LugarFormProps {
    * "responsable" oculta esos — son decisiones del admin local.
    */
   mode?: "admin" | "responsable";
+  /**
+   * Si false (admin local): deshabilita campos comerciales (nombre, slug, descripción, etc).
+   * Solo permite cambios de estado.
+   */
+  isSuperAdmin?: boolean;
 }
 
 const DIAS: { key: keyof HorariosLugar; label: string }[] = [
@@ -55,8 +60,10 @@ export function LugarForm({
   submitLabel,
   action,
   mode = "admin",
+  isSuperAdmin = true,
 }: LugarFormProps) {
   const isAdmin = mode === "admin";
+  const canEditCommercialFields = isSuperAdmin;
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
   const [result, setResult] = React.useState<ActionResult | null>(null);
@@ -136,6 +143,7 @@ export function LugarForm({
               value={destinoId}
               onChange={(e) => setDestinoId(e.target.value)}
               required
+              disabled={!canEditCommercialFields}
             >
               {destinos.map((d) => (
                 <option key={d.id} value={d.id}>
@@ -157,6 +165,7 @@ export function LugarForm({
               name="categoria"
               defaultValue={initial?.categoria ?? categorias[0]?.key}
               required
+              disabled={!canEditCommercialFields}
             >
               {categorias.map((c) => (
                 <option key={c.key} value={c.key}>
@@ -182,6 +191,7 @@ export function LugarForm({
               onChange={(e) => setNombre(e.target.value)}
               required
               maxLength={120}
+              disabled={!canEditCommercialFields}
               placeholder={
                 tipo === "gastronomico"
                   ? "Ej: La Trattoria del Mar"
@@ -207,6 +217,7 @@ export function LugarForm({
               }}
               required
               maxLength={80}
+              disabled={!canEditCommercialFields}
               placeholder="la-trattoria-del-mar"
             />
             <p className="mt-1 text-xs text-muted-foreground">
@@ -227,6 +238,7 @@ export function LugarForm({
             required
             minLength={20}
             maxLength={200}
+            disabled={!canEditCommercialFields}
             rows={2}
             placeholder="Una línea que resuma el lugar. Mín 20, máx 200 caracteres."
           />
@@ -246,6 +258,7 @@ export function LugarForm({
             maxLength={5000}
             rows={5}
             placeholder="Detalle, historia, qué lo hace especial. Opcional."
+            disabled={!canEditCommercialFields}
           />
         </div>
       </section>

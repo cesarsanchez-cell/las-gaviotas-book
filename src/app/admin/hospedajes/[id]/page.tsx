@@ -94,6 +94,7 @@ export default async function EditHospedajePage({ params }: PageProps) {
         initial={hospedaje}
         submitLabel="Guardar cambios"
         action={updateWithId}
+        isSuperAdmin={admin.isSuperAdmin}
       />
     </div>
   );

@@ -61,6 +61,11 @@ interface HospedajeFormProps {
    * (estado, destacado, orden_listado, responsable_validado).
    */
   mode?: "admin" | "responsable";
+  /**
+   * Si false (admin local): deshabilita campos comerciales (nombre, slug, descripción, contacto, etc).
+   * Solo permite cambios de estado (publicar, pausar, rechazar).
+   */
+  isSuperAdmin?: boolean;
 }
 
 export function HospedajeForm({
@@ -70,8 +75,10 @@ export function HospedajeForm({
   submitLabel,
   action,
   mode = "admin",
+  isSuperAdmin = true,
 }: HospedajeFormProps) {
   const isAdmin = mode === "admin";
+  const canEditCommercialFields = isSuperAdmin;
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
   const [result, setResult] = React.useState<ActionResult | null>(null);
@@ -176,6 +183,7 @@ export function HospedajeForm({
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Posta Cangrejo Apart"
               required
+              disabled={!canEditCommercialFields}
             />
           </Field>
 
@@ -194,11 +202,12 @@ export function HospedajeForm({
               }}
               placeholder="posta-cangrejo-apart"
               required
+              disabled={!canEditCommercialFields}
             />
           </Field>
 
           <Field label="Tipo" required error={fieldError("tipo")}>
-            <Select name="tipo" defaultValue={initial?.tipo ?? "apart"} required>
+            <Select name="tipo" defaultValue={initial?.tipo ?? "apart"} required disabled={!canEditCommercialFields}>
               {TIPOS_VALIDOS.map((t) => (
                 <option key={t} value={t}>
                   {TIPO_HOSPEDAJE_LABEL[t]}
@@ -213,6 +222,7 @@ export function HospedajeForm({
               value={destinoId}
               onChange={(e) => setDestinoId(e.target.value)}
               required
+              disabled={!canEditCommercialFields}
             >
               {destinos.map((d) => (
                 <option key={d.id} value={d.id}>
@@ -226,6 +236,7 @@ export function HospedajeForm({
             <Select
               name="localidad_id"
               defaultValue={initial?.localidad_id ?? ""}
+              disabled={!canEditCommercialFields}
             >
               <option value="">— Sin asignar —</option>
               {localidades.map((l) => (
@@ -265,6 +276,7 @@ export function HospedajeForm({
             maxLength={200}
             required
             placeholder="Aparts modernos a metros del mar, con parrilla y deck propio."
+            disabled={!canEditCommercialFields}
           />
         </Field>
 
@@ -279,6 +291,7 @@ export function HospedajeForm({
             rows={6}
             maxLength={5000}
             placeholder="Departamentos completamente equipados..."
+            disabled={!canEditCommercialFields}
           />
         </Field>
       </FormSection>
@@ -293,6 +306,7 @@ export function HospedajeForm({
               defaultValue={initial?.capacidad_min ?? ""}
               min={1}
               max={50}
+              disabled={!canEditCommercialFields}
             />
           </Field>
           <Field label="Máximo" error={fieldError("capacidad_max")}>
@@ -302,6 +316,7 @@ export function HospedajeForm({
               defaultValue={initial?.capacidad_max ?? ""}
               min={1}
               max={100}
+              disabled={!canEditCommercialFields}
             />
           </Field>
           <Field
@@ -315,6 +330,7 @@ export function HospedajeForm({
               defaultValue={initial?.cantidad_unidades ?? 1}
               min={1}
               max={200}
+              disabled={!canEditCommercialFields}
             />
           </Field>
         </div>
@@ -328,6 +344,7 @@ export function HospedajeForm({
             defaultValue={initial?.direccion ?? ""}
             required
             placeholder="Calle 33 entre Costanera y 1, Las Gaviotas"
+            disabled={!canEditCommercialFields}
           />
         </Field>
 
@@ -337,6 +354,7 @@ export function HospedajeForm({
               name="lat"
               defaultValue={initial?.lat ?? ""}
               placeholder="-36.7820"
+              disabled={!canEditCommercialFields}
             />
           </Field>
           <Field label="Longitud" error={fieldError("lng")}>
@@ -344,6 +362,7 @@ export function HospedajeForm({
               name="lng"
               defaultValue={initial?.lng ?? ""}
               placeholder="-56.6485"
+              disabled={!canEditCommercialFields}
             />
           </Field>
           <Field label="URL Google Maps" error={fieldError("google_maps_url")}>
@@ -351,6 +370,7 @@ export function HospedajeForm({
               name="google_maps_url"
               defaultValue={initial?.google_maps_url ?? ""}
               type="url"
+              disabled={!canEditCommercialFields}
             />
           </Field>
         </div>
@@ -370,6 +390,7 @@ export function HospedajeForm({
               defaultValue={initial?.whatsapp ?? ""}
               required
               placeholder="1155555555"
+              disabled={!canEditCommercialFields}
             />
           </Field>
           <Field label="Email" error={fieldError("email")}>
@@ -377,6 +398,7 @@ export function HospedajeForm({
               type="email"
               name="email"
               defaultValue={initial?.email ?? ""}
+              disabled={!canEditCommercialFields}
             />
           </Field>
           <Field
@@ -388,6 +410,7 @@ export function HospedajeForm({
               name="telefono"
               defaultValue={initial?.telefono ?? ""}
               placeholder="1155555555"
+              disabled={!canEditCommercialFields}
             />
           </Field>
           <Field
@@ -399,6 +422,7 @@ export function HospedajeForm({
               name="instagram"
               defaultValue={initial?.instagram ?? ""}
               placeholder="postacangrejoapart"
+              disabled={!canEditCommercialFields}
             />
           </Field>
           <Field label="Website" error={fieldError("website")}>
@@ -407,6 +431,7 @@ export function HospedajeForm({
               name="website"
               defaultValue={initial?.website ?? ""}
               placeholder="https://..."
+              disabled={!canEditCommercialFields}
             />
           </Field>
         </div>
@@ -436,11 +461,16 @@ export function HospedajeForm({
                     return (
                       <label
                         key={key}
-                        className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 py-2 transition hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                        className={`flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 transition ${
+                          canEditCommercialFields
+                            ? "cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                            : "cursor-not-allowed opacity-60"
+                        }`}
                       >
                         <Checkbox
                           checked={checked}
                           onChange={() => toggleAmenity(key)}
+                          disabled={!canEditCommercialFields}
                         />
                         <Icon className="h-4 w-4 text-primary" aria-hidden />
                         <span className="text-sm">{a.label}</span>
@@ -477,11 +507,16 @@ export function HospedajeForm({
                     return (
                       <label
                         key={a.key}
-                        className="flex cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 py-2 transition hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                        className={`flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 transition ${
+                          canEditCommercialFields
+                            ? "cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-primary/5"
+                            : "cursor-not-allowed opacity-60"
+                        }`}
                       >
                         <Checkbox
                           checked={checked}
                           onChange={() => toggleOperationalAmenity(a.key)}
+                          disabled={!canEditCommercialFields}
                         />
                         <Icon className="h-4 w-4 text-primary" aria-hidden />
                         <span className="text-sm">{a.label}</span>
@@ -510,6 +545,7 @@ export function HospedajeForm({
               name="responsable_nombre"
               defaultValue={initial?.responsable_nombre ?? ""}
               required
+              disabled={!canEditCommercialFields}
             />
           </Field>
           <Field
@@ -519,6 +555,7 @@ export function HospedajeForm({
             <Input
               name="responsable_documento"
               defaultValue={initial?.responsable_documento ?? ""}
+              disabled={!canEditCommercialFields}
             />
           </Field>
           <Field label="Email del responsable" error={fieldError("responsable_email")}>
@@ -526,6 +563,7 @@ export function HospedajeForm({
               type="email"
               name="responsable_email"
               defaultValue={initial?.responsable_email ?? ""}
+              disabled={!canEditCommercialFields}
             />
           </Field>
           <Field
@@ -537,15 +575,17 @@ export function HospedajeForm({
               name="responsable_whatsapp"
               defaultValue={initial?.responsable_whatsapp ?? ""}
               placeholder="1155555555"
+              disabled={!canEditCommercialFields}
             />
           </Field>
         </div>
         {isAdmin && (
           <Field error={fieldError("responsable_validado")}>
-            <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
+            <label className={`inline-flex items-center gap-2 text-sm ${canEditCommercialFields ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}>
               <Checkbox
                 name="responsable_validado"
                 defaultChecked={initial?.responsable_validado ?? false}
+                disabled={!canEditCommercialFields}
               />
               Responsable validado (checkeé identidad y datos)
             </label>
@@ -567,6 +607,7 @@ export function HospedajeForm({
             name="meta_title"
             defaultValue={initial?.meta_title ?? ""}
             maxLength={70}
+            disabled={!canEditCommercialFields}
           />
         </Field>
         <Field
@@ -579,6 +620,7 @@ export function HospedajeForm({
             defaultValue={initial?.meta_description ?? ""}
             rows={2}
             maxLength={180}
+            disabled={!canEditCommercialFields}
           />
         </Field>
       </FormSection>

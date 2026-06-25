@@ -82,6 +82,7 @@ export default async function EditAtractivoPage({ params }: PageProps) {
         initial={lugar}
         submitLabel="Guardar cambios"
         action={action}
+        isSuperAdmin={admin.isSuperAdmin}
       />
     </div>
   );
