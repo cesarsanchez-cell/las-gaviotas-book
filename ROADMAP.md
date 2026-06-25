@@ -11,9 +11,9 @@ Estado consolidado del proyecto. Visión y reglas detalladas en [CLAUDE.md](CLAU
 
 | Item              | Valor                                                                            |
 |-------------------|----------------------------------------------------------------------------------|
-| Etapa vigente     | **Core cerrado en prod**: rediseño multi-unidad Etapas 1-7 + verticales gastro/atractivos + roles múltiples + regiones + autogestión password + **Home v2 / hub Airbnb (bloques 1-11)** + **auditoría de seguridad Etapas 1-5 completa (0 No-Go/0 Major)**. Etapa 7 (restricciones con flag por destino) cerrada en local 2026-06-05 — falta aplicar migración + deploy. Siguiente foco: **Visión de producto** (home emocional + sinergia comercial) — ver sección final |
-| Último commit     | `7781653` — Auditoría Etapa 5: rate-limit auth + escape HTML mails + anti-enumeration signup (#23) |
-| Fecha             | 2026-06-05                                                                       |
+| Etapa vigente     | **Core en prod**: Etapas 1-7 cerradas. En desarrollo: **Reorganización admin panel responsable-centric** (Fases 1-3 ✅: búsqueda dual, dashboard por responsable, agregaciones). Siguiente: permisos diferenciados (admin local no edita datos, solo estados). Backlog: visión producto (home emocional + sinergia comercial) — ver sección final |
+| Último commit     | `994aac3` — FEAT: Fase 3 - Dashboard agregado por responsable con stats |
+| Fecha             | 2026-06-25                                                                       |
 | Entorno local     | PM2 → `las-gaviotas-book` en `http://localhost:3005`                             |
 | **Deploy producción** | ✅ https://www.misescapadas.com.ar (canónico) + redirects desde apex y vercel.app |
 | Repo remoto       | https://github.com/cesarsanchez-cell/las-gaviotas-book (privado)                 |
@@ -279,6 +279,32 @@ Auditoría externa por etapas (rúbrica No-Go/Major/Minor) + remediación. **0 N
 - [ ] Rate-limit por email (además de por IP) en forgot/resend.
 
 **Invariante de seguridad clave** (vale para toda mutación futura): como `createAdminClient()` (service role) bypassea RLS, toda mutación debe (a) chequear rol+scope en código antes y (b) scopear la query por la FK del padre, nunca por el id del hijo solo.
+
+### Reorganización admin panel — Responsables centric (en prog, 2026-06-25)
+
+Refactor de la arquitectura admin de comercio-centric a responsable-centric. El responsable es la entidad primaria; el admin local ve responsables y dentro de cada uno sus comercios (hospedajes, gastronómicos, atractivos). Búsqueda dual (por responsable o comercio) → responsable. Dashboards agregados por rubro (hospedajes, gastro, qué-hacer) con stats y filtros de pendientes.
+
+**Fase 1 — Búsqueda dual + dashboard responsable** ✅ (`7454241` → en progreso)
+- [x] `getResponsableWithComerciosAction`: obtiene individual responsable con todos sus comercios agrupados por tipo
+- [x] `searchResponsablesByNameOrComercio`: búsqueda dual — por nombre de responsable O nombre de comercio (retorna el responsable)
+- [x] `ResponsablesSearch.tsx`: componente cliente con dropdown, diferencia match type (responsable vs comercio)
+- [x] `/admin/responsables/[id]` (nueva): dashboard individual mostrando datos responsable + summary cards por estado + comercios agrupados por tipo con links a editor
+- [x] `ResponsableComerciosList.tsx`: agrupa comercios por rubro (hospedajes, gastronómicos, qué-hacer) con badge de estado
+
+**Fase 2 — Search + breadcrumb + edición en listado** (planeada)
+- [ ] Integración en `/admin/responsables`: búsqueda visible, breadcrumb responsable al navegar
+- [ ] Links a comercios individuales para edición rápida
+
+**Fase 3 — Agregaciones dashboard principal** ✅ (`994aac3`)
+- [x] `getResponsablesStats`: obtiene stats de responsables (total comercios, conteos por estado)
+- [x] `ResponsablesStatsCard`: componente que muestra top 5 responsables con pendientes. Total pendientes, total comercios, comercios publicados por responsable
+- [x] `/admin/page.tsx`: nuevo bloque "Responsables con pendientes" insertado en el dashboard principal después de "Necesitan tu OK"
+
+**Fase 4 — Permisos diferenciados** (planeada)
+- [ ] Admin local NO edita datos comerciales (nombre, descripción, ubicación, etc.) — solo super admin
+- [ ] Admin local SÍ puede cambiar estado: publicar, pausar, rechazar
+- [ ] UI: campos deshabilitados en `/admin/{hospedajes,gastronomia,atractivos}/[id]` para admin local
+- [ ] Resolver diferencia semántica: **borrador** (nunca se validó) vs **pendiente_validacion** (fue validado, cambios penden) — consolidar a uno solo
 
 ### Etapa post-rediseño — Reservas online (planeada)
 - [ ] Motor de reservas con bloqueo de fechas
