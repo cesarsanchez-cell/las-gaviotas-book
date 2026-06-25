@@ -24,11 +24,30 @@ interface SignupFormProps {
 
 export function SignupForm({ initialEmail = "", initialNombre = "" }: SignupFormProps) {
   const [error, setError] = React.useState<string | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = React.useState(false);
 
   async function handleSubmit(formData: FormData) {
     setError(null);
+    setPendingConfirmation(false);
     const result = await signUpResponsableAction(formData);
     if (result?.error) setError(result.error);
+    if (result?.pendingConfirmation) setPendingConfirmation(true);
+  }
+
+  if (pendingConfirmation) {
+    return (
+      <div className="space-y-5 rounded-md bg-blue-50 px-4 py-5 text-center">
+        <p className="text-sm font-medium text-blue-900">
+          ¡Cuenta creada! 🎉
+        </p>
+        <p className="text-sm text-blue-700">
+          Te enviamos un link de confirmación a <strong>{initialEmail}</strong>. Abrilo para confirmar tu email y acceder al panel.
+        </p>
+        <p className="text-xs text-blue-600">
+          Si no lo ves, revisa spam.
+        </p>
+      </div>
+    );
   }
 
   return (

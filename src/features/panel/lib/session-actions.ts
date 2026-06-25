@@ -235,20 +235,9 @@ export async function signUpResponsableAction(
     await linkInvitedEntities(admin, data.user.id, parsed.data.email);
   }
 
-  // Loguearlo automáticamente sin esperar confirmación de email
-  // (el email ya fue validado por admin al invitar, o es responsable de validar si es auto-registro)
-  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-    email: parsed.data.email,
-    password: parsed.data.password,
-  });
-
-  if (signInError || !signInData.session) {
-    // Si falla, es raro pero devolvemos error claro
-    return { error: signInError?.message ?? "No se pudo iniciar sesión." };
-  }
-
-  revalidatePath("/panel", "layout");
-  redirect("/panel");
+  // Email de confirmación ya fue mandado (vía signUp + emailRedirectTo).
+  // El usuario abre el link, confirma email y /auth/callback lo redirige a /panel.
+  return { ok: true, pendingConfirmation: true };
 }
 
 const signInSchema = z.object({
@@ -605,17 +594,9 @@ export async function signUpAdminAction(
     }
   }
 
-  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-    email: parsed.data.email,
-    password: parsed.data.password,
-  });
-
-  if (signInError || !signInData.session) {
-    return { error: signInError?.message ?? "No se pudo iniciar sesión." };
-  }
-
-  revalidatePath("/admin", "layout");
-  redirect("/admin");
+  // Email de confirmación ya fue mandado (vía signUp + emailRedirectTo).
+  // El admin abre el link, confirma email y /auth/callback lo redirige a /admin.
+  return { ok: true, pendingConfirmation: true };
 }
 
 export async function resendConfirmationAction(
