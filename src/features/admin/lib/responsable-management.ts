@@ -807,6 +807,143 @@ export async function getResponsableWithComerciosAction(
   };
 }
 
+export interface ResponsableStatsRow {
+  id: string;
+  nombre: string | null;
+  email: string;
+  totalComercios: number;
+  comerciosBorrador: number;
+  comerciosPendiente: number;
+  comerciosPublicados: number;
+}
+
+/**
+ * Obtiene stats de responsables (útil para dashboard):
+ * conteos de comercios por estado.
+ * Solo super admin ve todos; admin local solo ve responsables en su destino.
+ */
+export async function getResponsablesStats(): Promise<ResponsableStatsRow[]> {
+  const me = await requireAdmin();
+  const sb = createAdminClient();
+
+  // Traer responsables
+  const { data: perfiles } = await sb
+    .from("perfiles")
+    .select("id, nombre, rol, destino_id")
+    .in("rol", ["responsable", "admin"])
+    .returns<
+      Array<{
+        id: string;
+        nombre: string | null;
+        rol: string;
+        destino_id: string | null;
+      }>
+    >();
+
+  if (!perfiles || perfiles.length === 0) return [];
+
+  // Obtener IDs de responsables visibles
+  const perfilIds = perfiles
+    .filter((p) => {
+      if (me.isSuperAdmin) return true;
+      // Admin local: solo ve responsables sin destino_id (globales) o con su destino
+      return p.destino_id === null || p.destino_id === me.destinoId;
+    })
+    .map((p) => p.id);
+
+  if (perfilIds.length === 0) return [];
+
+  // Responsabilidades de estos responsables
+  const { data: resps } = await sb
+    .from("responsabilidades")
+    .select("perfil_id, entidad_tipo, entidad_id")
+    .in("perfil_id", perfilIds)
+    .returns<ResponsabilidadDB[]>();
+
+  const hospIds = (resps ?? [])
+    .filter((r) => r.entidad_tipo === "hospedaje")
+    .map((r) => r.entidad_id);
+  const lugIds = (resps ?? [])
+    .filter((r) => r.entidad_tipo === "lugar")
+    .map((r) => r.entidad_id);
+
+  // Traer hospedajes con estado
+  const hospedajesById = new Map<string, { estado: string }>();
+  if (hospIds.length > 0) {
+    let qH = sb.from("hospedajes").select("id, estado").in("id", hospIds);
+    if (!me.isSuperAdmin) qH = qH.eq("destino_id", me.destinoId!);
+    const { data } = await qH.returns<Array<{ id: string; estado: string }>>();
+    for (const h of data ?? []) hospedajesById.set(h.id, { estado: h.estado });
+  }
+
+  // Traer lugares con estado
+  const lugaresById = new Map<string, { estado: string }>();
+  if (lugIds.length > 0) {
+    let qL = sb
+      .from("lugares")
+      .select("id, estado")
+      .in("id", lugIds)
+      .in("tipo", ["gastronomico", "atractivo"]);
+    if (!me.isSuperAdmin) qL = qL.eq("destino_id", me.destinoId!);
+    const { data } = await qL.returns<Array<{ id: string; estado: string }>>();
+    for (const l of data ?? []) lugaresById.set(l.id, { estado: l.estado });
+  }
+
+  // Construir stats por responsable
+  const statsByResponsable = new Map<
+    string,
+    { total: number; borrador: number; pendiente: number; publicados: number }
+  >();
+
+  for (const r of resps ?? []) {
+    const current = statsByResponsable.get(r.perfil_id) ?? {
+      total: 0,
+      borrador: 0,
+      pendiente: 0,
+      publicados: 0,
+    };
+
+    const entidad =
+      r.entidad_tipo === "hospedaje"
+        ? hospedajesById.get(r.entidad_id)
+        : lugaresById.get(r.entidad_id);
+
+    if (entidad) {
+      current.total++;
+      if (entidad.estado === "borrador") current.borrador++;
+      else if (entidad.estado === "pendiente_validacion") current.pendiente++;
+      else if (entidad.estado === "publicado") current.publicados++;
+    }
+
+    statsByResponsable.set(r.perfil_id, current);
+  }
+
+  // Construir resultado
+  const rows: ResponsableStatsRow[] = [];
+  for (const p of perfiles) {
+    if (!perfilIds.includes(p.id)) continue;
+
+    const stats = statsByResponsable.get(p.id);
+    if (!stats) continue; // Sin comercios
+
+    const { data: u } = await sb.auth.admin.getUserById(p.id);
+    const email = u?.user?.email ?? "";
+
+    rows.push({
+      id: p.id,
+      nombre: p.nombre,
+      email,
+      totalComercios: stats.total,
+      comerciosBorrador: stats.borrador,
+      comerciosPendiente: stats.pendiente,
+      comerciosPublicados: stats.publicados,
+    });
+  }
+
+  // Ordenar por más pendientes primero
+  return rows.sort((a, b) => b.comerciosPendiente - a.comerciosPendiente);
+}
+
 /**
  * Busca responsables por nombre o comercios.
  * Devuelve responsables que coincidan con el nombre O tengan comercios con nombre coincidente.

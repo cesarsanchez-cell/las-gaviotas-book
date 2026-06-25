@@ -14,6 +14,8 @@ import {
 import { requireAdmin } from "@/features/admin/lib/auth";
 import { getAdminStats } from "@/features/admin/lib/queries";
 import { getLugaresStats } from "@/features/admin/lib/lugar-queries";
+import { getResponsablesStats } from "@/features/admin/lib/responsable-management";
+import { ResponsablesStatsCard } from "@/features/admin/components/ResponsablesStatsCard";
 import { cn } from "@/lib/utils";
 
 interface CardStat {
@@ -56,10 +58,11 @@ function StatGrid({ items }: { items: CardStat[] }) {
 
 export default async function AdminDashboardPage() {
   const admin = await requireAdmin();
-  const [hostStats, gastroStats, atrStats] = await Promise.all([
+  const [hostStats, gastroStats, atrStats, responsablesStats] = await Promise.all([
     getAdminStats(admin.destinoId),
     getLugaresStats("gastronomico", admin.destinoId),
     getLugaresStats("atractivo", admin.destinoId),
+    getResponsablesStats(),
   ]);
 
   const totalPendientes =
@@ -252,6 +255,8 @@ export default async function AdminDashboardPage() {
           </div>
         </section>
       )}
+
+      <ResponsablesStatsCard responsables={responsablesStats} />
 
       <section>
         <header className="mb-3 flex items-center gap-2">
