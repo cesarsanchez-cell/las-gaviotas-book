@@ -160,11 +160,11 @@ export async function createAdminLocalAction(
   const actionLink = linkData.properties.action_link;
   const emailResult = await sendEmail({
     to: email,
-    subject: "Activa tu cuenta de administrador",
+    subject: "Crea tu contraseña de administrador",
     html: `
       <p>Hola ${nombre},</p>
-      <p>Haz click en el link para definir tu contraseña y activar tu cuenta:</p>
-      <a href="${actionLink}">Activar cuenta</a>
+      <p>Haz click en el link para crear tu contraseña y acceder al panel de administrador:</p>
+      <a href="${actionLink}">Crear contraseña</a>
       <p>El link es válido por 24 horas.</p>
     `,
   });

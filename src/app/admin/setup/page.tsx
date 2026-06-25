@@ -1,28 +1,65 @@
+"use client";
+
 import type { Metadata } from "next";
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Container } from "@/components/layout/Container";
 import { AdminSetupForm } from "@/features/admin/components/AdminSetupForm";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/client";
 import { siteConfig } from "@/config/site";
 
-export const metadata: Metadata = {
-  title: "Configura tu cuenta de administrador",
-  description: "Define una contraseña para tu cuenta de administrador.",
-  robots: { index: false, follow: false },
-};
+export default function AdminSetupPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-export default async function AdminSetupPage() {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
+  useEffect(() => {
+    async function checkSession() {
+      const supabase = await createClient();
+      const { data } = await supabase.auth.getUser();
 
-  if (!data.user) {
-    redirect("/forgot-password?error=expired");
+      if (!data.user) {
+        setError("Sesión expirada. Solicita un nuevo link.");
+        setLoading(false);
+        return;
+      }
+
+      // Solo admins pueden estar en esta ruta
+      if (data.user.user_metadata?.role !== "admin") {
+        router.push("/login");
+        return;
+      }
+
+      setEmail(data.user.email ?? null);
+      setLoading(false);
+    }
+
+    checkSession();
+  }, [router]);
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-muted/30">
+        <p className="text-muted-foreground">Cargando...</p>
+      </main>
+    );
   }
 
-  // Solo admins pueden estar en esta ruta
-  if (data.user.user_metadata?.role !== "admin") {
-    redirect("/login");
+  if (error) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-muted/30">
+        <Container size="sm">
+          <div className="mx-auto max-w-md rounded-xl border border-rose-200 bg-rose-50 p-8">
+            <p className="text-sm text-rose-800">{error}</p>
+            <Link href="/forgot-password" className="mt-4 block text-sm text-rose-800 underline">
+              Solicitar nuevo link
+            </Link>
+          </div>
+        </Container>
+      </main>
+    );
   }
 
   return (
@@ -41,7 +78,7 @@ export default async function AdminSetupPage() {
 
           <div className="mt-8 rounded-xl border border-border bg-card p-8 shadow-sm">
             <p className="mb-5 text-sm text-muted-foreground">
-              Hola <span className="font-medium text-foreground">{data.user.email}</span>.
+              Hola <span className="font-medium text-foreground">{email}</span>.
               Define una contraseña para tu cuenta de administrador.
             </p>
             <AdminSetupForm />
