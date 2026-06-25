@@ -34,11 +34,11 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAdminRoute = pathname.startsWith("/admin");
   const isAdminLoginPage = pathname === "/admin/login";
-  const isAdminSetupPage = pathname === "/admin/setup";
+  const isAdminRegistroPage = pathname === "/admin/registro";
   const isPanelRoute = pathname.startsWith("/panel");
 
-  // Admin routes (excluyendo /admin/login y /admin/setup)
-  if (isAdminRoute && !isAdminLoginPage && !isAdminSetupPage && !user) {
+  // Admin routes (excluyendo /admin/login y /admin/registro)
+  if (isAdminRoute && !isAdminLoginPage && !isAdminRegistroPage && !user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/admin/login";
     redirectUrl.searchParams.set("next", pathname);

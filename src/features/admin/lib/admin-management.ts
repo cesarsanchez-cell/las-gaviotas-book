@@ -73,11 +73,10 @@ export interface CreateAdminLocalResult extends ActionResult {
 }
 
 /**
- * Crea un admin local nuevo asignado a un destino y le manda invitación por
- * email para que defina su propia contraseña.
+ * Invita un admin local nuevo asignado a un destino por email.
+ * El admin recibe un link a /admin/registro?email=X&nombre=Y donde se auto-registra.
  *
- * Solo super admin puede invocarlo. No genera password — el invitado activa
- * su cuenta vía el link del mail (que va al callback PKCE → /reset-password).
+ * Solo super admin puede invocarlo.
  */
 export async function createAdminLocalAction(
   input: z.infer<typeof createAdminLocalSchema>
@@ -110,66 +109,26 @@ export async function createAdminLocalAction(
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.misescapadas.com.ar";
 
-  // 1. Crear usuario sin contraseña
-  const { data: newUser, error: createErr } =
-    await sb.auth.admin.createUser({
-      email,
-      user_metadata: { nombre, role: "admin" },
-      email_confirm: false,
-    });
-  if (createErr || !newUser.user) {
-    return {
-      error: createErr?.message ?? "No se pudo crear el usuario.",
-    };
-  }
-
-  // 2. Crear perfil
-  const { error: perfilErr } = await sb.from("perfiles").insert({
-    id: newUser.user.id,
-    nombre,
-    rol: "admin",
-    destino_id: destinoId,
-    hospedajes_ids: [],
-  } as never);
-
-  if (perfilErr) {
-    await sb.auth.admin.deleteUser(newUser.user.id);
-    return {
-      error: `Perfil fallo: ${perfilErr.message}`,
-    };
-  }
-
-  // 3. Generar magic link de recovery (password setup)
-  // generateLink usa PKCE (sesión vía #access_token), no OAuth (code=).
-  // Redirigimos a /admin/setup donde el admin define su contraseña por primera vez.
-  const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
-    type: "recovery",
+  // Generar link de registro: /admin/registro?email=X&nombre=Y
+  const params = new URLSearchParams({
     email,
-    options: {
-      redirectTo: `${siteUrl}/admin/setup`,
-    },
+    nombre,
+    destino_id: destinoId,
   });
-  if (linkErr || !linkData?.properties?.action_link) {
-    await sb.auth.admin.deleteUser(newUser.user.id);
-    return {
-      error: linkErr?.message ?? "No se pudo generar el link de recuperación.",
-    };
-  }
+  const actionLink = `${siteUrl}/admin/registro?${params.toString()}`;
 
-  // 4. Enviar email manualmente (Resend)
-  const actionLink = linkData.properties.action_link;
+  // Enviar email con link de registro
   const emailResult = await sendEmail({
     to: email,
-    subject: "Crea tu contraseña de administrador",
+    subject: "Crea tu cuenta de administrador",
     html: `
       <p>Hola ${nombre},</p>
-      <p>Haz click en el link para crear tu contraseña y acceder al panel de administrador:</p>
-      <a href="${actionLink}">Crear contraseña</a>
+      <p>Haz click en el link para crear tu cuenta y acceder al panel de administrador:</p>
+      <a href="${actionLink}">Crear cuenta</a>
       <p>El link es válido por 24 horas.</p>
     `,
   });
   if (!emailResult.ok) {
-    await sb.auth.admin.deleteUser(newUser.user.id);
     return {
       error: `Email fallo: ${emailResult.error}`,
     };

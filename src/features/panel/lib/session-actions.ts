@@ -538,6 +538,86 @@ export async function changePasswordAction(
   return { ok: true };
 }
 
+export async function signUpAdminAction(
+  formData: FormData
+): Promise<AuthResult> {
+  const parsed = signUpSchema.safeParse({
+    email: String(formData.get("email") ?? "").trim(),
+    password: String(formData.get("password") ?? ""),
+    nombre: String(formData.get("nombre") ?? "").trim(),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
+  }
+
+  const destinoId = String(formData.get("destino_id") ?? "").trim() || null;
+
+  const limited = await authEmailRateLimited(parsed.data.email);
+  if (limited) return limited;
+
+  const supabase = await createClient();
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.misescapadas.com.ar";
+  const { data, error } = await supabase.auth.signUp({
+    email: parsed.data.email,
+    password: parsed.data.password,
+    options: {
+      data: { nombre: parsed.data.nombre, role: "admin" },
+      emailRedirectTo: `${siteUrl}/auth/callback?next=/admin`,
+    },
+  });
+
+  if (error) return { error: error.message };
+  if (!data.user) return { error: "No se pudo crear el usuario." };
+
+  if (!data.user.identities || data.user.identities.length === 0) {
+    return { ok: true, pendingConfirmation: true };
+  }
+
+  const admin = createAdminClient();
+  const { data: existing } = await admin
+    .from("perfiles")
+    .select("rol")
+    .eq("id", data.user.id)
+    .maybeSingle<{ rol: string }>();
+
+  if (existing?.rol === "responsable") {
+    await supabase.auth.signOut();
+    return {
+      error:
+        "Esta cuenta ya está registrada como responsable. Ingresá desde /login.",
+    };
+  }
+
+  if (!existing) {
+    const { error: perfilError } = await admin.from("perfiles").insert({
+      id: data.user.id,
+      nombre: parsed.data.nombre,
+      rol: "admin",
+      destino_id: destinoId,
+    } as never);
+
+    if (perfilError && perfilError.code !== "23505") {
+      return {
+        error: `Cuenta creada, error al setear perfil: ${perfilError.message}`,
+      };
+    }
+  }
+
+  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+    email: parsed.data.email,
+    password: parsed.data.password,
+  });
+
+  if (signInError || !signInData.session) {
+    return { error: signInError?.message ?? "No se pudo iniciar sesión." };
+  }
+
+  revalidatePath("/admin", "layout");
+  redirect("/admin");
+}
+
 export async function resendConfirmationAction(
   email: string
 ): Promise<AuthResult> {
