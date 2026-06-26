@@ -16,12 +16,14 @@ interface Props {
   lugarId: string;
   responsablesActuales: ResponsableOpt[];
   candidatos: ResponsableOpt[];
+  estadoLugar?: string;
 }
 
 export function LugarResponsablePanel({
   lugarId,
   responsablesActuales,
   candidatos,
+  estadoLugar,
 }: Props) {
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
@@ -90,59 +92,15 @@ export function LugarResponsablePanel({
                   {r.email}
                 </p>
               </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() => quitar(r.id)}
-                disabled={pending}
-              >
-                <UserMinus className="h-4 w-4" />
-                Sacar
-              </Button>
             </li>
           ))}
         </ul>
       )}
 
-      {disponibles.length > 0 ? (
-        <div className="flex flex-wrap items-end gap-2">
-          <div className="min-w-[260px] flex-1">
-            <Select
-              value={seleccionado}
-              onChange={(e) => setSeleccionado(e.target.value)}
-              disabled={pending}
-            >
-              <option value="">Elegir responsable…</option>
-              {disponibles.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.nombre} — {r.email}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <Button
-            type="button"
-            onClick={asignar}
-            disabled={!seleccionado || pending}
-          >
-            {pending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <UserPlus className="h-4 w-4" />
-            )}
-            Asignar
-          </Button>
-        </div>
-      ) : (
-        <p className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-          No hay responsables disponibles para asignar. Creá uno desde{" "}
-          <Link href="/admin/responsables" className="underline">
-            /admin/responsables
-          </Link>
-          .
-        </p>
-      )}
+      <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <p className="font-medium">Cambio de responsable bloqueado</p>
+        <p className="mt-1">El cambio de manos se completará en una fase posterior con un proceso formal. Si necesitás gestionar responsables, usa <Link href="/admin/responsables" className="underline font-medium">Administración de Responsables</Link>.</p>
+      </div>
 
       {error && (
         <p className="mt-3 text-sm text-rose-600">{error}</p>

@@ -68,6 +68,7 @@ export default async function EditAtractivoPage({ params }: PageProps) {
         lugarId={lugar.id}
         responsablesActuales={responsablesActuales}
         candidatos={candidatosResp}
+        estadoLugar={lugar.estado}
       />
 
       <LugarFotosManager
