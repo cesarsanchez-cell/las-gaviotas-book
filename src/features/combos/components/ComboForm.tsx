@@ -76,10 +76,30 @@ export function ComboForm({ comercios, initial, submitLabel, action }: ComboForm
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    fd.set("items", JSON.stringify(items.filter((it) => it.comercio)));
-    fd.set("beneficios", JSON.stringify(beneficios.filter((b) => b.trim())));
+
+    const validItems = items.filter((it) => it.comercio);
+    const validBeneficios = beneficios.filter((b) => b.trim());
+
+    fd.set("items", JSON.stringify(validItems));
+    fd.set("beneficios", JSON.stringify(validBeneficios));
+
+    // Debug: log lo que estamos enviando
+    console.log('Submitting combo form:', {
+      validItems,
+      validBeneficios,
+      formFields: {
+        titulo: fd.get("titulo"),
+        bajada: fd.get("bajada"),
+        noches: fd.get("noches"),
+        precio_desde: fd.get("precio_desde"),
+        ahorro_pct: fd.get("ahorro_pct"),
+        validez: fd.get("validez"),
+      }
+    });
+
     startTransition(async () => {
       const r = await action(fd);
+      console.log('Action response:', r);
       if (r) {
         setResult(r);
         if (r.ok) router.refresh();
