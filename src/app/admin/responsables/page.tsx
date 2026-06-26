@@ -44,20 +44,25 @@ export default async function ResponsablesPage() {
         </div>
       </section>
 
-      <section>
-        <h2 className="mb-4 font-display text-xl tracking-tight">
-          Responsables existentes
-        </h2>
-        <div className="mb-4 space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Busca por nombre del responsable o por nombre de su comercio.
-          </p>
-          <ResponsablesSearch />
+      <section className="space-y-6">
+        <div>
+          <h2 className="mb-4 font-display text-xl tracking-tight">
+            Responsables existentes
+          </h2>
+          <div className="rounded-xl border border-border bg-muted/30 p-6">
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Buscar responsable o comercio
+            </label>
+            <ResponsablesSearch />
+          </div>
         </div>
-        <ResponsablesList
-          responsables={responsables}
-          entidadesDisponibles={entidadesDisponibles}
-        />
+        <div>
+          <h3 className="mb-4 font-semibold text-lg">Todos los responsables</h3>
+          <ResponsablesList
+            responsables={responsables}
+            entidadesDisponibles={entidadesDisponibles}
+          />
+        </div>
       </section>
     </div>
   );

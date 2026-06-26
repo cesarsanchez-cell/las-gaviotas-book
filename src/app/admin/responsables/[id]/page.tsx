@@ -45,6 +45,20 @@ export default async function ResponsableDetailPage({
 
   return (
     <div className="max-w-5xl space-y-8">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Link
+          href="/admin/responsables"
+          className="hover:text-foreground transition"
+        >
+          Responsables
+        </Link>
+        <span>/</span>
+        <span className="font-medium text-foreground truncate">
+          {responsable.nombre || responsable.email}
+        </span>
+      </nav>
+
       <Link
         href="/admin/responsables"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
