@@ -65,7 +65,11 @@ export default async function MiLugarEditPage({ params }: PageProps) {
         </p>
       </div>
 
-      <LugarResponsableEstadoBar lugarId={lugar.id} estado={lugar.estado} />
+      <LugarResponsableEstadoBar
+        lugarId={lugar.id}
+        estado={lugar.estado}
+        notasRechazo={lugar.notas_rechazo}
+      />
 
       <LugarFotosManager
         lugarId={lugar.id}

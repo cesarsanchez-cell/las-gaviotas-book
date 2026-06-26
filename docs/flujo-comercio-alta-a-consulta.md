@@ -276,7 +276,9 @@ Hay dos variantes, ambas generan un **lead** en la tabla `consultas`:
 - **Cliente**: descubre en el hub → busca/elige → consulta (hospedaje: formulario+mail; gastro/qué hacer: WhatsApp).
 - **Responsable**: se registra → carga → envía a validación → recibe consultas.
 - **Admin local**: valida/publica lo de su destino → asigna responsables → ve consultas.
-- **Super admin**: arma la estructura geográfica + atracciones → todo lo anterior en cualquier destino.
+- **Super admin**:
+
+ arma la estructura geográfica + atracciones → todo lo anterior en cualquier destino.
 
 ---
 

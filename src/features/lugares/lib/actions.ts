@@ -425,6 +425,8 @@ export async function changeEstadoLugarAction(input: {
   if (parsed.data.estado === "publicado") {
     payload.validado_at = new Date().toISOString();
     payload.validado_por = admin.id;
+  } else if (parsed.data.estado === "rechazado") {
+    payload.notas_rechazo = parsed.data.notas || "Tu local necesita ajustes antes de publicarse.";
   }
 
   const { error } = await sb

@@ -18,6 +18,7 @@ import type { EstadoLugar } from "@/types/database";
 interface Props {
   lugarId: string;
   estado: EstadoLugar;
+  notasRechazo?: string | null;
 }
 
 const META: Record<
@@ -66,7 +67,7 @@ const META: Record<
   },
 };
 
-export function LugarResponsableEstadoBar({ lugarId, estado }: Props) {
+export function LugarResponsableEstadoBar({ lugarId, estado, notasRechazo }: Props) {
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
@@ -106,6 +107,13 @@ export function LugarResponsableEstadoBar({ lugarId, estado }: Props) {
           </Button>
         )}
       </div>
+
+      {estado === "rechazado" && notasRechazo && (
+        <div className="mt-4 rounded border-l-4 border-rose-400 bg-white p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-rose-700">Motivo del rechazo</p>
+          <p className="mt-1 text-sm text-rose-900">{notasRechazo}</p>
+        </div>
+      )}
 
       {error && <p className="mt-3 text-sm text-rose-700">{error}</p>}
     </section>

@@ -431,6 +431,7 @@ export interface LugarRow {
   estado: EstadoLugar;
   validado_at: string | null;
   validado_por: string | null;
+  notas_rechazo: string | null;
   meta_title: string | null;
   meta_description: string | null;
   orden_listado: number;
