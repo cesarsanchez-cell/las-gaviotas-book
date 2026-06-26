@@ -185,7 +185,89 @@ export async function updateLugarAsAdminAction(
     return { error: (e as Error).message };
   }
 
-  const raw = parseFormDataToLugar(formData);
+  const sb = createAdminClient();
+
+  // Admin local: cargar lugar previo para restaurar campos comerciales.
+  let previousLugar: Record<string, unknown> | null = null;
+  if (!admin.isSuperAdmin) {
+    const { data } = await sb
+      .from("lugares")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle<Record<string, unknown>>();
+    previousLugar = data;
+  }
+
+  // Parsear FormData manualmente (sin validar aún).
+  let raw: Record<string, unknown> = {};
+  for (const [k, v] of formData.entries()) {
+    if (k === "destacado" || k === "imperdible") {
+      raw[k] = v === "on" || v === "true";
+    } else if (typeof v === "string" && v.trim() === "") {
+      // Empty string → key absent
+    } else {
+      raw[k] = v;
+    }
+  }
+  if (raw.destacado === undefined) raw.destacado = false;
+  if (raw.imperdible === undefined) raw.imperdible = false;
+
+  // Admin local: solo puede cambiar estado. Extraer solo ese campo.
+  if (!admin.isSuperAdmin) {
+    const estadoValue = raw.estado;
+    raw = { estado: estadoValue };
+  }
+
+  // Admin local: restaurar campos comerciales desde previousLugar.
+  if (!admin.isSuperAdmin && previousLugar) {
+    const REQUIRED_FIELDS = new Set([
+      "nombre",
+      "slug",
+      "tipo",
+      "destino_id",
+      "descripcion_corta",
+    ]);
+    const COMMERCIAL_FIELDS = [
+      "nombre",
+      "slug",
+      "tipo",
+      "destino_id",
+      "localidad_id",
+      "descripcion_corta",
+      "descripcion_larga",
+      "direccion",
+      "lat",
+      "lng",
+      "google_maps_url",
+      "whatsapp",
+      "email",
+      "telefono",
+      "instagram",
+      "website",
+      "categoria",
+      "horarios",
+      "meta_title",
+      "meta_description",
+    ];
+    for (const field of COMMERCIAL_FIELDS) {
+      const previousValue = previousLugar[field];
+      if (REQUIRED_FIELDS.has(field)) {
+        raw[field] = previousValue;
+      } else if (previousValue !== null && previousValue !== undefined) {
+        raw[field] = previousValue;
+      }
+    }
+  }
+
+  // Parsear con parseFormDataToLugar logic pero sobre el raw ya restaurado.
+  if (typeof raw.horarios === "string" && raw.horarios.trim()) {
+    try {
+      raw.horarios = JSON.parse(raw.horarios);
+    } catch {
+      raw.horarios = null;
+    }
+  }
+
   const parsed = lugarSchema.safeParse(raw);
   if (!parsed.success) return formatZodError(parsed.error);
   const input = parsed.data;
@@ -196,8 +278,6 @@ export async function updateLugarAsAdminAction(
   if (input.tipo !== ctx.tipo) {
     return { error: "No se puede cambiar el tipo de un lugar existente." };
   }
-
-  const sb = createAdminClient();
 
   // Estado previo para detectar transición a publicado desde el editor.
   const { data: previo } = await sb
@@ -223,8 +303,6 @@ export async function updateLugarAsAdminAction(
   }
 
   // Si el editor cambió el estado a publicado, notificamos.
-  // (El campo `estado` no viene del schema porque lo controlamos por aparte;
-  // pero si en el futuro se incluye, la transición queda cubierta.)
   const nuevoEstado = (input as { estado?: EstadoLugar }).estado;
   if (nuevoEstado === "publicado" && estadoAnterior !== "publicado") {
     await notifyLugarPublicado(id);
