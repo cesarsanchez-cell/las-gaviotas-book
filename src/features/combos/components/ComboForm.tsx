@@ -70,7 +70,12 @@ export function ComboForm({ comercios, initial, submitLabel, action }: ComboForm
   }
 
   function setItem(i: number, patch: Partial<ItemRow>) {
-    setItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
+    setItems((prev) => {
+      const updated = [...prev];
+      updated[i] = { ...updated[i], ...patch };
+      console.log(`Updated item ${i}:`, updated[i]);
+      return updated;
+    });
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
