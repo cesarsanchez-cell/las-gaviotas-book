@@ -413,8 +413,8 @@ export async function getResponsableDestinoIds(perfilId: string): Promise<string
 
 /**
  * Comercios publicados disponibles para armar un combo. Admin → del destino (o
- * todos si super). Responsable → de los destinos donde tiene comercios (puede
- * cruzar con comercios de otros dueños; el admin valida).
+ * todos si super). Responsable → de todos los destinos en las zonas donde tiene
+ * comercios (puede cruzar con comercios de otros dueños; el admin valida).
  */
 export async function listComerciosParaCombo(params: {
   modo: "admin" | "responsable";
@@ -423,11 +423,33 @@ export async function listComerciosParaCombo(params: {
 }): Promise<ComercioOption[]> {
   const sb = createAdminClient();
   let destinoIds: string[] | null = null;
+
   if (params.modo === "admin") {
     destinoIds = params.destinoId ? [params.destinoId] : null; // null = todos
   } else {
-    destinoIds = await getResponsableDestinoIds(params.perfilId ?? "");
-    if (destinoIds.length === 0) return [];
+    // Para responsable: obtener destinos donde tiene comercios
+    const miDestinos = await getResponsableDestinoIds(params.perfilId ?? "");
+    if (miDestinos.length === 0) return [];
+
+    // Obtener las zonas de esos destinos
+    const { data: zonas } = (await sb
+      .from("zona_destinos")
+      .select("zona_id")
+      .in("destino_id", miDestinos)) as { data: Array<{ zona_id: string }> | null };
+
+    if (!zonas || zonas.length === 0) {
+      // Sin zonas, solo mostrar sus destinos propios
+      destinoIds = miDestinos;
+    } else {
+      // Obtener todos los destinos de esas zonas
+      const zonaIds = Array.from(new Set(zonas.map(z => z.zona_id)));
+      const { data: destZonas } = (await sb
+        .from("zona_destinos")
+        .select("destino_id")
+        .in("zona_id", zonaIds)) as { data: Array<{ destino_id: string }> | null };
+
+      destinoIds = destZonas ? Array.from(new Set(destZonas.map(dz => dz.destino_id))) : miDestinos;
+    }
   }
 
   let hq = sb
