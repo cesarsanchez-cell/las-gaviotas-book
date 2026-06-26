@@ -472,3 +472,30 @@ export async function getComercioDestinoId(
   if (tipo !== "hospedaje" && data.tipo !== tipo) return null;
   return data.destino_id;
 }
+
+/** Resuelve las zonas de un comercio (para validar que todos compartan zona). */
+export async function getComercioZonasIds(
+  tipo: ComercioTipo,
+  id: string
+): Promise<string[] | null> {
+  const sb = createAdminClient();
+  const tabla = tipo === "hospedaje" ? "hospedajes" : "lugares";
+
+  // Obtener el destino del comercio
+  const { data: comercio } = await sb
+    .from(tabla)
+    .select("destino_id, tipo")
+    .eq("id", id)
+    .maybeSingle<{ destino_id: string; tipo?: string }>();
+
+  if (!comercio) return null;
+  if (tipo !== "hospedaje" && comercio.tipo !== tipo) return null;
+
+  // Obtener las zonas de ese destino
+  const { data: zonasData } = (await sb
+    .from("zona_destinos")
+    .select("zona_id")
+    .eq("destino_id", comercio.destino_id)) as { data: Array<{ zona_id: string }> | null };
+
+  return zonasData?.map(z => z.zona_id) ?? [];
+}

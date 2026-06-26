@@ -11,6 +11,7 @@ import { comboSchema, parseFormDataToCombo, type ComboInput } from "./combo-sche
 import {
   getComboById,
   getComercioDestinoId,
+  getComercioZonasIds,
   getResponsableDestinoIds,
 } from "./queries";
 import { notifyComboPublicado, notifyComboRechazado } from "./notifications";
@@ -39,20 +40,53 @@ function revalidateCombos() {
   revalidatePath("/panel");
 }
 
-/** Valida que todos los items sean del mismo destino y lo devuelve. */
+/** Valida que todos los items compartan al menos una zona, retorna el destino del primer item. */
 async function deriveDestino(
   items: ComboInput["items"]
 ): Promise<{ destinoId: string } | { error: string }> {
+  if (items.length === 0) {
+    return { error: "El combo necesita al menos 2 comercios." };
+  }
+
+  // Obtener zonas de cada comercio
+  const zonasArray: string[][] = [];
   const destinos = new Set<string>();
+
   for (const it of items) {
-    const d = await getComercioDestinoId(it.comercio_tipo, it.comercio_id);
-    if (!d) return { error: "Uno de los comercios no existe o cambió de tipo." };
-    destinos.add(d);
+    const zones = await getComercioZonasIds(it.comercio_tipo, it.comercio_id);
+    if (zones === null) {
+      return { error: "Uno de los comercios no existe o cambió de tipo." };
+    }
+    if (zones.length === 0) {
+      return { error: `${it.comercio_tipo} no pertenece a ninguna zona.` };
+    }
+    zonasArray.push(zones);
+
+    // También guardar el destino del primer item (para usarlo como ancla)
+    const destId = await getComercioDestinoId(it.comercio_tipo, it.comercio_id);
+    if (destId) destinos.add(destId);
   }
-  if (destinos.size !== 1) {
-    return { error: "Todos los comercios del combo deben ser del mismo destino." };
+
+  // Validar que todos compartan al menos una zona (intersección)
+  const zonasComunes = new Set(zonasArray[0]);
+  for (let i = 1; i < zonasArray.length; i++) {
+    const actuales = new Set(zonasArray[i]);
+    zonasComunes.forEach((z) => {
+      if (!actuales.has(z)) zonasComunes.delete(z);
+    });
   }
-  return { destinoId: [...destinos][0] };
+
+  if (zonasComunes.size === 0) {
+    return { error: "Todos los comercios del combo deben pertenecer a la misma zona." };
+  }
+
+  // Usar el destino del primer item como ancla del combo
+  const anchorDestino = [...destinos][0];
+  if (!anchorDestino) {
+    return { error: "No se pudo determinar el destino del combo." };
+  }
+
+  return { destinoId: anchorDestino };
 }
 
 async function writeItems(comboId: string, items: ComboInput["items"]) {

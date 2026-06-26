@@ -73,7 +73,6 @@ export function ComboForm({ comercios, initial, submitLabel, action }: ComboForm
     setItems((prev) => {
       const updated = [...prev];
       updated[i] = { ...updated[i], ...patch };
-      console.log(`Updated item ${i}:`, updated[i]);
       return updated;
     });
   }
@@ -88,23 +87,8 @@ export function ComboForm({ comercios, initial, submitLabel, action }: ComboForm
     fd.set("items", JSON.stringify(validItems));
     fd.set("beneficios", JSON.stringify(validBeneficios));
 
-    // Debug: log lo que estamos enviando
-    console.log('Submitting combo form:', {
-      validItems,
-      validBeneficios,
-      formFields: {
-        titulo: fd.get("titulo"),
-        bajada: fd.get("bajada"),
-        noches: fd.get("noches"),
-        precio_desde: fd.get("precio_desde"),
-        ahorro_pct: fd.get("ahorro_pct"),
-        validez: fd.get("validez"),
-      }
-    });
-
     startTransition(async () => {
       const r = await action(fd);
-      console.log('Action response:', r);
       if (r) {
         setResult(r);
         if (r.ok) router.refresh();
