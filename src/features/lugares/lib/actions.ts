@@ -212,10 +212,12 @@ export async function updateLugarAsAdminAction(
   if (raw.destacado === undefined) raw.destacado = false;
   if (raw.imperdible === undefined) raw.imperdible = false;
 
-  // Admin local: solo puede cambiar estado. Extraer solo ese campo.
+  // Admin local: puede cambiar estado y curaduría (destacado/imperdible), pero no comerciales.
   if (!admin.isSuperAdmin) {
     const estadoValue = raw.estado;
-    raw = { estado: estadoValue };
+    const destacadoValue = raw.destacado;
+    const imperdibleValue = raw.imperdible;
+    raw = { estado: estadoValue, destacado: destacadoValue, imperdible: imperdibleValue };
   }
 
   // Admin local: restaurar campos comerciales desde previousLugar.
