@@ -17,7 +17,9 @@ export const comboSchema = z.object({
     .or(z.literal("").transform(() => undefined)),
   noches: z.number().int().min(1, "Mínimo 1 noche").max(60),
   precio_desde: z.number().int().min(0).nullable().optional(),
-  ahorro_pct: z.number().int().min(1, "Mínimo 1%").max(100).nullable().optional(),
+  ahorro_pct: z
+    .union([z.number().int().min(1, "Mínimo 1%").max(100), z.null()])
+    .optional(),
   validez: z
     .string()
     .max(160)
