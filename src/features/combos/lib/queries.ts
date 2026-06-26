@@ -241,7 +241,9 @@ function toComboPublic(
 }
 
 /** Combos publicados de un destino e interzona (para la sección del destino).
- * Muestra combos de cualquier destino que comparta zona con el destino dado. */
+ * Un combo aparece en destino D si alguno de sus comercios está ubicado en D.
+ * Esto permite que combos con pizzería de Mar de las Pampas + hospedaje de Las Gaviotas
+ * aparezcan en AMBOS destinos. */
 export async function listCombosByDestino(
   destinoId: string
 ): Promise<ComboPublic[]> {
@@ -254,55 +256,51 @@ export async function listCombosByDestino(
     .select("zona_id")
     .eq("destino_id", destinoId)) as { data: Array<{ zona_id: string }> | null };
 
-  if (!destZonas || destZonas.length === 0) {
-    // Sin zonas, solo mostrar combos del destino
-    const { data: combos } = (await sb
-      .from("combos")
-      .select("*")
-      .eq("destino_id", destinoId)
-      .eq("estado", "publicado")
-      .order("created_at", { ascending: false })) as { data: ComboRow[] | null };
-    if (!combos || combos.length === 0) return [];
-
-    const itemsByCombo = await fetchItems(combos.map((c) => c.id));
-    const allRefs = [...itemsByCombo.values()]
-      .flat()
-      .map((it) => ({ tipo: it.comercio_tipo, id: it.comercio_id }));
-    const comercios = await resolveComerciosFull(allRefs);
-
-    return combos.map((c) =>
-      toComboPublic(c, itemsByCombo.get(c.id) ?? [], comercios)
-    );
+  let zonaIds: string[] = [];
+  if (destZonas && destZonas.length > 0) {
+    zonaIds = destZonas.map((z) => z.zona_id);
   }
 
-  // Obtener todos los destinos en esas zonas
-  const zonaIds = destZonas.map((z) => z.zona_id);
-  const { data: destZonasAll } = (await sbAdmin
-    .from("zona_destinos")
-    .select("destino_id")
-    .in("zona_id", zonaIds)) as { data: Array<{ destino_id: string }> | null };
+  // Obtener todos los destinos en esas zonas (para buscar combos)
+  let destinoIdsInZones: string[] = [];
+  if (zonaIds.length > 0) {
+    const { data: destZonasAll } = (await sbAdmin
+      .from("zona_destinos")
+      .select("destino_id")
+      .in("zona_id", zonaIds)) as { data: Array<{ destino_id: string }> | null };
+    if (destZonasAll) {
+      destinoIdsInZones = Array.from(new Set(destZonasAll.map((dz) => dz.destino_id)));
+    }
+  }
 
-  const destinoIds = destZonasAll
-    ? Array.from(new Set(destZonasAll.map((dz) => dz.destino_id)))
-    : [destinoId];
-
-  // Obtener combos publicados de esos destinos
+  // Obtener combos publicados de esos destinos (o del actual si sin zonas)
+  const searchDestinos = destinoIdsInZones.length > 0 ? destinoIdsInZones : [destinoId];
   const { data: combos } = (await sb
     .from("combos")
     .select("*")
-    .in("destino_id", destinoIds)
+    .in("destino_id", searchDestinos)
     .eq("estado", "publicado")
     .order("created_at", { ascending: false })) as { data: ComboRow[] | null };
 
   if (!combos || combos.length === 0) return [];
 
+  // Cargar items y comercios
   const itemsByCombo = await fetchItems(combos.map((c) => c.id));
   const allRefs = [...itemsByCombo.values()]
     .flat()
     .map((it) => ({ tipo: it.comercio_tipo, id: it.comercio_id }));
   const comercios = await resolveComerciosFull(allRefs);
 
-  return combos.map((c) =>
+  // Filtrar: un combo aparece en destino D si alguno de sus comercios está en D
+  const combosVisibles = combos.filter((combo) => {
+    const items = itemsByCombo.get(combo.id) ?? [];
+    return items.some((item) => {
+      const comercio = comercios.get(`${item.comercio_tipo}:${item.comercio_id}`);
+      return comercio?.destino.id === destinoId;
+    });
+  });
+
+  return combosVisibles.map((c) =>
     toComboPublic(c, itemsByCombo.get(c.id) ?? [], comercios)
   );
 }
