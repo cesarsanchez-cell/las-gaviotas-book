@@ -214,8 +214,7 @@ export function ResponsablesList({ responsables, entidadesDisponibles }: Props) 
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Tildá las entidades que querés que gestione. Las ya asignadas
-                  a otro responsable no aparecen — desvinculalas primero.
+                  Podés asignar nuevas entidades. Las que ya están asignadas aparecen deshabilitadas (no se pueden cambiar).
                 </p>
                 <EditEntidadSection
                   icon={<Building2 className="h-3.5 w-3.5" />}
@@ -223,6 +222,7 @@ export function ResponsablesList({ responsables, entidadesDisponibles }: Props) 
                   items={opcionesEdit.filter((e) => e.tipo === "hospedaje")}
                   selected={editSelected}
                   onToggle={toggleEdit}
+                  entidadesDisponibles={entidadesDisponibles}
                 />
                 <EditEntidadSection
                   icon={<UtensilsCrossed className="h-3.5 w-3.5" />}
@@ -230,6 +230,7 @@ export function ResponsablesList({ responsables, entidadesDisponibles }: Props) 
                   items={opcionesEdit.filter((e) => e.tipo === "gastronomico")}
                   selected={editSelected}
                   onToggle={toggleEdit}
+                  entidadesDisponibles={entidadesDisponibles}
                 />
                 <EditEntidadSection
                   icon={<Compass className="h-3.5 w-3.5" />}
@@ -237,6 +238,7 @@ export function ResponsablesList({ responsables, entidadesDisponibles }: Props) 
                   items={opcionesEdit.filter((e) => e.tipo === "atractivo")}
                   selected={editSelected}
                   onToggle={toggleEdit}
+                  entidadesDisponibles={entidadesDisponibles}
                 />
                 <div className="flex gap-2">
                   <button
@@ -318,6 +320,7 @@ interface EditEntidadSectionProps {
   items: EntidadAsignable[];
   selected: Set<EntidadKey>;
   onToggle: (e: { tipo: EntidadAsignable["tipo"]; id: string }) => void;
+  entidadesDisponibles: EntidadAsignable[];
 }
 
 function EditEntidadSection({
@@ -326,6 +329,7 @@ function EditEntidadSection({
   items,
   selected,
   onToggle,
+  entidadesDisponibles,
 }: EditEntidadSectionProps) {
   return (
     <div className="rounded-md border border-input bg-background">
@@ -342,25 +346,41 @@ function EditEntidadSection({
             Ninguno disponible.
           </p>
         ) : (
-          items.map((it) => (
-            <label
-              key={it.id}
-              className="flex items-center gap-2 rounded-md px-2 py-1 text-sm transition hover:bg-muted/40"
-            >
-              <input
-                type="checkbox"
-                checked={selected.has(keyOf(it))}
-                onChange={() => onToggle(it)}
-                className="h-4 w-4 rounded border-input"
-              />
-              <span className="flex-1">{it.nombre}</span>
-              {it.destinoNombre && (
-                <span className="text-xs text-muted-foreground">
-                  {it.destinoNombre}
-                </span>
-              )}
-            </label>
-          ))
+          items.map((it) => {
+            // Si la entidad NO está en entidadesDisponibles, es que YA ESTABA ASIGNADA
+            const eraAsignada = !entidadesDisponibles.some(
+              (d) => d.tipo === it.tipo && d.id === it.id
+            );
+            return (
+              <label
+                key={it.id}
+                className={`flex items-center gap-2 rounded-md px-2 py-1 text-sm transition ${
+                  eraAsignada
+                    ? "cursor-not-allowed opacity-60"
+                    : "hover:bg-muted/40"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={selected.has(keyOf(it))}
+                  onChange={() => onToggle(it)}
+                  disabled={eraAsignada}
+                  className="h-4 w-4 rounded border-input disabled:cursor-not-allowed"
+                />
+                <span className="flex-1">{it.nombre}</span>
+                {eraAsignada && (
+                  <span className="text-[10px] text-amber-600 font-semibold uppercase">
+                    Asignada
+                  </span>
+                )}
+                {it.destinoNombre && (
+                  <span className="text-xs text-muted-foreground">
+                    {it.destinoNombre}
+                  </span>
+                )}
+              </label>
+            );
+          })
         )}
       </div>
     </div>
