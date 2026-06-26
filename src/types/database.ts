@@ -119,6 +119,10 @@ export interface ComboRow {
   estado: EstadoCombo;
   /** Perfil (responsable o admin) que armó el combo. */
   creado_por: string | null;
+  /** Tipo del comercio que proporciona la foto hero (hospedaje, gastronomico, atractivo). */
+  comercio_principal_tipo: string | null;
+  /** ID del comercio que proporciona la foto hero. */
+  comercio_principal_id: string | null;
   created_at: string;
   updated_at: string;
 }

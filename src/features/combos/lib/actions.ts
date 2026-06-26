@@ -104,6 +104,17 @@ async function writeItems(comboId: string, items: ComboInput["items"]) {
 }
 
 function comboBaseFields(parsed: ComboInput, destinoId: string) {
+  let comercio_principal_tipo: string | null = null;
+  let comercio_principal_id: string | null = null;
+
+  if (parsed.comercio_principal) {
+    const [tipo, id] = parsed.comercio_principal.split(":");
+    if (tipo && id) {
+      comercio_principal_tipo = tipo;
+      comercio_principal_id = id;
+    }
+  }
+
   return {
     destino_id: destinoId,
     titulo: parsed.titulo,
@@ -113,6 +124,8 @@ function comboBaseFields(parsed: ComboInput, destinoId: string) {
     ahorro_pct: parsed.ahorro_pct ?? null,
     beneficios: parsed.beneficios,
     validez: parsed.validez ?? null,
+    comercio_principal_tipo,
+    comercio_principal_id,
   };
 }
 

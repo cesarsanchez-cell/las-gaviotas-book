@@ -204,6 +204,42 @@ export function ComboForm({ comercios, initial, submitLabel, action }: ComboForm
         )}
       </fieldset>
 
+      {/* Foto principal del combo */}
+      <fieldset className="space-y-2 rounded-xl border border-border p-4">
+        <legend className="px-1 text-sm font-medium">
+          Foto principal (cuál comercio la proporciona)
+        </legend>
+        <p className="text-xs text-muted-foreground">
+          Elegí cuál foto es más fuerte para mostrar el combo.
+        </p>
+        <div className="space-y-2">
+          {items
+            .filter((it) => it.comercio)
+            .map((it, i) => {
+              const comercio = comercios.find(
+                (c) => c.tipo + ":" + c.id === it.comercio
+              );
+              return (
+                <label
+                  key={i}
+                  className="flex items-center gap-3 rounded-md px-3 py-2 hover:bg-secondary/50"
+                >
+                  <input
+                    type="radio"
+                    name="comercio_principal"
+                    value={it.comercio}
+                    defaultChecked={initial?.combo.comercio_principal_tipo && initial?.combo.comercio_principal_id ? `${initial.combo.comercio_principal_tipo}:${initial.combo.comercio_principal_id}` === it.comercio : i === 0}
+                  />
+                  <span className="text-sm">
+                    {comercio?.nombre}
+                    {multiDestino && comercio ? ` · ${comercio.destinoNombre}` : ""}
+                  </span>
+                </label>
+              );
+            })}
+        </div>
+      </fieldset>
+
       {/* Beneficios cruzados */}
       <fieldset className="space-y-2 rounded-xl border border-border p-4">
         <legend className="px-1 text-sm font-medium">

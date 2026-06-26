@@ -24,6 +24,10 @@ export const comboSchema = z.object({
     .optional()
     .or(z.literal("").transform(() => undefined)),
   beneficios: z.array(z.string().min(2).max(200)).max(6).default([]),
+  comercio_principal: z
+    .string()
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
   items: z
     .array(comboItemSchema)
     .min(2, "Un combo necesita al menos 2 comercios")
@@ -72,6 +76,7 @@ export function parseFormDataToCombo(fd: FormData) {
     precio_desde: num(fd.get("precio_desde")),
     ahorro_pct: num(fd.get("ahorro_pct")),
     validez: String(fd.get("validez") ?? "").trim(),
+    comercio_principal: String(fd.get("comercio_principal") ?? "").trim(),
     beneficios: beneficiosRaw
       .map((b) => String(b).trim())
       .filter((b) => b.length > 0),

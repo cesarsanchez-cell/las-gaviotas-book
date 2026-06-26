@@ -195,10 +195,19 @@ function toComboPublic(
     };
   });
 
-  // Hero: foto del hospedaje ancla; fallback al 1er item con foto.
-  const anchor = resolved.find((r) => r.c?.tipo === "hospedaje" && r.c.fotoUrl);
-  const heroUrl =
-    anchor?.c?.fotoUrl ?? resolved.find((r) => r.pub.fotoUrl)?.pub.fotoUrl ?? null;
+  // Hero: si hay comercio_principal, usarlo; sino, hospedaje ancla con fallback.
+  let heroUrl: string | null = null;
+  if (combo.comercio_principal_tipo && combo.comercio_principal_id) {
+    const principal = comercios.get(
+      `${combo.comercio_principal_tipo}:${combo.comercio_principal_id}`
+    );
+    heroUrl = principal?.fotoUrl ?? null;
+  }
+  if (!heroUrl) {
+    const anchor = resolved.find((r) => r.c?.tipo === "hospedaje" && r.c.fotoUrl);
+    heroUrl =
+      anchor?.c?.fotoUrl ?? resolved.find((r) => r.pub.fotoUrl)?.pub.fotoUrl ?? null;
+  }
 
   // WhatsApp: hospedaje ancla con whatsapp → fallback 1er item con whatsapp.
   const waSource =
@@ -207,6 +216,7 @@ function toComboPublic(
     null;
 
   // Destino del combo: el del hospedaje ancla, o el del 1er item resuelto.
+  const anchor = resolved.find((r) => r.c?.tipo === "hospedaje");
   const destino =
     anchor?.c?.destino ?? resolved.find((r) => r.c?.destino)?.c?.destino ?? null;
 
@@ -230,17 +240,60 @@ function toComboPublic(
   };
 }
 
-/** Combos publicados de un destino (para la sección del destino). */
+/** Combos publicados de un destino e interzona (para la sección del destino).
+ * Muestra combos de cualquier destino que comparta zona con el destino dado. */
 export async function listCombosByDestino(
   destinoId: string
 ): Promise<ComboPublic[]> {
   const sb = await createClient();
+  const sbAdmin = createAdminClient();
+
+  // Obtener zonas del destino
+  const { data: destZonas } = (await sbAdmin
+    .from("zona_destinos")
+    .select("zona_id")
+    .eq("destino_id", destinoId)) as { data: Array<{ zona_id: string }> | null };
+
+  if (!destZonas || destZonas.length === 0) {
+    // Sin zonas, solo mostrar combos del destino
+    const { data: combos } = (await sb
+      .from("combos")
+      .select("*")
+      .eq("destino_id", destinoId)
+      .eq("estado", "publicado")
+      .order("created_at", { ascending: false })) as { data: ComboRow[] | null };
+    if (!combos || combos.length === 0) return [];
+
+    const itemsByCombo = await fetchItems(combos.map((c) => c.id));
+    const allRefs = [...itemsByCombo.values()]
+      .flat()
+      .map((it) => ({ tipo: it.comercio_tipo, id: it.comercio_id }));
+    const comercios = await resolveComerciosFull(allRefs);
+
+    return combos.map((c) =>
+      toComboPublic(c, itemsByCombo.get(c.id) ?? [], comercios)
+    );
+  }
+
+  // Obtener todos los destinos en esas zonas
+  const zonaIds = destZonas.map((z) => z.zona_id);
+  const { data: destZonasAll } = (await sbAdmin
+    .from("zona_destinos")
+    .select("destino_id")
+    .in("zona_id", zonaIds)) as { data: Array<{ destino_id: string }> | null };
+
+  const destinoIds = destZonasAll
+    ? Array.from(new Set(destZonasAll.map((dz) => dz.destino_id)))
+    : [destinoId];
+
+  // Obtener combos publicados de esos destinos
   const { data: combos } = (await sb
     .from("combos")
     .select("*")
-    .eq("destino_id", destinoId)
+    .in("destino_id", destinoIds)
     .eq("estado", "publicado")
     .order("created_at", { ascending: false })) as { data: ComboRow[] | null };
+
   if (!combos || combos.length === 0) return [];
 
   const itemsByCombo = await fetchItems(combos.map((c) => c.id));
