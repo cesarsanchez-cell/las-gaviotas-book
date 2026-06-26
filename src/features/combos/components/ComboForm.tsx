@@ -276,7 +276,7 @@ export function ComboForm({ comercios, initial, submitLabel, action }: ComboForm
             id="ahorro_pct"
             name="ahorro_pct"
             type="number"
-            min={1}
+            min={0}
             max={100}
             defaultValue={initial?.combo.ahorro_pct ?? ""}
             placeholder="ej: 18"
