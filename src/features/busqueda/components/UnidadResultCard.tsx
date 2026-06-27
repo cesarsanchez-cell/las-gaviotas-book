@@ -22,6 +22,8 @@ interface Props {
   /** Query string para pasar fechas/pax al detalle (preserva contexto). */
   queryString?: string;
   priority?: boolean;
+  /** Si el destino tiene restricciones habilitadas (adapta copy). */
+  restriccionesHabilitadas?: boolean;
 }
 
 function formatMoneda(n: number, moneda: string): string {
@@ -38,6 +40,7 @@ export function UnidadResultCard({
   precio,
   queryString,
   priority = false,
+  restriccionesHabilitadas = false,
 }: Props) {
   const principal = r.fotos.find((f) => f.es_principal) ?? r.fotos[0];
   const fotoUrl = principal
@@ -142,9 +145,11 @@ export function UnidadResultCard({
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">
-              {precio && !precio.coberturaCompleta && precio.desglose.length > 0
-                ? "Tarifa parcial — consultá al responsable por el total."
-                : "Precio a consultar — el responsable te confirma según las fechas."}
+              {restriccionesHabilitadas
+                ? "Contactá al hospedaje para confirmar disponibilidad y tarifa."
+                : precio && !precio.coberturaCompleta && precio.desglose.length > 0
+                  ? "Tarifa parcial — consultá al responsable por el total."
+                  : "Precio a consultar — el responsable te confirma según las fechas."}
             </p>
           )}
           <Link href={detalleHref} className="ml-auto">

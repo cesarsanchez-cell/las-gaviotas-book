@@ -9,6 +9,7 @@ import { UnidadResultCard } from "@/features/busqueda/components/UnidadResultCar
 import { getDestinoBySlug } from "@/features/hospedajes/lib/queries";
 import { searchUnidadesPorDestino } from "@/features/busqueda/lib/queries";
 import { resolvePreciosBatch } from "@/features/tarifas/lib/queries";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 interface PageProps {
   params: Promise<{ destino: string }>;
@@ -62,6 +63,16 @@ export default async function BuscarPage({ params, searchParams }: PageProps) {
   const { destino: slug } = await params;
   const destino = await getDestinoBySlug(slug);
   if (!destino) notFound();
+
+  // Cargar si el destino tiene restricciones habilitadas
+  const sb = createAdminClient();
+  const { data: destinoData } = await sb
+    .from("destinos")
+    .select("restricciones_habilitadas")
+    .eq("id", destino.id)
+    .maybeSingle<{ restricciones_habilitadas: boolean }>();
+  const restriccionesHabilitadas =
+    destinoData?.restricciones_habilitadas ?? false;
 
   const sp = await searchParams;
   const rawCheckIn = pickString(sp.check_in);
@@ -157,11 +168,14 @@ export default async function BuscarPage({ params, searchParams }: PageProps) {
             {!tieneBusqueda ? (
               <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
                 <p className="font-display text-xl">
-                  Elegí fechas y cantidad de huéspedes para ver opciones.
+                  {restriccionesHabilitadas
+                    ? "Consultá directamente con los hospedajes para conocer disponibilidad."
+                    : "Elegí fechas y cantidad de huéspedes para ver opciones."}
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Te mostramos las unidades disponibles ordenadas por
-                  capacidad y destacadas primero.
+                  {restriccionesHabilitadas
+                    ? "Los precios y fechas se definen por hospedaje, no centralizadamente."
+                    : "Te mostramos las unidades disponibles ordenadas por capacidad y destacadas primero."}
                 </p>
               </div>
             ) : (
@@ -170,10 +184,16 @@ export default async function BuscarPage({ params, searchParams }: PageProps) {
                   <div>
                     <h2 className="font-display text-2xl tracking-tight">
                       {resultados.length === 0
-                        ? "No encontramos opciones"
-                        : resultados.length === 1
-                          ? "1 opción disponible"
-                          : `${resultados.length} opciones disponibles`}
+                        ? restriccionesHabilitadas
+                          ? "No encontramos hospedajes con esos criterios"
+                          : "No encontramos opciones"
+                        : restriccionesHabilitadas
+                          ? resultados.length === 1
+                            ? "1 hospedaje encontrado"
+                            : `${resultados.length} hospedajes encontrados`
+                          : resultados.length === 1
+                            ? "1 opción disponible"
+                            : `${resultados.length} opciones disponibles`}
                     </h2>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {checkIn} → {checkOut} · {noches}{" "}
@@ -193,17 +213,22 @@ export default async function BuscarPage({ params, searchParams }: PageProps) {
                 {resultados.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
                     <p className="font-display text-lg">
-                      Probá ampliando las fechas o reduciendo huéspedes.
+                      {restriccionesHabilitadas
+                        ? "No encontramos hospedajes con esos criterios de capacidad."
+                        : "Probá ampliando las fechas o reduciendo huéspedes."}
                     </p>
                     <p className="mt-2 text-sm text-muted-foreground">
-                      También podés ver el{" "}
+                      Podés ver el{" "}
                       <a
                         href={`/${slug}/hospedajes`}
                         className="font-medium text-primary hover:underline"
                       >
                         listado completo de hospedajes
                       </a>{" "}
-                      y mandar una consulta directa.
+                      y{" "}
+                      {restriccionesHabilitadas
+                        ? "contactar directamente para consultar disponibilidad."
+                        : "mandar una consulta directa."}
                     </p>
                   </div>
                 ) : (
@@ -216,6 +241,7 @@ export default async function BuscarPage({ params, searchParams }: PageProps) {
                         precio={preciosMap.get(r.unidad_type_id) ?? null}
                         queryString={queryString}
                         priority={i === 0}
+                        restriccionesHabilitadas={restriccionesHabilitadas}
                       />
                     ))}
                   </div>
