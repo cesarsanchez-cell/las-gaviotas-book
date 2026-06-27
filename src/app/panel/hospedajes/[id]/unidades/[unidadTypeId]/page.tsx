@@ -100,10 +100,23 @@ export default async function EditUnidadTypePage({ params }: PageProps) {
         </div>
       )}
 
-      <RestriccionesManager
-        unidadTypeId={unidadType.id}
-        restricciones={restricciones}
-      />
+      {!restriccionesOn && (
+        <RestriccionesManager
+          unidadTypeId={unidadType.id}
+          restricciones={restricciones}
+        />
+      )}
+      {restriccionesOn && (
+        <div className="rounded-xl border border-dashed border-yellow-200 bg-yellow-50 p-8 text-center">
+          <p className="text-sm text-yellow-900">
+            <strong>Restricciones parametrizadas a nivel destino.</strong>
+          </p>
+          <p className="mt-2 text-sm text-yellow-800">
+            Este destino usa restricciones centralizadas. El admin lo configura
+            a nivel destino, no por unidad individual.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
