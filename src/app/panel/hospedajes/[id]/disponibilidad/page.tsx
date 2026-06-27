@@ -22,10 +22,46 @@ export default async function PanelDisponibilidadPage({ params }: PageProps) {
   const sb = createAdminClient();
   const { data: hospedaje } = await sb
     .from("hospedajes")
-    .select("id, nombre")
+    .select("id, nombre, destino_id")
     .eq("id", id)
-    .maybeSingle<{ id: string; nombre: string }>();
+    .maybeSingle<{ id: string; nombre: string; destino_id: string }>();
   if (!hospedaje) notFound();
+
+  // Verificar si el destino tiene restricciones habilitadas
+  const { data: destino } = await sb
+    .from("destinos")
+    .select("restricciones_habilitadas")
+    .eq("id", hospedaje.destino_id)
+    .maybeSingle<{ restricciones_habilitadas: boolean }>();
+
+  if (destino?.restricciones_habilitadas) {
+    return (
+      <div className="max-w-3xl space-y-6">
+        <header>
+          <Link
+            href={`/panel/hospedajes/${id}`}
+            className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Volver al hospedaje
+          </Link>
+          <h1 className="mt-3 font-display text-3xl tracking-tight">
+            Disponibilidad · {hospedaje.nombre}
+          </h1>
+        </header>
+
+        <div className="rounded-xl border border-dashed border-yellow-200 bg-yellow-50 p-8 text-center">
+          <p className="text-sm text-yellow-900">
+            <strong>Disponibilidad parametrizada a nivel destino.</strong>
+          </p>
+          <p className="mt-2 text-sm text-yellow-800">
+            Este destino usa restricciones centralizadas. El admin lo configura
+            a nivel destino, no por hospedaje individual.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Traemos todas las unidades (activas e inactivas) — el componente filtra.
   // Si no hay ninguna cargada, mostramos un CTA hacia /unidades.

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ExternalLink, AlertTriangle } from "lucide-react";
 import { requireResponsable } from "@/features/panel/lib/auth";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getMyHospedaje } from "@/features/panel/lib/queries";
 import {
   listDestinosForSelect,
@@ -37,6 +38,15 @@ export default async function EditMyHospedajePage({ params }: PageProps) {
 
   const hospedaje = await getMyHospedaje(id, user.hospedajeIds);
   if (!hospedaje) notFound();
+
+  // Cargar restricciones_habilitadas del destino
+  const sb = createAdminClient();
+  const { data: destino } = await sb
+    .from("destinos")
+    .select("restricciones_habilitadas")
+    .eq("id", hospedaje.destino_id)
+    .maybeSingle<{ restricciones_habilitadas: boolean }>();
+  const destinoTieneRestricciones = destino?.restricciones_habilitadas ?? false;
 
   const destinos = await listDestinosForSelect();
   const localidadesPorDestino: Record<
@@ -92,12 +102,14 @@ export default async function EditMyHospedajePage({ params }: PageProps) {
           >
             Unidades
           </Link>
-          <Link
-            href={`/panel/hospedajes/${hospedaje.id}/disponibilidad`}
-            className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium transition hover:bg-secondary"
-          >
-            Disponibilidad
-          </Link>
+          {!destinoTieneRestricciones && (
+            <Link
+              href={`/panel/hospedajes/${hospedaje.id}/disponibilidad`}
+              className="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium transition hover:bg-secondary"
+            >
+              Disponibilidad
+            </Link>
+          )}
           {publicHref && (
             <Link
               href={publicHref}
