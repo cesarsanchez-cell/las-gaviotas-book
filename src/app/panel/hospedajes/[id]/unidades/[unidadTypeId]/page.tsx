@@ -100,12 +100,10 @@ export default async function EditUnidadTypePage({ params }: PageProps) {
         </div>
       )}
 
-      {restriccionesOn && (
-        <RestriccionesManager
-          unidadTypeId={unidadType.id}
-          restricciones={restricciones}
-        />
-      )}
+      <RestriccionesManager
+        unidadTypeId={unidadType.id}
+        restricciones={restricciones}
+      />
     </div>
   );
 }
