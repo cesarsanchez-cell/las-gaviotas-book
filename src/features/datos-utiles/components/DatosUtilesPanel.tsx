@@ -8,6 +8,7 @@ import { DatoUtilForm } from "./DatoUtilForm";
 import { RubroItems } from "./RubroItems";
 import {
   crearDatoUtilAction,
+  actualizarDatoUtilAction,
   eliminarDatoUtilAction,
 } from "../lib/datos-utiles-actions";
 
@@ -29,9 +30,10 @@ export function DatosUtilesPanel({
     rubros[0]?.id || null
   );
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<DatoUtil | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleCreate = async (formData: {
+  const handleSubmit = async (formData: {
     rubroId: string;
     nombre: string;
     direccion?: string;
@@ -39,24 +41,41 @@ export function DatosUtilesPanel({
   }) => {
     setIsSaving(true);
     try {
-      const newItem = await crearDatoUtilAction(destinoId, formData);
-      setDatosUtiles((prev) => [
-        ...prev,
-        {
-          id: newItem.id,
-          destino_id: destinoId,
-          rubro_id: formData.rubroId,
-          nombre: formData.nombre,
-          direccion: formData.direccion,
-          contacto: formData.contacto,
-          foto_path: null,
-          created_at: new Date().toISOString(),
-        },
-      ]);
+      if (editingItem) {
+        // Modo edición
+        const updatedItem = await actualizarDatoUtilAction(editingItem.id, formData);
+        setDatosUtiles((prev) =>
+          prev.map((item) =>
+            item.id === editingItem.id ? updatedItem : item
+          )
+        );
+        setEditingItem(null);
+      } else {
+        // Modo creación
+        const newItem = await crearDatoUtilAction(destinoId, formData);
+        setDatosUtiles((prev) => [
+          ...prev,
+          {
+            id: newItem.id,
+            destino_id: destinoId,
+            rubro_id: formData.rubroId,
+            nombre: formData.nombre,
+            direccion: formData.direccion,
+            contacto: formData.contacto,
+            foto_path: null,
+            created_at: new Date().toISOString(),
+          },
+        ]);
+      }
       setIsCreateModalOpen(false);
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleEdit = (item: DatoUtil) => {
+    setEditingItem(item);
+    setIsCreateModalOpen(true);
   };
 
   const handleDelete = async (datoUtilId: string) => {
@@ -89,9 +108,14 @@ export function DatosUtilesPanel({
       {isCreateModalOpen && (
         <div className="rounded-lg border border-dashed p-6 space-y-4 bg-secondary/20">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold">Nuevo dato útil</h3>
+            <h3 className="font-semibold">
+              {editingItem ? "Editar dato útil" : "Nuevo dato útil"}
+            </h3>
             <button
-              onClick={() => setIsCreateModalOpen(false)}
+              onClick={() => {
+                setIsCreateModalOpen(false);
+                setEditingItem(null);
+              }}
               className="text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4" />
@@ -99,7 +123,17 @@ export function DatosUtilesPanel({
           </div>
           <DatoUtilForm
             rubros={rubros}
-            onSubmit={handleCreate}
+            initialData={
+              editingItem
+                ? {
+                    rubroId: editingItem.rubro_id,
+                    nombre: editingItem.nombre,
+                    direccion: editingItem.direccion || undefined,
+                    contacto: editingItem.contacto || undefined,
+                  }
+                : undefined
+            }
+            onSubmit={handleSubmit}
             isLoading={isSaving}
           />
         </div>
@@ -146,6 +180,7 @@ export function DatosUtilesPanel({
             <RubroItems
               items={selectedItems}
               onDelete={handleDelete}
+              onEdit={handleEdit}
             />
           )}
         </div>

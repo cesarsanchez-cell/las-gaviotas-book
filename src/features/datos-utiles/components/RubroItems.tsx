@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Trash2, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,9 +13,10 @@ import type { DatoUtil } from "@/lib/types";
 interface RubroItemsProps {
   items: DatoUtil[];
   onDelete: (id: string) => void;
+  onEdit: (item: DatoUtil) => void;
 }
 
-export function RubroItems({ items, onDelete }: RubroItemsProps) {
+export function RubroItems({ items, onDelete, onEdit }: RubroItemsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {items.map((item) => (
@@ -25,14 +26,24 @@ export function RubroItems({ items, onDelete }: RubroItemsProps) {
               <div className="flex-1">
                 <CardTitle className="text-base">{item.nombre}</CardTitle>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onDelete(item.id)}
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onEdit(item)}
+                  className="text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDelete(item.id)}
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
