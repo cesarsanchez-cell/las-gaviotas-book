@@ -5,19 +5,17 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { Rubro, DatoUtil } from "@/lib/types";
+import type { DatoUtil } from "@/lib/types";
 
 interface RubroItemsProps {
-  rubro: Rubro;
   items: DatoUtil[];
   onDelete: (id: string) => void;
 }
 
-export function RubroItems({ rubro, items, onDelete }: RubroItemsProps) {
+export function RubroItems({ items, onDelete }: RubroItemsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {items.map((item) => (

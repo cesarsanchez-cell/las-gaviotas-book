@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
-import { DatosUtilesModal } from "./DatosUtilesModal";
+import { Menu, X } from "lucide-react";
+import { DatosUtilesModalContent } from "./DatosUtilesModalContent";
 import type { Rubro, DatoUtil } from "@/lib/types";
 
 interface DatosUtilesButtonProps {
@@ -46,12 +46,28 @@ export function DatosUtilesButton({
         Datos útiles
       </Button>
 
-      <DatosUtilesModal
-        isOpen={isOpen}
-        onOpenChange={setIsOpen}
-        rubros={rubrosConItems}
-        datosUtiles={datosUtiles}
-      />
+      {isOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setIsOpen(false)}>
+          <div
+            className="absolute right-0 top-0 bottom-0 w-96 bg-background shadow-lg overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b p-4">
+              <h2 className="font-semibold">Datos útiles</h2>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <DatosUtilesModalContent
+              rubros={rubrosConItems}
+              datosUtiles={datosUtiles}
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 }

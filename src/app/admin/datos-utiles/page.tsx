@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { requireAdmin } from "@/features/admin/lib/auth";
-import { createAdminClient } from "@/lib/supabase/admin";
 import {
   listRubros,
   listDatosUtilesByDestino,
@@ -11,14 +10,14 @@ import { DatosUtilesPanel } from "@/features/datos-utiles/components/DatosUtiles
 export default async function DatosUtilesPage() {
   const user = await requireAdmin();
 
-  if (!user.destino_id) notFound();
+  if (!user.destinoId) notFound();
 
   const [rubros, datosUtiles] = await Promise.all([
     listRubros(),
-    listDatosUtilesByDestino(user.destino_id),
+    listDatosUtilesByDestino(user.destinoId),
   ]);
 
-  const itemCounts = await countItemsByRubro(user.destino_id);
+  const itemCounts = await countItemsByRubro(user.destinoId);
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -30,7 +29,7 @@ export default async function DatosUtilesPage() {
       </header>
 
       <DatosUtilesPanel
-        destino_id={user.destino_id}
+        destino_id={user.destinoId}
         rubros={rubros}
         datosUtiles={datosUtiles}
         itemCounts={itemCounts}
