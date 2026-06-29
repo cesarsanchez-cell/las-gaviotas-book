@@ -47,12 +47,12 @@ export function DatosUtilesButton({
       </Button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setIsOpen(false)}>
+        <div className="fixed inset-0 z-50 bg-black/50 flex" onClick={() => setIsOpen(false)}>
           <div
-            className="absolute right-0 top-0 bottom-0 w-96 bg-background shadow-lg overflow-y-auto"
+            className="fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-background shadow-lg overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b p-4">
+            <div className="sticky top-0 bg-background flex items-center justify-between border-b p-4">
               <h2 className="font-semibold">Datos útiles</h2>
               <button
                 onClick={() => setIsOpen(false)}
