@@ -47,9 +47,9 @@ export function DatosUtilesButton({
       </Button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex" onClick={() => setIsOpen(false)}>
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-start justify-end sm:items-center sm:justify-center" onClick={() => setIsOpen(false)}>
           <div
-            className="fixed right-0 top-0 bottom-0 w-screen sm:w-2/3 md:w-1/2 lg:w-[440px] bg-background shadow-lg overflow-y-auto"
+            className="fixed right-0 top-0 w-screen sm:w-2/3 md:w-1/2 lg:w-[440px] max-h-[65vh] sm:max-h-auto sm:rounded-lg bg-background shadow-lg overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-background flex items-center justify-between border-b p-6">

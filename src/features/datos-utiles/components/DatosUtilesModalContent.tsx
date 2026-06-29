@@ -103,16 +103,16 @@ export function DatosUtilesModalContent({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-3">
           {rubros.map((rubro) => {
             const Icon = getIconComponent(rubro.icono_default);
             return (
               <button
                 key={rubro.id}
                 onClick={() => setSelectedRubroId(rubro.id)}
-                className="flex flex-col items-center justify-center gap-4 rounded-lg border border-border p-6 transition hover:bg-secondary hover:border-primary"
+                className="flex flex-col items-center justify-center gap-2 rounded-lg border border-border p-4 transition hover:bg-secondary hover:border-primary"
               >
-                <Icon className="h-12 w-12 text-primary" />
+                <Icon className="h-10 w-10 text-primary" />
                 <div className="text-center">
                   <h3 className="font-bold text-base">{rubro.nombre}</h3>
                   <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
