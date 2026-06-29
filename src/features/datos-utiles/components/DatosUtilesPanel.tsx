@@ -12,14 +12,14 @@ import {
 } from "../lib/datos-utiles-actions";
 
 interface DatosUtilesPanelProps {
-  destino_id: string;
+  destinoId: string;
   rubros: Rubro[];
   datosUtiles: DatoUtil[];
   itemCounts: Map<string, number>;
 }
 
 export function DatosUtilesPanel({
-  destino_id,
+  destinoId,
   rubros,
   datosUtiles: initialDatos,
   itemCounts,
@@ -39,12 +39,12 @@ export function DatosUtilesPanel({
   }) => {
     setIsSaving(true);
     try {
-      const newItem = await crearDatoUtilAction(destino_id, formData);
+      const newItem = await crearDatoUtilAction(destinoId, formData);
       setDatosUtiles((prev) => [
         ...prev,
         {
           id: newItem.id,
-          destino_id,
+          destino_id: destinoId,
           rubro_id: formData.rubroId,
           nombre: formData.nombre,
           direccion: formData.direccion,

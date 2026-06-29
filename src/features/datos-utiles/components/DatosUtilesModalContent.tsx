@@ -2,9 +2,14 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, ChevronLeft, MapPin, Phone } from "lucide-react";
+import { ChevronRight, ChevronLeft, MapPin, Phone, ExternalLink } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import type { Rubro, DatoUtil } from "@/lib/types";
+
+function getMapsUrl(nombre: string, direccion?: string | null): string {
+  const query = direccion ? `${nombre} ${direccion}` : nombre;
+  return `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
+}
 
 interface DatosUtilesModalContentProps {
   rubros: Rubro[];
@@ -44,9 +49,17 @@ export function DatosUtilesModalContent({
               <Card key={item.id} className="p-3">
                 <h4 className="font-semibold text-sm mb-2">{item.nombre}</h4>
                 {item.direccion && (
-                  <div className="flex gap-2 items-start text-xs text-muted-foreground mb-1">
-                    <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                    <span>{item.direccion}</span>
+                  <div className="mb-1">
+                    <a
+                      href={getMapsUrl(item.nombre, item.direccion)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex gap-2 items-start text-xs text-primary hover:underline"
+                    >
+                      <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      <span>{item.direccion}</span>
+                      <ExternalLink className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                    </a>
                   </div>
                 )}
                 {item.contacto && (

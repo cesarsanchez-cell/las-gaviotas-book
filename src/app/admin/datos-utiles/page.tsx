@@ -29,7 +29,7 @@ export default async function DatosUtilesPage() {
       </header>
 
       <DatosUtilesPanel
-        destino_id={user.destinoId}
+        destinoId={user.destinoId}
         rubros={rubros}
         datosUtiles={datosUtiles}
         itemCounts={itemCounts}
