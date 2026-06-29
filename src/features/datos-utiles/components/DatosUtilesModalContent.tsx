@@ -103,27 +103,32 @@ export function DatosUtilesModalContent({
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground mb-6">
+        <div className="space-y-6">
+          <p className="text-sm text-muted-foreground">
             Información importante para tu visita
           </p>
-          {rubros.map((rubro) => {
-            const Icon = getIconComponent(rubro.icono_default);
-            return (
-              <Button
-                key={rubro.id}
-                variant="outline"
-                className="w-full justify-between h-auto py-4 px-4 text-base font-medium"
-                onClick={() => setSelectedRubroId(rubro.id)}
-              >
-                <span className="flex items-center gap-3">
-                  <Icon className="h-5 w-5" />
-                  {rubro.nombre}
-                </span>
-                <ChevronRight className="h-5 w-5" />
-              </Button>
-            );
-          })}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+            {rubros.map((rubro) => {
+              const Icon = getIconComponent(rubro.icono_default);
+              return (
+                <button
+                  key={rubro.id}
+                  onClick={() => setSelectedRubroId(rubro.id)}
+                  className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border p-4 transition hover:bg-secondary hover:border-primary"
+                >
+                  <div className="text-5xl">
+                    <Icon className="h-8 w-8 text-primary" />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="font-bold text-sm">{rubro.nombre}</h3>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {rubro.descripcion}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
