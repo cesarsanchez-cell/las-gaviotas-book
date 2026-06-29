@@ -49,16 +49,16 @@ export function DatosUtilesButton({
       {isOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 flex" onClick={() => setIsOpen(false)}>
           <div
-            className="fixed right-0 top-0 bottom-0 w-full sm:w-96 bg-background shadow-lg overflow-y-auto"
+            className="fixed right-0 top-0 bottom-0 w-screen sm:w-2/3 md:w-1/2 lg:w-[440px] bg-background shadow-lg overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 bg-background flex items-center justify-between border-b p-4">
-              <h2 className="font-semibold">Datos útiles</h2>
+            <div className="sticky top-0 bg-background flex items-center justify-between border-b p-6">
+              <h2 className="text-xl font-semibold">Datos útiles</h2>
               <button
                 onClick={() => setIsOpen(false)}
                 className="text-muted-foreground hover:text-foreground"
               >
-                <X className="h-5 w-5" />
+                <X className="h-6 w-6" />
               </button>
             </div>
             <DatosUtilesModalContent

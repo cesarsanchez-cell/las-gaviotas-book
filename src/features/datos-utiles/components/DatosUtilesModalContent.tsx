@@ -50,50 +50,50 @@ export function DatosUtilesModalContent({
   const rubroItems = datosUtiles.filter((d) => d.rubro_id === selectedRubroId);
 
   return (
-    <div className="p-4">
+    <div className="p-6">
       {selectedRubroId && selectedRubro ? (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <button
             onClick={() => setSelectedRubroId(null)}
-            className="flex items-center gap-1 text-sm text-primary hover:underline"
+            className="flex items-center gap-2 text-base text-primary hover:underline font-medium"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-5 w-5" />
             Volver
           </button>
 
           <div>
-            <h3 className="font-semibold">{selectedRubro.nombre}</h3>
-            <p className="text-xs text-muted-foreground">
+            <h3 className="text-2xl font-bold mb-2">{selectedRubro.nombre}</h3>
+            <p className="text-sm text-muted-foreground">
               {selectedRubro.descripcion}
             </p>
           </div>
 
-          <div className="space-y-2 overflow-y-auto">
+          <div className="space-y-3">
             {rubroItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4">
+              <p className="text-base text-muted-foreground py-8 text-center">
                 Sin datos cargados aún en {selectedRubro.nombre}
               </p>
             ) : (
               rubroItems.map((item) => (
-                <Card key={item.id} className="p-3">
-                  <h4 className="font-semibold text-sm mb-2">{item.nombre}</h4>
+                <Card key={item.id} className="p-4 border-l-4 border-l-primary">
+                  <h4 className="font-bold text-base mb-3">{item.nombre}</h4>
                   {item.direccion && (
-                    <div className="mb-1">
+                    <div className="mb-3">
                       <a
                         href={getMapsUrl(item.nombre, item.direccion)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex gap-2 items-start text-xs text-primary hover:underline"
+                        className="flex gap-2 items-start text-sm text-primary hover:underline font-medium"
                       >
-                        <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                        <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
                         <span>{item.direccion}</span>
-                        <ExternalLink className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                        <ExternalLink className="h-4 w-4 mt-0.5 flex-shrink-0" />
                       </a>
                     </div>
                   )}
                   {item.contacto && (
-                    <div className="flex gap-2 items-start text-xs text-muted-foreground">
-                      <Phone className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                    <div className="flex gap-2 items-start text-sm text-muted-foreground">
+                      <Phone className="h-4 w-4 mt-0.5 flex-shrink-0" />
                       <span>{item.contacto}</span>
                     </div>
                   )}
@@ -103,8 +103,8 @@ export function DatosUtilesModalContent({
           </div>
         </div>
       ) : (
-        <div className="space-y-2">
-          <p className="text-xs text-muted-foreground mb-3">
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground mb-6">
             Información importante para tu visita
           </p>
           {rubros.map((rubro) => {
@@ -113,14 +113,14 @@ export function DatosUtilesModalContent({
               <Button
                 key={rubro.id}
                 variant="outline"
-                className="w-full justify-between"
+                className="w-full justify-between h-auto py-4 px-4 text-base font-medium"
                 onClick={() => setSelectedRubroId(rubro.id)}
               >
-                <span className="flex items-center gap-2">
-                  <Icon className="h-4 w-4" />
+                <span className="flex items-center gap-3">
+                  <Icon className="h-5 w-5" />
                   {rubro.nombre}
                 </span>
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-5 w-5" />
               </Button>
             );
           })}
