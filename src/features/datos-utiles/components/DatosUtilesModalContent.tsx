@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   ChevronRight,
@@ -33,6 +33,87 @@ function getIconComponent(iconName: string): LucideIcon {
     "map-pin": MapPin,
   };
   return iconMap[iconName] || MapPin;
+}
+
+interface RubrosCarouselProps {
+  rubros: Rubro[];
+  onSelectRubro: (rubroId: string) => void;
+}
+
+function RubrosCarousel({ rubros, onSelectRubro }: RubrosCarouselProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
+  }, []);
+
+  const scroll = (direction: "left" | "right") => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = 300;
+      scrollContainerRef.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      });
+      setTimeout(checkScroll, 300);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <div
+        ref={scrollContainerRef}
+        onScroll={checkScroll}
+        className="flex gap-3 overflow-x-auto scroll-smooth pb-2"
+        style={{ scrollBehavior: "smooth" }}
+      >
+        {rubros.map((rubro) => {
+          const Icon = getIconComponent(rubro.icono_default);
+          return (
+            <button
+              key={rubro.id}
+              onClick={() => onSelectRubro(rubro.id)}
+              className="flex flex-shrink-0 flex-col items-center justify-center gap-1.5 rounded-lg border border-border p-3 w-[100px] transition hover:bg-secondary hover:border-primary"
+            >
+              <Icon className="h-6 w-6 text-primary" />
+              <div className="text-center">
+                <h3 className="font-bold text-xs line-clamp-2">{rubro.nombre}</h3>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      {canScrollLeft && (
+        <button
+          onClick={() => scroll("left")}
+          className="absolute left-0 top-1/2 -translate-y-1/2 bg-background/90 rounded-r-lg p-2 hover:bg-secondary transition"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+      )}
+
+      {canScrollRight && (
+        <button
+          onClick={() => scroll("right")}
+          className="absolute right-0 top-1/2 -translate-y-1/2 bg-background/90 rounded-l-lg p-2 hover:bg-secondary transition"
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      )}
+    </div>
+  );
 }
 
 interface DatosUtilesModalContentProps {
@@ -103,26 +184,10 @@ export function DatosUtilesModalContent({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-3 gap-2">
-          {rubros.map((rubro) => {
-            const Icon = getIconComponent(rubro.icono_default);
-            return (
-              <button
-                key={rubro.id}
-                onClick={() => setSelectedRubroId(rubro.id)}
-                className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-border p-3 transition hover:bg-secondary hover:border-primary"
-              >
-                <Icon className="h-6 w-6 text-primary" />
-                <div className="text-center">
-                  <h3 className="font-bold text-xs">{rubro.nombre}</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                    {rubro.descripcion}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        <RubrosCarousel
+          rubros={rubros}
+          onSelectRubro={setSelectedRubroId}
+        />
       )}
     </div>
   );

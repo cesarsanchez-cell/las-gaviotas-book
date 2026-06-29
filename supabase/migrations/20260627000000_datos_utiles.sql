@@ -92,7 +92,6 @@ insert into public.rubros (slug, nombre, icono_default, descripcion) values
   ('medicina', 'Salud', 'plus', 'Hospitales, clínicas, farmacias'),
   ('emergencias', 'Emergencias', 'alert-triangle', 'Policía, bomberos, ambulancias'),
   ('transporte', 'Transporte', 'car', 'Taxis, remises, transporte público'),
-  ('gastronomia', 'Gastronomía', 'utensils', 'Restaurantes, cafés, bares'),
   ('entretenimiento', 'Entretenimiento', 'music', 'Cines, teatros, discotecas'),
   ('informacion', 'Información', 'map-pin', 'Turismo, oficinas de información');
 
