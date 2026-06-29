@@ -89,8 +89,8 @@ create policy "Datos útiles admin local eliminar"
 
 -- 6) Seed de rubros iniciales
 insert into public.rubros (slug, nombre, icono_default, descripcion) values
-  ('medicina', 'Medicina', 'hospital', 'Hospitales, clínicas, farmacias'),
-  ('emergencias', 'Emergencias', 'alert-circle', 'Policía, bomberos, ambulancias'),
+  ('medicina', 'Salud', 'plus', 'Hospitales, clínicas, farmacias'),
+  ('emergencias', 'Emergencias', 'alert-triangle', 'Policía, bomberos, ambulancias'),
   ('transporte', 'Transporte', 'car', 'Taxis, remises, transporte público'),
   ('gastronomia', 'Gastronomía', 'utensils', 'Restaurantes, cafés, bares'),
   ('entretenimiento', 'Entretenimiento', 'music', 'Cines, teatros, discotecas'),

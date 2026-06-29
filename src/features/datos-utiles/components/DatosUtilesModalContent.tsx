@@ -8,8 +8,8 @@ import {
   MapPin,
   Phone,
   ExternalLink,
-  Hospital,
-  AlertCircle,
+  Plus,
+  AlertTriangle,
   Car,
   UtensilsCrossed,
   Music,
@@ -25,8 +25,8 @@ function getMapsUrl(nombre: string, direccion?: string | null): string {
 
 function getIconComponent(iconName: string): LucideIcon {
   const iconMap: Record<string, LucideIcon> = {
-    hospital: Hospital,
-    "alert-circle": AlertCircle,
+    plus: Plus,
+    "alert-triangle": AlertTriangle,
     car: Car,
     utensils: UtensilsCrossed,
     music: Music,
