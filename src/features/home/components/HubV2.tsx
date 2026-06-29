@@ -29,6 +29,7 @@ import type {
   RegionVisible,
 } from "@/features/home/lib/queries";
 import type { HeaderSession } from "@/features/home/lib/header-session";
+import type { Rubro, DatoUtil } from "@/lib/types";
 
 // Orden de las verticales en las bandas de la home (cuando no hay una enfocada).
 const VERTICAL_KEYS: VerticalKey[] = ["hospedajes", "gastronomia", "atractivos"];
@@ -53,6 +54,8 @@ interface HubV2Props {
    * por destino).
    */
   scopedDestino?: { slug: string; nombre: string } | null;
+  rubros?: Rubro[];
+  datosUtiles?: DatoUtil[];
 }
 
 export function HubV2({
@@ -68,6 +71,8 @@ export function HubV2({
   heroEyebrow,
   heroSubtitle,
   scopedDestino = null,
+  rubros = [],
+  datosUtiles = [],
 }: HubV2Props) {
   const router = useRouter();
   // null = landing (hero + promos + combos, sin grilla). Una vertical = vista
@@ -291,6 +296,8 @@ export function HubV2({
         search={search}
         onOpenSearch={() => setSearchOpen(true)}
         session={session}
+        rubros={rubros}
+        datosUtiles={datosUtiles}
       />
 
       <SearchPanel

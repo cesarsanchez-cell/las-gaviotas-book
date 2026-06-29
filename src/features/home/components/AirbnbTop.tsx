@@ -4,8 +4,10 @@ import { Home, BedDouble, UtensilsCrossed, Compass, Search, X, type LucideIcon }
 import { cn } from "@/lib/utils";
 import { PinHeart } from "./PinHeart";
 import { UserMenu } from "./UserMenu";
+import { DatosUtilesButton } from "@/features/datos-utiles/components/DatosUtilesButton";
 import type { SearchState, HubTab } from "@/features/home/lib/search-types";
 import type { HeaderSession } from "@/features/home/lib/header-session";
+import type { Rubro, DatoUtil } from "@/lib/types";
 
 // Las verticales del menú. Las promos ya no son una pestaña: viven en el hero.
 const TABS: Array<{ key: HubTab; label: string; icon: LucideIcon }> = [
@@ -30,6 +32,8 @@ interface AirbnbTopProps {
   search: SearchState;
   onOpenSearch: () => void;
   session: HeaderSession;
+  rubros?: Rubro[];
+  datosUtiles?: DatoUtil[];
 }
 
 export function AirbnbTop({
@@ -41,6 +45,8 @@ export function AirbnbTop({
   search,
   onOpenSearch,
   session,
+  rubros = [],
+  datosUtiles = [],
 }: AirbnbTopProps) {
   const tabs = TABS;
 
@@ -100,7 +106,8 @@ export function AirbnbTop({
             <Verticales size={18} />
           </nav>
 
-          <div className="ml-auto md:ml-0">
+          <div className="ml-auto flex items-center gap-2 md:ml-0 md:gap-3">
+            <DatosUtilesButton rubros={rubros} datosUtiles={datosUtiles} />
             <UserMenu session={session} />
           </div>
         </div>
