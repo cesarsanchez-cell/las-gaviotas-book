@@ -2,13 +2,37 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, ChevronLeft, MapPin, Phone, ExternalLink } from "lucide-react";
+import {
+  ChevronRight,
+  ChevronLeft,
+  MapPin,
+  Phone,
+  ExternalLink,
+  Hospital,
+  AlertCircle,
+  Car,
+  UtensilsCrossed,
+  Music,
+  type LucideIcon,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import type { Rubro, DatoUtil } from "@/lib/types";
 
 function getMapsUrl(nombre: string, direccion?: string | null): string {
   const query = direccion ? `${nombre} ${direccion}` : nombre;
   return `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
+}
+
+function getIconComponent(iconName: string): LucideIcon {
+  const iconMap: Record<string, LucideIcon> = {
+    hospital: Hospital,
+    "alert-circle": AlertCircle,
+    car: Car,
+    utensils: UtensilsCrossed,
+    music: Music,
+    "map-pin": MapPin,
+  };
+  return iconMap[iconName] || MapPin;
 }
 
 interface DatosUtilesModalContentProps {
@@ -44,32 +68,38 @@ export function DatosUtilesModalContent({
             </p>
           </div>
 
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {rubroItems.map((item) => (
-              <Card key={item.id} className="p-3">
-                <h4 className="font-semibold text-sm mb-2">{item.nombre}</h4>
-                {item.direccion && (
-                  <div className="mb-1">
-                    <a
-                      href={getMapsUrl(item.nombre, item.direccion)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex gap-2 items-start text-xs text-primary hover:underline"
-                    >
-                      <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                      <span>{item.direccion}</span>
-                      <ExternalLink className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                    </a>
-                  </div>
-                )}
-                {item.contacto && (
-                  <div className="flex gap-2 items-start text-xs text-muted-foreground">
-                    <Phone className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                    <span>{item.contacto}</span>
-                  </div>
-                )}
-              </Card>
-            ))}
+          <div className="space-y-2 overflow-y-auto">
+            {rubroItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">
+                Sin datos cargados aún en {selectedRubro.nombre}
+              </p>
+            ) : (
+              rubroItems.map((item) => (
+                <Card key={item.id} className="p-3">
+                  <h4 className="font-semibold text-sm mb-2">{item.nombre}</h4>
+                  {item.direccion && (
+                    <div className="mb-1">
+                      <a
+                        href={getMapsUrl(item.nombre, item.direccion)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex gap-2 items-start text-xs text-primary hover:underline"
+                      >
+                        <MapPin className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                        <span>{item.direccion}</span>
+                        <ExternalLink className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      </a>
+                    </div>
+                  )}
+                  {item.contacto && (
+                    <div className="flex gap-2 items-start text-xs text-muted-foreground">
+                      <Phone className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      <span>{item.contacto}</span>
+                    </div>
+                  )}
+                </Card>
+              ))
+            )}
           </div>
         </div>
       ) : (
@@ -77,20 +107,23 @@ export function DatosUtilesModalContent({
           <p className="text-xs text-muted-foreground mb-3">
             Información importante para tu visita
           </p>
-          {rubros.map((rubro) => (
-            <Button
-              key={rubro.id}
-              variant="outline"
-              className="w-full justify-between"
-              onClick={() => setSelectedRubroId(rubro.id)}
-            >
-              <span className="flex items-center gap-2">
-                <span className="text-lg">📍</span>
-                {rubro.nombre}
-              </span>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          ))}
+          {rubros.map((rubro) => {
+            const Icon = getIconComponent(rubro.icono_default);
+            return (
+              <Button
+                key={rubro.id}
+                variant="outline"
+                className="w-full justify-between"
+                onClick={() => setSelectedRubroId(rubro.id)}
+              >
+                <span className="flex items-center gap-2">
+                  <Icon className="h-4 w-4" />
+                  {rubro.nombre}
+                </span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            );
+          })}
         </div>
       )}
     </div>
