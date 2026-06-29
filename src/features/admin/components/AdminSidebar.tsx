@@ -21,6 +21,7 @@ import {
   UserCircle,
   Map,
   Trees,
+  Info,
 } from "lucide-react";
 import { signOutAction } from "@/features/admin/lib/session-actions";
 import { siteConfig } from "@/config/site";
@@ -45,6 +46,7 @@ const NAV: NavItem[] = [
   { href: "/admin/promos", label: "Promos", icon: Tag },
   { href: "/admin/combos", label: "Combos", icon: Layers },
   { href: "/admin/consultas", label: "Consultas", icon: Inbox },
+  { href: "/admin/datos-utiles", label: "Datos útiles", icon: Info },
   { href: "/admin/responsables", label: "Responsables", icon: UserCog },
   { href: "/admin/regiones", label: "Regiones", icon: MapPinned, superOnly: true },
   { href: "/admin/ciudades", label: "Ciudades", icon: Building, superOnly: true },
