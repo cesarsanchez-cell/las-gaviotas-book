@@ -97,7 +97,11 @@ export default async function AtractivoDetailPage({ params }: PageProps) {
         ])}
       />
 
-      <DestinoHeader destinoSlug={destinoSlug} destinoNombre={destino.nombre} />
+      <DestinoHeader
+        destinoSlug={destinoSlug}
+        destinoNombre={destino.nombre}
+        destinoId={destino.id}
+      />
 
       <main>
         <Container size="xl" as="article">

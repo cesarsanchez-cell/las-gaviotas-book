@@ -150,7 +150,11 @@ export default async function HospedajeDetailPage({
         ])}
       />
 
-      <DestinoHeader destinoSlug={destinoSlug} destinoNombre={destino.nombre} />
+      <DestinoHeader
+        destinoSlug={destinoSlug}
+        destinoNombre={destino.nombre}
+        destinoId={destino.id}
+      />
 
       <main>
         <Container size="xl" as="article">

@@ -11,7 +11,9 @@ import {
 import { cn } from "@/lib/utils";
 import { PinHeart } from "@/features/home/components/PinHeart";
 import { UserMenu } from "@/features/home/components/UserMenu";
+import { DatosUtilesButton } from "@/features/datos-utiles/components/DatosUtilesButton";
 import type { HeaderSession } from "@/features/home/lib/header-session";
+import type { Rubro, DatoUtil } from "@/lib/types";
 
 interface Tab {
   label: string;
@@ -33,10 +35,14 @@ export function DestinoTopBar({
   destinoSlug,
   destinoNombre,
   session,
+  rubros,
+  datosUtiles,
 }: {
   destinoSlug: string;
   destinoNombre: string;
   session: HeaderSession;
+  rubros: Rubro[];
+  datosUtiles: DatoUtil[];
 }) {
   const pathname = usePathname();
 
@@ -121,7 +127,8 @@ export function DestinoTopBar({
             <Verticales size={18} />
           </nav>
 
-          <div className="ml-auto md:ml-0">
+          <div className="ml-auto flex items-center gap-2 md:ml-0 md:gap-3">
+            <DatosUtilesButton rubros={rubros} datosUtiles={datosUtiles} />
             <UserMenu session={session} />
           </div>
         </div>

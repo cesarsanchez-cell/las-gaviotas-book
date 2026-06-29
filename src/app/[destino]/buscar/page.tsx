@@ -140,7 +140,11 @@ export default async function BuscarPage({ params, searchParams }: PageProps) {
 
   return (
     <>
-      <DestinoHeader destinoSlug={slug} destinoNombre={destino.nombre} />
+      <DestinoHeader
+        destinoSlug={slug}
+        destinoNombre={destino.nombre}
+        destinoId={destino.id}
+      />
 
       <main>
         <Section spacing="md" tone="sand">

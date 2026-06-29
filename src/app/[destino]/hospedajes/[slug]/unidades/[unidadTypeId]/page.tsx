@@ -224,7 +224,11 @@ export default async function UnidadDetallePage({
 
   return (
     <>
-      <DestinoHeader destinoSlug={destinoSlug} destinoNombre={destino.nombre} />
+      <DestinoHeader
+        destinoSlug={destinoSlug}
+        destinoNombre={destino.nombre}
+        destinoId={destino.id}
+      />
 
       <main>
         <Container size="xl" as="article">
