@@ -7,6 +7,7 @@ import {
 import { DatosUtilesPanel } from "@/features/datos-utiles/components/DatosUtilesPanel";
 import { DatosUtilesSuperAdminView } from "@/features/datos-utiles/components/DatosUtilesSuperAdminView";
 import { listDestinosAdmin } from "@/features/admin/lib/destino-management";
+import type { Rubro, DatoUtil } from "@/lib/types";
 
 interface PageProps {
   searchParams: Promise<{ destino_id?: string }>;
@@ -20,8 +21,8 @@ export default async function DatosUtilesPage({ searchParams }: PageProps) {
   // Super admin ve selector de destino; admin local solo ve su destino
   if (user.isSuperAdmin) {
     const destinos = await listDestinosAdmin();
-    let rubros: any = [];
-    let datosUtiles: any = [];
+    let rubros: Rubro[] = [];
+    let datosUtiles: DatoUtil[] = [];
     let itemCounts: Map<string, number> = new Map();
 
     if (selectedDestinoId) {
