@@ -16,7 +16,10 @@ interface PageProps {
 export default async function DatosUtilesPage({ searchParams }: PageProps) {
   const user = await requireAdmin();
   const params = await searchParams;
-  const selectedDestinoId = params.destino_id || user.destinoId;
+  // Super admin puede pasar cualquier destino_id; admin local solo puede ver el suyo
+  const selectedDestinoId = user.isSuperAdmin
+    ? (params.destino_id || null)
+    : user.destinoId;
 
   // Super admin ve selector de destino; admin local solo ve su destino
   if (user.isSuperAdmin) {
