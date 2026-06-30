@@ -6,7 +6,7 @@ import { DestinosList } from "@/features/admin/components/DestinosList";
 
 export default async function AdminDestinosPage() {
   const me = await requireAdmin();
-  const destinos = await listDestinosAdmin();
+  const destinos = await listDestinosAdmin(me.destinoId);
 
   return (
     <div className="max-w-6xl space-y-6">

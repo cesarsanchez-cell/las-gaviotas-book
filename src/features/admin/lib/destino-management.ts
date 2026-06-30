@@ -22,19 +22,27 @@ export interface DestinoListRow {
 }
 
 /**
- * Lista todos los destinos con conteo de hospedajes. Visible a cualquier
- * admin (super o local) — RLS permite SELECT abierto sobre destinos via
- * "Destinos: admin lectura total".
+ * Lista destinos con conteo de hospedajes. Admin local solo ve su destino asignado;
+ * super admin ve todos. Parámetro destinoId define el scope (null = super admin sin restricción).
  */
-export async function listDestinosAdmin(): Promise<DestinoListRow[]> {
+export async function listDestinosAdmin(
+  destinoId?: string | null
+): Promise<DestinoListRow[]> {
   await requireAdmin();
   const sb = createAdminClient();
 
-  const { data: destinos } = await sb
+  let q = sb
     .from("destinos")
     .select(
       "id, slug, nombre, region, provincia, pais, activo, restricciones_habilitadas, orden"
-    )
+    );
+
+  // Si destinoId está definido (admin local), filtrar por ese destino
+  if (destinoId) {
+    q = q.eq("id", destinoId);
+  }
+
+  const { data: destinos } = await q
     .order("orden", { ascending: true })
     .order("nombre", { ascending: true })
     .returns<
