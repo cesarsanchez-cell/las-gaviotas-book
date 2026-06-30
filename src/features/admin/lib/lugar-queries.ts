@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getResponsableDestinoIds } from "@/features/combos/lib/queries";
 import type {
   EstadoLugar,
   LugarFotoRow,
@@ -334,4 +335,51 @@ export async function listResponsablesDeLugar(
       email: emailById.get(p.id) ?? "(sin email)",
     })
   );
+}
+
+/**
+ * Destinos donde un responsable puede crear lugares (gastronómicos/atractivos).
+ * Retorna destinos en las zonas donde el responsable tiene comercios (hospedajes o lugares).
+ * Similar a `listComerciosParaCombo` pero devuelve solo destinos.
+ */
+export async function listDestinosParaLugarResponsable(
+  perfilId: string
+): Promise<{ id: string; nombre: string; slug: string }[]> {
+  const sb = createAdminClient();
+
+  // Obtener destinos donde el responsable tiene comercios (hospedajes o lugares)
+  const miDestinos = await getResponsableDestinoIds(perfilId);
+  if (miDestinos.length === 0) return [];
+
+  // Obtener las zonas de esos destinos
+  const { data: zonas } = (await sb
+    .from("zona_destinos")
+    .select("zona_id")
+    .in("destino_id", miDestinos)) as { data: Array<{ zona_id: string }> | null };
+
+  let destinoIds: string[];
+  if (!zonas || zonas.length === 0) {
+    // Sin zonas, mostrar solo sus destinos propios
+    destinoIds = miDestinos;
+  } else {
+    // Obtener todos los destinos de esas zonas
+    const zonaIds = Array.from(new Set(zonas.map((z) => z.zona_id)));
+    const { data: destZonas } = (await sb
+      .from("zona_destinos")
+      .select("destino_id")
+      .in("zona_id", zonaIds)) as { data: Array<{ destino_id: string }> | null };
+
+    destinoIds = destZonas
+      ? Array.from(new Set(destZonas.map((dz) => dz.destino_id)))
+      : miDestinos;
+  }
+
+  // Cargar destinos y ordenar por nombre
+  const { data: destinos } = await sb
+    .from("destinos")
+    .select("id, nombre, slug")
+    .in("id", destinoIds)
+    .order("nombre", { ascending: true });
+
+  return (destinos ?? []) as { id: string; nombre: string; slug: string }[];
 }

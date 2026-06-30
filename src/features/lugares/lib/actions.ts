@@ -127,6 +127,19 @@ export async function createLugarAsResponsableAction(
   if (!parsed.success) return formatZodError(parsed.error);
   const input = parsed.data;
 
+  // Validar que el responsable puede crear lugares en ese destino
+  const { listDestinosParaLugarResponsable } = await import(
+    "@/features/admin/lib/lugar-queries"
+  );
+  const destinosPermitidos = await listDestinosParaLugarResponsable(responsable.id);
+  const destinoIdPermitido = destinosPermitidos.some((d) => d.id === input.destino_id);
+  if (!destinoIdPermitido) {
+    return {
+      error: "No tenés permiso para crear lugares en ese destino.",
+      fieldErrors: { destino_id: "Destino no permitido" },
+    };
+  }
+
   const sb = createAdminClient();
   const { data, error } = await sb
     .from("lugares")

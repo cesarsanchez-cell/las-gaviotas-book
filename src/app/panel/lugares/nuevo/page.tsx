@@ -2,22 +2,10 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, UtensilsCrossed, Compass } from "lucide-react";
 import { requireResponsable } from "@/features/panel/lib/auth";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { listDestinosParaLugarResponsable } from "@/features/admin/lib/lugar-queries";
 import { LugarForm } from "@/features/admin/components/LugarForm";
 import { createLugarAsResponsableAction } from "@/features/lugares/lib/actions";
 import type { TipoLugar } from "@/types/database";
-
-async function listDestinosActivos(): Promise<
-  { id: string; nombre: string; slug: string }[]
-> {
-  const sb = createAdminClient();
-  const { data } = await sb
-    .from("destinos")
-    .select("id, nombre, slug")
-    .eq("activo", true)
-    .order("nombre", { ascending: true });
-  return (data ?? []) as { id: string; nombre: string; slug: string }[];
-}
 
 interface PageProps {
   searchParams: Promise<{ tipo?: string }>;
@@ -26,7 +14,7 @@ interface PageProps {
 export default async function NuevoLugarResponsablePage({
   searchParams,
 }: PageProps) {
-  await requireResponsable();
+  const resp = await requireResponsable();
   const { tipo: tipoParam } = await searchParams;
   const tipo: TipoLugar | null =
     tipoParam === "atractivo" || tipoParam === "gastronomico"
@@ -80,7 +68,7 @@ export default async function NuevoLugarResponsablePage({
     );
   }
 
-  const destinos = await listDestinosActivos();
+  const destinos = await listDestinosParaLugarResponsable(resp.id);
   const esGastro = tipo === "gastronomico";
 
   async function action(fd: FormData) {
