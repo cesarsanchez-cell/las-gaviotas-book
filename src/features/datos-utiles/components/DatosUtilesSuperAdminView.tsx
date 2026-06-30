@@ -2,22 +2,24 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  listRubros,
-  listDatosUtilesByDestino,
-  countItemsByRubro,
-} from "@/features/datos-utiles/lib/queries";
-import { DatosUtilesPanel } from "./DatosUtilesPanel";
 import type { DestinoListRow } from "@/features/admin/lib/destino-management";
+import type { Rubro, DatoUtil } from "@/lib/types";
+import { DatosUtilesPanel } from "./DatosUtilesPanel";
 
 interface DatosUtilesSuperAdminViewProps {
   destinos: DestinoListRow[];
   selectedDestinoId: string | null;
+  selectedRubros: Rubro[];
+  selectedDatosUtiles: DatoUtil[];
+  selectedItemCounts: Map<string, number>;
 }
 
 export function DatosUtilesSuperAdminView({
   destinos,
   selectedDestinoId,
+  selectedRubros,
+  selectedDatosUtiles,
+  selectedItemCounts,
 }: DatosUtilesSuperAdminViewProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -106,25 +108,12 @@ export function DatosUtilesSuperAdminView({
         </select>
       </div>
 
-      <DatosUtilesSuperAdminContent destinoId={selectedDestinoId} />
+      <DatosUtilesPanel
+        destinoId={selectedDestinoId}
+        rubros={selectedRubros}
+        datosUtiles={selectedDatosUtiles}
+        itemCounts={selectedItemCounts}
+      />
     </div>
-  );
-}
-
-async function DatosUtilesSuperAdminContent({ destinoId }: { destinoId: string }) {
-  const [rubros, datosUtiles] = await Promise.all([
-    listRubros(),
-    listDatosUtilesByDestino(destinoId),
-  ]);
-
-  const itemCounts = await countItemsByRubro(destinoId);
-
-  return (
-    <DatosUtilesPanel
-      destinoId={destinoId}
-      rubros={rubros}
-      datosUtiles={datosUtiles}
-      itemCounts={itemCounts}
-    />
   );
 }

@@ -20,10 +20,27 @@ export default async function DatosUtilesPage({ searchParams }: PageProps) {
   // Super admin ve selector de destino; admin local solo ve su destino
   if (user.isSuperAdmin) {
     const destinos = await listDestinosAdmin();
+    let rubros: any = [];
+    let datosUtiles: any = [];
+    let itemCounts: Map<string, number> = new Map();
+
+    if (selectedDestinoId) {
+      const [r, d] = await Promise.all([
+        listRubros(),
+        listDatosUtilesByDestino(selectedDestinoId),
+      ]);
+      rubros = r;
+      datosUtiles = d;
+      itemCounts = await countItemsByRubro(selectedDestinoId);
+    }
+
     return (
       <DatosUtilesSuperAdminView
         destinos={destinos}
-        selectedDestinoId={selectedDestinoId}
+        selectedDestinoId={selectedDestinoId || null}
+        selectedRubros={rubros}
+        selectedDatosUtiles={datosUtiles}
+        selectedItemCounts={itemCounts}
       />
     );
   }
