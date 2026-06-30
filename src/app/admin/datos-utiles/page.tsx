@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import { requireAdmin } from "@/features/admin/lib/auth";
 import {
   listRubros,
@@ -6,11 +5,42 @@ import {
   countItemsByRubro,
 } from "@/features/datos-utiles/lib/queries";
 import { DatosUtilesPanel } from "@/features/datos-utiles/components/DatosUtilesPanel";
+import { DatosUtilesSuperAdminView } from "@/features/datos-utiles/components/DatosUtilesSuperAdminView";
+import { listDestinosAdmin } from "@/features/admin/lib/destino-management";
 
-export default async function DatosUtilesPage() {
+interface PageProps {
+  searchParams: Promise<{ destino_id?: string }>;
+}
+
+export default async function DatosUtilesPage({ searchParams }: PageProps) {
   const user = await requireAdmin();
+  const params = await searchParams;
+  const selectedDestinoId = params.destino_id || user.destinoId;
 
-  if (!user.destinoId) notFound();
+  // Super admin ve selector de destino; admin local solo ve su destino
+  if (user.isSuperAdmin) {
+    const destinos = await listDestinosAdmin();
+    return (
+      <DatosUtilesSuperAdminView
+        destinos={destinos}
+        selectedDestinoId={selectedDestinoId}
+      />
+    );
+  }
+
+  // Admin local: usa su destino asignado
+  if (!user.destinoId) {
+    return (
+      <div className="max-w-4xl space-y-6">
+        <header>
+          <h1 className="font-display text-3xl tracking-tight">Datos Útiles</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            No tienes un destino asignado.
+          </p>
+        </header>
+      </div>
+    );
+  }
 
   const [rubros, datosUtiles] = await Promise.all([
     listRubros(),
