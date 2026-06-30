@@ -157,13 +157,36 @@ export async function getZona(
   return { zona, destinoIds: (links ?? []).map((l) => l.destino_id) };
 }
 
-/** Todos los destinos para el multi-select. */
-export async function listDestinosParaZonas(): Promise<OpcionDestino[]> {
+/** Destinos de una región para el multi-select. Si region_id es null, devuelve todos. */
+export async function listDestinosParaZonas(
+  regionId?: string | null
+): Promise<OpcionDestino[]> {
   await requireAdmin();
   const sb = createAdminClient();
+
+  if (!regionId) {
+    const { data } = (await sb
+      .from("destinos")
+      .select("id, nombre")
+      .order("nombre", { ascending: true })) as {
+      data: Array<{ id: string; nombre: string }> | null;
+    };
+    return data ?? [];
+  }
+
+  // Si hay region_id, obtener ciudades de esa región, luego destinos de esas ciudades
+  const { data: ciudades } = (await sb
+    .from("ciudades")
+    .select("id")
+    .eq("region_id", regionId)) as { data: Array<{ id: string }> | null };
+
+  if (!ciudades || ciudades.length === 0) return [];
+
+  const ciudadIds = ciudades.map((c) => c.id);
   const { data } = (await sb
     .from("destinos")
     .select("id, nombre")
+    .in("ciudad_id", ciudadIds)
     .order("nombre", { ascending: true })) as {
     data: Array<{ id: string; nombre: string }> | null;
   };

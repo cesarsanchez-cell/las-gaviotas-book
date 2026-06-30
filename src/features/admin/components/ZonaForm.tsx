@@ -33,6 +33,7 @@ interface ZonaFormProps {
   destinos: OpcionDestino[];
   ciudades: Array<{ id: string; nombre: string }>;
   curadores: OpcionCurador[];
+  regionNombre?: string | null;
   action: (formData: FormData) => Promise<ActionResult>;
   submitLabel: string;
 }
@@ -43,6 +44,7 @@ export function ZonaForm({
   destinos,
   ciudades,
   curadores,
+  regionNombre = null,
   action,
   submitLabel,
 }: ZonaFormProps) {
@@ -237,7 +239,9 @@ export function ZonaForm({
       <div>
         <p className="text-sm font-medium">Destinos de la zona</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          El conglomerado: qué destinos comparten estas atracciones.
+          {regionNombre
+            ? `Destinos de la región ${regionNombre}. El conglomerado: qué destinos comparten estas atracciones.`
+            : "El conglomerado: qué destinos comparten estas atracciones."}
         </p>
         <div className="mt-2 grid gap-1.5 sm:grid-cols-2 md:grid-cols-3">
           {destinos.map((d) => (

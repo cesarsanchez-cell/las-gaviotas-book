@@ -168,6 +168,9 @@ export interface ZonaRow {
   slug: string;
   nombre: string;
   descripcion: string | null;
+  /** Región a la que pertenece la zona (obligatorio). Una zona siempre está en UNA región, pero puede tener destinos de múltiples ciudades de esa región. */
+  region_id: string;
+  /** Ciudad de referencia dentro de la zona (opcional). */
   ciudad_id: string | null;
   /** Admin (local) que cura las atracciones de la zona. NULL = solo super admin. */
   curador_id: string | null;

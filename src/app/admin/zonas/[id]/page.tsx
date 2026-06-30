@@ -10,6 +10,7 @@ import {
   listAdminsParaCurador,
 } from "@/features/admin/lib/zona-management";
 import { listCiudadesAdmin } from "@/features/admin/lib/ciudad-management";
+import { getRegion } from "@/features/admin/lib/region-management";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -20,13 +21,17 @@ export default async function EditZonaPage({ params }: PageProps) {
   if (!me.isSuperAdmin) redirect("/admin/zonas");
 
   const { id } = await params;
-  const [data, destinos, curadores, ciudades] = await Promise.all([
+  const [data, curadores, ciudades] = await Promise.all([
     getZona(id),
-    listDestinosParaZonas(),
     listAdminsParaCurador(),
     listCiudadesAdmin(),
   ]);
   if (!data) notFound();
+
+  const [destinos, region] = await Promise.all([
+    listDestinosParaZonas(data.zona.region_id),
+    data.zona.region_id ? getRegion(data.zona.region_id) : null,
+  ]);
 
   const action = updateZonaAction.bind(null, id);
 
@@ -52,6 +57,7 @@ export default async function EditZonaPage({ params }: PageProps) {
         destinos={destinos}
         curadores={curadores}
         ciudades={ciudades.map((c) => ({ id: c.id, nombre: c.nombre }))}
+        regionNombre={region?.nombre ?? null}
         submitLabel="Guardar cambios"
       />
     </div>
