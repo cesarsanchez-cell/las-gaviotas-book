@@ -217,6 +217,12 @@ export async function createDestinoAction(formData: FormData): Promise<ActionRes
         fieldErrors: { slug: "Slug duplicado" },
       };
     }
+    if (error.code === "23502") {
+      return {
+        error: "Debes asignar una ciudad al destino (campo obligatorio).",
+        fieldErrors: { ciudad_id: "Campo requerido" },
+      };
+    }
     return { error: error.message };
   }
 
@@ -248,6 +254,12 @@ export async function updateDestinoAction(
       return {
         error: "Ya existe otro destino con ese slug.",
         fieldErrors: { slug: "Slug duplicado" },
+      };
+    }
+    if (error.code === "23502") {
+      return {
+        error: "Debes asignar una ciudad al destino (campo obligatorio).",
+        fieldErrors: { ciudad_id: "Campo requerido" },
       };
     }
     return { error: error.message };
