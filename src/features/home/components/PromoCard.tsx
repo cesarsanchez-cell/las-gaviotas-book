@@ -69,7 +69,7 @@ export function PromoCard({
         )}
 
         <p className="mt-4 inline-flex items-start gap-2 text-sm text-foreground">
-          <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+          <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" aria-hidden />
           {promo.beneficio}
         </p>
 

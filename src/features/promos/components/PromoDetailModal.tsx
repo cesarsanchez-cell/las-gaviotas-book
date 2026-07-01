@@ -109,7 +109,7 @@ export function PromoDetailModal({
               El beneficio
             </p>
             <p className="mt-2 inline-flex items-start gap-2 text-base text-foreground">
-              <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
+              <Check className="mt-1 h-4 w-4 shrink-0 text-amber-700" aria-hidden />
               {promo.beneficio}
             </p>
           </section>
@@ -120,7 +120,7 @@ export function PromoDetailModal({
                 href={waUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"
+                className="inline-flex items-center gap-2 rounded-lg bg-amber-700 px-5 py-3 text-sm font-medium text-white transition hover:bg-amber-800"
               >
                 <MessageCircle className="h-4 w-4" aria-hidden />
                 Consultar por WhatsApp

@@ -9,9 +9,9 @@ export const COMBO_CHIP: Record<
   ComercioTipo,
   { label: string; icon: LucideIcon; cls: string }
 > = {
-  hospedaje: { label: "Dónde dormir", icon: Building2, cls: "bg-primary/90" },
-  gastronomico: { label: "Para comer", icon: Utensils, cls: "bg-rose-500/90" },
-  atractivo: { label: "Para hacer", icon: Sparkles, cls: "bg-amber-500/90" },
+  hospedaje: { label: "Dónde dormir", icon: Building2, cls: "bg-sky-500/90" },
+  gastronomico: { label: "Para comer", icon: Utensils, cls: "bg-amber-700/90" },
+  atractivo: { label: "Para hacer", icon: Sparkles, cls: "bg-sky-500/90" },
 };
 
 /**
@@ -56,7 +56,7 @@ export function ComboCard({
           Solo acá
         </span>
         {combo.ahorroPct && (
-          <span className="absolute right-2 top-2 inline-flex items-center rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
+          <span className="absolute right-2 top-2 inline-flex items-center rounded-full bg-amber-700 px-2 py-0.5 text-[10px] font-bold text-white">
             -{combo.ahorroPct}%
           </span>
         )}

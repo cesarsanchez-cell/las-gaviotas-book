@@ -111,7 +111,7 @@ export function ComboDetailModal({
                         <p className="text-xs text-muted-foreground">{it.descripcionCorta}</p>
                       )}
                       <p className="mt-1 inline-flex items-start gap-1 text-sm text-foreground">
-                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
+                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-700" aria-hidden />
                         {it.beneficio}
                       </p>
                     </div>
@@ -151,7 +151,7 @@ export function ComboDetailModal({
                 </div>
               )}
               {combo.ahorroPct && (
-                <span className="mt-1 inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
                   Ahorro {combo.ahorroPct}%
                 </span>
               )}
@@ -161,7 +161,7 @@ export function ComboDetailModal({
                 href={waUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 text-sm font-medium text-white transition hover:bg-emerald-700"
+                className="inline-flex items-center gap-2 rounded-lg bg-amber-700 px-5 py-3 text-sm font-medium text-white transition hover:bg-amber-800"
               >
                 <MessageCircle className="h-4 w-4" aria-hidden />
                 Consultar por WhatsApp
