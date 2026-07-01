@@ -130,14 +130,6 @@ export function DestinoTopBar({
             </span>
           </Link>
 
-          <span className="hidden h-4 w-px shrink-0 bg-border sm:block" aria-hidden />
-          <Link
-            href={`/${destinoSlug}`}
-            className="hidden truncate font-display text-base tracking-tight text-foreground transition hover:text-primary sm:block"
-          >
-            {destinoNombre}
-          </Link>
-
           <nav
             className="mx-auto hidden items-center gap-6 md:flex"
             aria-label="Categorías"
