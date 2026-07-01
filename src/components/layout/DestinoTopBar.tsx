@@ -151,39 +151,37 @@ export function DestinoTopBar({
         </div>
 
         {/* Search pill — permite retroceder en la búsqueda */}
-        {donde && (
-          <div className="pb-3">
-            <div className="flex w-full max-w-2xl items-center gap-2 rounded-full border border-border bg-card py-2 pl-4 pr-2 text-sm shadow-sm transition hover:shadow-md md:mx-auto">
-              <button
-                type="button"
-                onClick={goBack}
-                className="flex min-w-0 flex-1 items-center gap-2 text-left text-muted-foreground hover:text-foreground"
-              >
-                <span className="truncate">{donde}</span>
-                {cuando && (
-                  <>
-                    <span className="hidden h-4 w-px shrink-0 bg-border sm:block" aria-hidden />
-                    <span className="hidden truncate sm:block">{cuando}</span>
-                  </>
-                )}
-                {quien && (
-                  <>
-                    <span className="hidden h-4 w-px shrink-0 bg-border sm:block" aria-hidden />
-                    <span className="hidden truncate sm:block">{quien}</span>
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={goBack}
-                aria-label="Retroceder"
-                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-secondary hover:text-foreground"
-              >
-                <X className="h-4 w-4" aria-hidden />
-              </button>
-            </div>
+        <div className="pb-3">
+          <div className="flex w-full max-w-2xl items-center gap-2 rounded-full border border-border bg-card py-2 pl-4 pr-2 text-sm shadow-sm transition hover:shadow-md md:mx-auto">
+            <button
+              type="button"
+              onClick={goBack}
+              className="flex min-w-0 flex-1 items-center gap-2 text-left text-muted-foreground hover:text-foreground"
+            >
+              <span className="truncate font-medium">{donde || destinoNombre}</span>
+              {cuando && (
+                <>
+                  <span className="hidden h-4 w-px shrink-0 bg-border sm:block" aria-hidden />
+                  <span className="hidden truncate sm:block">{cuando}</span>
+                </>
+              )}
+              {quien && (
+                <>
+                  <span className="hidden h-4 w-px shrink-0 bg-border sm:block" aria-hidden />
+                  <span className="hidden truncate sm:block">{quien}</span>
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={goBack}
+              aria-label="Retroceder"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+            >
+              <X className="h-4 w-4" aria-hidden />
+            </button>
           </div>
-        )}
+        </div>
 
         {/* Verticales mobile — scroll horizontal (sin hamburguesa) */}
         <nav
