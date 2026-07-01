@@ -23,6 +23,9 @@ export const metadata: Metadata = {
   },
   description: siteConfig.description,
   keywords: [...siteConfig.keywords],
+  icons: {
+    icon: "/images/favicon.png",
+  },
   openGraph: {
     type: "website",
     locale: "es_AR",

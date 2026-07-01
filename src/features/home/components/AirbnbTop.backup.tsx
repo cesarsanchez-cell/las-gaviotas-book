@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { Home, BedDouble, UtensilsCrossed, Compass, Search, X, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PinHeart } from "./PinHeart";
 import { UserMenu } from "./UserMenu";
 import { DatosUtilesButton } from "@/features/datos-utiles/components/DatosUtilesButton";
 import type { SearchState, HubTab } from "@/features/home/lib/search-types";
@@ -87,25 +87,16 @@ export function AirbnbTop({
           <button
             type="button"
             onClick={onGoHub}
-            className="flex items-center gap-3 text-left transition hover:opacity-80"
-            aria-label={scopedDestino ? `Mis Escapadas — ${scopedDestino.nombre} — Inicio` : "Mis Escapadas — Inicio"}
+            className="flex items-center gap-2 text-left"
+            aria-label="Mis Escapadas — Inicio"
           >
-            <Image
-              src="/images/logo.jpg"
-              alt="Mis Escapadas"
-              width={140}
-              height={40}
-              className="h-10 w-auto"
-              priority
-            />
-            {scopedDestino && (
-              <>
-                <span className="h-6 w-px shrink-0 bg-gray-300" aria-hidden />
-                <span className="font-display text-lg tracking-tight text-cyan-500 transition hover:text-cyan-600">
-                  {scopedDestino.nombre}
-                </span>
-              </>
-            )}
+            <span className="wordmark-mis">
+              <PinHeart size={22} />
+            </span>
+            <span className="font-display text-lg tracking-tight md:text-xl">
+              <span className="wordmark-mis">Mis</span>{" "}
+              <span className="wordmark-esc">Escapadas</span>
+            </span>
           </button>
 
           <nav
