@@ -124,7 +124,7 @@ export function DestinoTopBar({
               priority
             />
             <span className="font-display text-lg tracking-tight whitespace-nowrap">
-              <span className="text-cyan-500">Mis</span>{" "}
+              <span className="text-amber-700">Mis</span>{" "}
               <span className="text-blue-600">Escapadas</span>
             </span>
           </Link>
@@ -146,7 +146,7 @@ export function DestinoTopBar({
 
           <div className="ml-auto flex items-center gap-2 md:ml-0 md:gap-3">
             <DatosUtilesButton rubros={rubros} datosUtiles={datosUtiles} />
-            <UserMenu session={session} />
+            {session.authed && <UserMenu session={session} />}
           </div>
         </div>
 
