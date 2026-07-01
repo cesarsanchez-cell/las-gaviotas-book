@@ -159,6 +159,16 @@ export function HubV2({
   // Vertical que se muestra en la grilla: la enfocada, o hospedajes en landing.
   const activeVertical: VerticalKey = tab ?? "hospedajes";
 
+  // Query string con los parámetros de búsqueda (donde, cuando, quien) para
+  // propagar a las fichas de detalle. La pill de búsqueda en las fichas usa esto.
+  const queryString = React.useMemo(() => {
+    const params = new URLSearchParams();
+    if (search.donde) params.set("donde", search.donde);
+    if (search.cuando) params.set("cuando", search.cuando);
+    if (search.quien) params.set("quien", search.quien);
+    return params.toString();
+  }, [search.donde, search.cuando, search.quien]);
+
   // Grilla de la vertical activa, filtrada por región + dónde + tipo.
   const items = React.useMemo(() => {
     let all = verticalData[activeVertical] ?? [];
@@ -422,6 +432,7 @@ export function HubV2({
                 title={`${VERTICAL_TITLE[k]}${hasDonde ? ` en ${search.donde}` : ""}`}
                 items={itemsByVertical[k]}
                 onVerTodos={() => changeTab(k)}
+                query={queryString}
               />
             ))
           )
@@ -452,6 +463,7 @@ export function HubV2({
                     <ItemCard
                       key={`${it.kind}-${it.destino.slug}-${it.slug}`}
                       item={it}
+                      query={queryString}
                     />
                   ))}
                 </div>
@@ -500,10 +512,12 @@ function VerticalBand({
   title,
   items,
   onVerTodos,
+  query = "",
 }: {
   title: string;
   items: VerticalItem[];
   onVerTodos: () => void;
+  query?: string;
 }) {
   return (
     <section className="py-6">
@@ -526,7 +540,7 @@ function VerticalBand({
               key={`${it.kind}-${it.destino.slug}-${it.slug}`}
               className="w-[46%] shrink-0 sm:w-52 lg:w-56"
             >
-              <ItemCard item={it} />
+              <ItemCard item={it} query={query} />
             </div>
           ))}
         </div>
