@@ -50,6 +50,7 @@ export async function actualizarDatoUtilAction(
 
   // Obtener el dato_util para validar que pertenezca al destino del admin
   const { data: datoUtil, error: fetchError } = await (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     sb.from("datos_utiles") as any
   )
     .select("destino_id")
@@ -88,6 +89,7 @@ export async function eliminarDatoUtilAction(datoUtilId: string) {
 
   // Obtener el dato_util para validar que pertenezca al destino del admin
   const { data: datoUtil, error: fetchError } = await (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     sb.from("datos_utiles") as any
   )
     .select("destino_id")
