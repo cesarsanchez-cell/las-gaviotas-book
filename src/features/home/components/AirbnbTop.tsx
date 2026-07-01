@@ -113,7 +113,7 @@ export function AirbnbTop({
 
           <div className="ml-auto flex items-center gap-2 md:ml-0 md:gap-3">
             <DatosUtilesButton rubros={rubros} datosUtiles={datosUtiles} />
-            <UserMenu session={session} />
+            {session.authed && <UserMenu session={session} />}
           </div>
         </div>
 
