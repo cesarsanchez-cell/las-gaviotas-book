@@ -235,4 +235,4 @@ El **Administrador Local** es el corazón del sistema:
 **MisEscapadas: Donde los destinos controlan su narrativa.**
 
 *Ultima actualización: Junio 2026*
-GVn9hm8gGd3r2jF> las gaviotas correopass
+GVn9hm8gGd3r2jF> las gaviotas correo

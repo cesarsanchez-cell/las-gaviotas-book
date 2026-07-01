@@ -55,40 +55,27 @@ export function UserMenu({ session }: { session: HeaderSession }) {
         </span>
       </button>
 
-      {open && (
+      {open && session.authed && (
         <div
           role="menu"
           className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-border bg-card p-1.5 shadow-lg"
         >
-          {!session.authed ? (
-            <>
-              <Link href="/login" role="menuitem" className={cn(itemClass, "font-semibold")}>
-                Iniciar sesión
-              </Link>
-              <Link href="/registro" role="menuitem" className={itemClass}>
-                Sumar mi propuesta
-              </Link>
-            </>
-          ) : (
-            <>
-              <Link
-                href={session.homeHref}
-                role="menuitem"
-                className={cn(itemClass, "font-semibold")}
-              >
-                {session.rol === "admin" ? "Panel admin" : "Mi panel"}
-              </Link>
-              <Link href="/registro" role="menuitem" className={itemClass}>
-                Sumar mi propuesta
-              </Link>
-              <div className="my-1 border-t border-border" />
-              <form action={signOutHomeAction}>
-                <button type="submit" role="menuitem" className={itemClass}>
-                  Cerrar sesión
-                </button>
-              </form>
-            </>
-          )}
+          <Link
+            href={session.homeHref}
+            role="menuitem"
+            className={cn(itemClass, "font-semibold")}
+          >
+            {session.rol === "admin" ? "Panel admin" : "Mi panel"}
+          </Link>
+          <Link href="/registro" role="menuitem" className={itemClass}>
+            Sumar mi propuesta
+          </Link>
+          <div className="my-1 border-t border-border" />
+          <form action={signOutHomeAction}>
+            <button type="submit" role="menuitem" className={itemClass}>
+              Cerrar sesión
+            </button>
+          </form>
         </div>
       )}
     </div>
