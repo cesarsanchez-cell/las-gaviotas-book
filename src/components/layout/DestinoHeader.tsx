@@ -4,7 +4,6 @@ import {
   listRubros,
   listDatosUtilesByDestino,
 } from "@/features/datos-utiles/lib/queries";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * Header de las páginas internas del destino. Wrapper server que resuelve la
@@ -15,10 +14,12 @@ export async function DestinoHeader({
   destinoSlug,
   destinoNombre,
   destinoId,
+  searchParams,
 }: {
   destinoSlug: string;
   destinoNombre: string;
   destinoId: string;
+  searchParams?: Record<string, string | string[] | undefined>;
 }) {
   const [session, rubros, datosUtiles] = await Promise.all([
     getHeaderSession(),
@@ -33,6 +34,7 @@ export async function DestinoHeader({
       session={session}
       rubros={rubros}
       datosUtiles={datosUtiles}
+      searchParams={searchParams}
     />
   );
 }

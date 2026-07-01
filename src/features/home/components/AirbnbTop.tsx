@@ -87,25 +87,21 @@ export function AirbnbTop({
           <button
             type="button"
             onClick={onGoHub}
-            className="flex items-center gap-3 text-left transition hover:opacity-80"
-            aria-label={scopedDestino ? `Mis Escapadas — ${scopedDestino.nombre} — Inicio` : "Mis Escapadas — Inicio"}
+            className="flex items-center gap-2 text-left transition hover:opacity-80"
+            aria-label="Mis Escapadas — Inicio"
           >
             <Image
-              src="/images/logo.jpg"
+              src="/images/favicon.png"
               alt="Mis Escapadas"
-              width={140}
-              height={40}
-              className="h-10 w-auto"
+              width={24}
+              height={24}
+              className="h-6 w-6"
               priority
             />
-            {scopedDestino && (
-              <>
-                <span className="h-6 w-px shrink-0 bg-gray-300" aria-hidden />
-                <span className="font-display text-lg tracking-tight text-cyan-500 transition hover:text-cyan-600">
-                  {scopedDestino.nombre}
-                </span>
-              </>
-            )}
+            <span className="font-display text-lg tracking-tight whitespace-nowrap">
+              <span className="text-cyan-500">Mis</span>{" "}
+              <span className="text-blue-600">Escapadas</span>
+            </span>
           </button>
 
           <nav

@@ -29,6 +29,7 @@ import { getFotoUrl } from "@/lib/storage";
 
 interface PageProps {
   params: Promise<{ destino: string; slug: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
 export async function generateMetadata({
@@ -61,8 +62,9 @@ export async function generateMetadata({
   };
 }
 
-export default async function GastronomicoDetailPage({ params }: PageProps) {
+export default async function GastronomicoDetailPage({ params, searchParams }: PageProps) {
   const { destino: destinoSlug, slug } = await params;
+  const sp = await searchParams;
   const destino = await getDestinoBySlug(destinoSlug);
   if (!destino) notFound();
   const lugar = await getLugarBySlug(destino.id, slug);
@@ -116,6 +118,7 @@ export default async function GastronomicoDetailPage({ params }: PageProps) {
         destinoSlug={destinoSlug}
         destinoNombre={destino.nombre}
         destinoId={destino.id}
+        searchParams={sp}
       />
 
       <main>

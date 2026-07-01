@@ -228,6 +228,7 @@ export default async function UnidadDetallePage({
         destinoSlug={destinoSlug}
         destinoNombre={destino.nombre}
         destinoId={destino.id}
+        searchParams={sp}
       />
 
       <main>

@@ -154,6 +154,7 @@ export default async function HospedajeDetailPage({
         destinoSlug={destinoSlug}
         destinoNombre={destino.nombre}
         destinoId={destino.id}
+        searchParams={sp}
       />
 
       <main>

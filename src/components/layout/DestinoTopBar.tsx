@@ -1,15 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   BedDouble,
   UtensilsCrossed,
   Compass,
+  X,
   type LucideIcon,
 } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
-import { PinHeart } from "@/features/home/components/PinHeart";
 import { UserMenu } from "@/features/home/components/UserMenu";
 import { DatosUtilesButton } from "@/features/datos-utiles/components/DatosUtilesButton";
 import type { HeaderSession } from "@/features/home/lib/header-session";
@@ -25,11 +26,8 @@ interface Tab {
 
 /**
  * Barra superior de las páginas internas del destino (listados y fichas). Misma
- * estética que el AirbnbTop del hub: logo PinHeart + Mis Escapadas, las cuatro
- * verticales y el menú de usuario. Las "pestañas" son links a los listados del
- * destino (no filtran una grilla, como sí pasa en el hub), así el chrome no
- * cambia al navegar hacia adentro. Sin hamburguesa: en mobile las verticales
- * pasan a una fila con scroll horizontal, igual que el hub.
+ * estética que el AirbnbTop del hub: logo Mis Escapadas, las verticales y el menú
+ * de usuario. Incluye la pill de búsqueda para mantener la navegación visible.
  */
 export function DestinoTopBar({
   destinoSlug,
@@ -37,14 +35,24 @@ export function DestinoTopBar({
   session,
   rubros,
   datosUtiles,
+  searchParams,
 }: {
   destinoSlug: string;
   destinoNombre: string;
   session: HeaderSession;
   rubros: Rubro[];
   datosUtiles: DatoUtil[];
+  searchParams?: Record<string, string | string[] | undefined>;
 }) {
+  const router = useRouter();
   const pathname = usePathname();
+
+  // Extraer parámetros de búsqueda
+  const pickStr = (v: string | string[] | undefined): string | undefined =>
+    Array.isArray(v) ? v[0] : v;
+  const donde = pickStr(searchParams?.donde) || "";
+  const cuando = pickStr(searchParams?.cuando) || "";
+  const quien = pickStr(searchParams?.quien) || "";
 
   // Las pestañas vuelven al HUB del destino con esa vertical preseleccionada
   // (`?v=...`), NO a los listados viejos. Así el diseño y el buscador siguen
@@ -94,21 +102,30 @@ export function DestinoTopBar({
       );
     });
 
+  const goBack = () => {
+    router.back();
+  };
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       <div className="container">
         <div className="flex h-16 items-center gap-3">
           <Link
             href="/"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 transition hover:opacity-80"
             aria-label="Mis Escapadas — Inicio"
           >
-            <span className="wordmark-mis">
-              <PinHeart size={22} />
-            </span>
-            <span className="font-display text-lg tracking-tight md:text-xl">
-              <span className="wordmark-mis">Mis</span>{" "}
-              <span className="wordmark-esc">Escapadas</span>
+            <Image
+              src="/images/favicon.png"
+              alt="Mis Escapadas"
+              width={24}
+              height={24}
+              className="h-6 w-6"
+              priority
+            />
+            <span className="font-display text-lg tracking-tight whitespace-nowrap">
+              <span className="text-cyan-500">Mis</span>{" "}
+              <span className="text-blue-600">Escapadas</span>
             </span>
           </Link>
 
@@ -132,6 +149,41 @@ export function DestinoTopBar({
             <UserMenu session={session} />
           </div>
         </div>
+
+        {/* Search pill — permite retroceder en la búsqueda */}
+        {donde && (
+          <div className="pb-3">
+            <div className="flex w-full max-w-2xl items-center gap-2 rounded-full border border-border bg-card py-2 pl-4 pr-2 text-sm shadow-sm transition hover:shadow-md md:mx-auto">
+              <button
+                type="button"
+                onClick={goBack}
+                className="flex min-w-0 flex-1 items-center gap-2 text-left text-muted-foreground hover:text-foreground"
+              >
+                <span className="truncate">{donde}</span>
+                {cuando && (
+                  <>
+                    <span className="hidden h-4 w-px shrink-0 bg-border sm:block" aria-hidden />
+                    <span className="hidden truncate sm:block">{cuando}</span>
+                  </>
+                )}
+                {quien && (
+                  <>
+                    <span className="hidden h-4 w-px shrink-0 bg-border sm:block" aria-hidden />
+                    <span className="hidden truncate sm:block">{quien}</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={goBack}
+                aria-label="Retroceder"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+              >
+                <X className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Verticales mobile — scroll horizontal (sin hamburguesa) */}
         <nav
