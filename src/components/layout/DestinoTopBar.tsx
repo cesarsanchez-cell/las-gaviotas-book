@@ -6,6 +6,7 @@ import {
   BedDouble,
   UtensilsCrossed,
   Compass,
+  Home,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -158,6 +159,7 @@ export function DestinoTopBar({
               onClick={goBack}
               className="flex min-w-0 flex-1 items-center gap-2 text-left text-muted-foreground hover:text-foreground"
             >
+              <Home className="h-4 w-4 shrink-0 text-primary" aria-hidden />
               <span className="truncate font-medium">{donde || destinoNombre}</span>
               {cuando && (
                 <>
