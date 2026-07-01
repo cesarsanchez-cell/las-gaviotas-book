@@ -58,13 +58,13 @@ export function PromoDetailModal({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-2xl overflow-hidden bg-background shadow-xl sm:rounded-2xl"
+        className="relative w-full max-w-4xl overflow-hidden bg-background shadow-xl sm:rounded-2xl"
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Cerrar"
-          className="absolute right-3 top-3 z-10 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow transition hover:bg-white"
+          className="absolute right-4 top-4 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow transition hover:bg-white"
         >
           <X className="h-5 w-5" aria-hidden />
         </button>

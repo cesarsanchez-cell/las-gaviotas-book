@@ -98,9 +98,9 @@ export function AirbnbTop({
               className="h-6 w-6"
               priority
             />
-            <span className="font-display text-lg tracking-tight whitespace-nowrap">
+            <span className="font-display text-2xl tracking-tight whitespace-nowrap">
               <span className="text-amber-700">Mis</span>{" "}
-              <span className="text-blue-600">Escapadas</span>
+              <span className="text-sky-500">Escapadas</span>
             </span>
           </button>
 
