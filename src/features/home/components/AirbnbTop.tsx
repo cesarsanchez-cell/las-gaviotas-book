@@ -99,7 +99,7 @@ export function AirbnbTop({
               priority
             />
             <span className="font-display text-lg tracking-tight whitespace-nowrap">
-              <span className="text-cyan-500">Mis</span>{" "}
+              <span className="text-amber-700">Mis</span>{" "}
               <span className="text-blue-600">Escapadas</span>
             </span>
           </button>
