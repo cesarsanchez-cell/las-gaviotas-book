@@ -58,6 +58,7 @@ export default async function DatosUtilesPage({ searchParams }: PageProps) {
         rubros={rubros}
         datosMap={datosMap}
         destinosZona={destinosZona}
+        isSuperAdmin={user.isSuperAdmin}
       />
     );
   }

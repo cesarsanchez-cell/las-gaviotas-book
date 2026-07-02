@@ -21,6 +21,7 @@ interface DatoUtilEditModalProps {
   editingDato: DatoUtil | null;
   defaultScopeType: ScopeType;
   defaultScopeId: string | null;
+  isSuperAdmin: boolean;
   onSave: (data: {
     rubroId: string;
     nombre: string;
@@ -40,6 +41,7 @@ export function DatoUtilEditModal({
   editingDato,
   defaultScopeType,
   defaultScopeId,
+  isSuperAdmin,
   onSave,
   onClose,
 }: DatoUtilEditModalProps) {
@@ -96,12 +98,12 @@ export function DatoUtilEditModal({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="rubro">Rubro *</Label>
+            <Label htmlFor="rubro">Rubro * {!isSuperAdmin && <span className="text-xs text-muted-foreground">(solo Super Admin)</span>}</Label>
             <Select
               id="rubro"
               value={rubroId}
               onChange={(e) => setRubroId(e.currentTarget.value)}
-              disabled={isLoading}
+              disabled={isLoading || !isSuperAdmin}
               required
             >
               <option value="">Selecciona un rubro</option>
@@ -147,9 +149,9 @@ export function DatoUtilEditModal({
             />
           </div>
 
-          {/* Cobertura geográfica - solo editable si es super admin y estamos editando */}
+          {/* Cobertura geográfica - solo editable si es super admin */}
           <div className="border-t pt-4">
-            <Label htmlFor="scope">Cobertura geográfica *</Label>
+            <Label htmlFor="scope">Cobertura geográfica * {!isSuperAdmin && <span className="text-xs text-muted-foreground">(solo Super Admin)</span>}</Label>
             <Select
               id="scope"
               value={`${scopeType}:${scopeId}`}
@@ -158,7 +160,7 @@ export function DatoUtilEditModal({
                 setScopeType(type as ScopeType);
                 setScopeId(id);
               }}
-              disabled={isLoading}
+              disabled={isLoading || !isSuperAdmin}
               required
             >
               <option value="">Selecciona cobertura</option>

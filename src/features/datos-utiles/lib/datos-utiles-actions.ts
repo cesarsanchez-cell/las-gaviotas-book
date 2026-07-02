@@ -76,6 +76,20 @@ export async function actualizarDatoUtilAction(
 
   const parsed = actualizarDatoUtilSchema.parse(input);
 
+  // Validar que no intente cambiar rubro/scope sin ser super admin
+  if (!me.isSuperAdmin) {
+    if (parsed.rubroId) {
+      throw new Error(
+        "Solo Super Admin puede cambiar el rubro de un dato útil."
+      );
+    }
+    if (parsed.scopeType || parsed.scopeId) {
+      throw new Error(
+        "Solo Super Admin puede cambiar la cobertura geográfica de un dato útil."
+      );
+    }
+  }
+
   const updateData: Record<string, unknown> = {
     nombre: parsed.nombre,
     direccion: parsed.direccion || null,

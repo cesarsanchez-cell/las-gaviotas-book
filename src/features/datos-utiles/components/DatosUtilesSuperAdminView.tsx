@@ -24,6 +24,7 @@ interface DatosUtilesSuperAdminViewProps {
   rubros: Rubro[];
   datosMap: Map<string, DatoUtil[]>;
   destinosZona?: Map<string, string[]>;
+  isSuperAdmin: boolean;
 }
 
 export function DatosUtilesSuperAdminView({
@@ -33,6 +34,7 @@ export function DatosUtilesSuperAdminView({
   rubros,
   datosMap,
   destinosZona = new Map(),
+  isSuperAdmin,
 }: DatosUtilesSuperAdminViewProps) {
   const [isPending, startTransition] = useTransition();
 
@@ -385,6 +387,7 @@ export function DatosUtilesSuperAdminView({
           editingDato={editingDato}
           defaultScopeType={scopeType}
           defaultScopeId={scopeId}
+          isSuperAdmin={isSuperAdmin}
           onSave={handleSaveDato}
           onClose={() => {
             setIsEditModalOpen(false);
