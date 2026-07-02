@@ -12,19 +12,23 @@ import {
   eliminarDatoUtilAction,
 } from "../lib/datos-utiles-actions";
 
-interface DatosUtilesPanelProps {
-  destinoId: string;
+type ScopeType = "destino" | "zona" | "ciudad";
+
+interface DatosUtilesSuperAdminPanelProps {
+  scopeType: ScopeType;
+  scopeId: string;
   rubros: Rubro[];
   datosUtiles: DatoUtil[];
   itemCounts: Map<string, number>;
 }
 
-export function DatosUtilesPanel({
-  destinoId,
+export function DatosUtilesSuperAdminPanel({
+  scopeType,
+  scopeId,
   rubros,
   datosUtiles: initialDatos,
   itemCounts,
-}: DatosUtilesPanelProps) {
+}: DatosUtilesSuperAdminPanelProps) {
   const [datosUtiles, setDatosUtiles] = useState<DatoUtil[]>(initialDatos);
   const [selectedRubroId, setSelectedRubroId] = useState<string | null>(
     rubros[0]?.id || null
@@ -42,8 +46,10 @@ export function DatosUtilesPanel({
     setIsSaving(true);
     try {
       if (editingItem) {
-        // Modo edición
-        const updatedItem = await actualizarDatoUtilAction(editingItem.id, formData);
+        const updatedItem = await actualizarDatoUtilAction(
+          editingItem.id,
+          formData
+        );
         setDatosUtiles((prev) =>
           prev.map((item) =>
             item.id === editingItem.id ? updatedItem : item
@@ -51,16 +57,12 @@ export function DatosUtilesPanel({
         );
         setEditingItem(null);
       } else {
-        // Modo creación: admin local crea datos de su destino
         const newItem = await crearDatoUtilAction({
           ...formData,
-          scopeType: "destino",
-          scopeId: destinoId,
+          scopeType,
+          scopeId,
         });
-        setDatosUtiles((prev) => [
-          ...prev,
-          newItem,
-        ]);
+        setDatosUtiles((prev) => [...prev, newItem]);
       }
       setIsCreateModalOpen(false);
     } finally {
@@ -91,10 +93,7 @@ export function DatosUtilesPanel({
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-        <Button
-          size="sm"
-          onClick={() => setIsCreateModalOpen(true)}
-        >
+        <Button size="sm" onClick={() => setIsCreateModalOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Agregar dato útil
         </Button>

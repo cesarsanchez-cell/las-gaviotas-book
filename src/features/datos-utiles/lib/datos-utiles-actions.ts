@@ -11,24 +11,30 @@ import {
 } from "./datos-utiles-schema";
 
 export async function crearDatoUtilAction(
-  destinoId: string,
   input: CrearDatoUtilInput
 ): Promise<DatoUtil> {
   const me = await requireAdmin();
-  // Admin local solo puede crear en su destino
-  if (!me.isSuperAdmin && me.destinoId !== destinoId) {
-    throw new Error("No tenés permiso para crear datos útiles en ese destino.");
-  }
-
   const parsed = crearDatoUtilSchema.parse(input);
+
+  // Validar permisos según scope
+  // - Super admin: puede crear cualquier scope
+  // - Admin local: solo scope='destino' de su destino
+  if (!me.isSuperAdmin) {
+    if (parsed.scopeType !== "destino" || parsed.scopeId !== me.destinoId) {
+      throw new Error(
+        "No tenés permiso para crear datos útiles en ese scope. Solo podés crear en tu destino."
+      );
+    }
+  }
 
   const sb = createAdminClient();
   const insertData = {
-    destino_id: destinoId,
     rubro_id: parsed.rubroId,
     nombre: parsed.nombre,
     direccion: parsed.direccion || null,
     contacto: parsed.contacto || null,
+    scope_type: parsed.scopeType,
+    scope_id: parsed.scopeId,
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,20 +54,24 @@ export async function actualizarDatoUtilAction(
   const me = await requireAdmin();
   const sb = createAdminClient();
 
-  // Obtener el dato_util para validar que pertenezca al destino del admin
+  // Obtener el dato_util para validar permisos
   const { data: datoUtil, error: fetchError } = await (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     sb.from("datos_utiles") as any
   )
-    .select("destino_id")
+    .select("scope_type, scope_id")
     .eq("id", datoUtilId)
     .single();
 
   if (fetchError || !datoUtil) throw new Error("Dato útil no encontrado.");
 
-  // Admin local solo puede actualizar datos de su destino
-  if (!me.isSuperAdmin && me.destinoId !== datoUtil.destino_id) {
-    throw new Error("No tenés permiso para actualizar este dato útil.");
+  // Validar permisos según scope
+  // - Super admin: puede actualizar cualquier scope
+  // - Admin local: solo scope='destino' de su destino
+  if (!me.isSuperAdmin) {
+    if (datoUtil.scope_type !== "destino" || datoUtil.scope_id !== me.destinoId) {
+      throw new Error("No tenés permiso para actualizar este dato útil.");
+    }
   }
 
   const parsed = actualizarDatoUtilSchema.parse(input);
@@ -87,20 +97,24 @@ export async function eliminarDatoUtilAction(datoUtilId: string) {
   const me = await requireAdmin();
   const sb = createAdminClient();
 
-  // Obtener el dato_util para validar que pertenezca al destino del admin
+  // Obtener el dato_util para validar permisos
   const { data: datoUtil, error: fetchError } = await (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     sb.from("datos_utiles") as any
   )
-    .select("destino_id")
+    .select("scope_type, scope_id")
     .eq("id", datoUtilId)
     .single();
 
   if (fetchError || !datoUtil) throw new Error("Dato útil no encontrado.");
 
-  // Admin local solo puede eliminar datos de su destino
-  if (!me.isSuperAdmin && me.destinoId !== datoUtil.destino_id) {
-    throw new Error("No tenés permiso para eliminar este dato útil.");
+  // Validar permisos según scope
+  // - Super admin: puede eliminar cualquier scope
+  // - Admin local: solo scope='destino' de su destino
+  if (!me.isSuperAdmin) {
+    if (datoUtil.scope_type !== "destino" || datoUtil.scope_id !== me.destinoId) {
+      throw new Error("No tenés permiso para eliminar este dato útil.");
+    }
   }
 
   const { error } = await sb

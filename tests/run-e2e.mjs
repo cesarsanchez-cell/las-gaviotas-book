@@ -16,6 +16,7 @@ import { spawnSync } from "node:child_process";
 const SPECS = [
   "consulta.spec.ts",
   "edge-cases.spec.ts",
+  "datos-utiles-scopes.spec.ts",
   "golden-path.spec.ts",
   "lugares-flow.spec.ts",
 ];

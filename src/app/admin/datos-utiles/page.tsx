@@ -2,46 +2,80 @@ import { requireAdmin } from "@/features/admin/lib/auth";
 import {
   listRubros,
   listDatosUtilesByDestino,
+  listDatosUtilesByCiudad,
+  listDatosUtilesByZona,
   countItemsByRubro,
+  countItemsByRubroCiudad,
+  countItemsByRubroZona,
 } from "@/features/datos-utiles/lib/queries";
 import { DatosUtilesPanel } from "@/features/datos-utiles/components/DatosUtilesPanel";
 import { DatosUtilesSuperAdminView } from "@/features/datos-utiles/components/DatosUtilesSuperAdminView";
 import { listDestinosAdmin } from "@/features/admin/lib/destino-management";
+import { listCiudadesAdmin } from "@/features/admin/lib/ciudad-management";
+import { listZonasAdmin } from "@/features/admin/lib/zona-management";
 import type { Rubro, DatoUtil } from "@/lib/types";
 
+type ScopeType = "destino" | "zona" | "ciudad";
+
 interface PageProps {
-  searchParams: Promise<{ destino_id?: string }>;
+  searchParams: Promise<{ scope_type?: string; scope_id?: string; destino_id?: string }>;
 }
 
 export default async function DatosUtilesPage({ searchParams }: PageProps) {
   const user = await requireAdmin();
   const params = await searchParams;
-  // Super admin puede pasar cualquier destino_id; admin local solo puede ver el suyo
-  const selectedDestinoId = user.isSuperAdmin
-    ? (params.destino_id || null)
-    : user.destinoId;
 
-  // Super admin ve selector de destino; admin local solo ve su destino
+  // Mantener backward compatibility con destino_id
+  const scopeTypeParam = (params.scope_type || "destino") as ScopeType;
+  const scopeIdParam = params.scope_id || params.destino_id || null;
+
+  // Super admin ve selector de scope; admin local solo ve su destino
   if (user.isSuperAdmin) {
-    const destinos = await listDestinosAdmin();
+    const [destinos, ciudades, zonas] = await Promise.all([
+      listDestinosAdmin(),
+      listCiudadesAdmin(),
+      listZonasAdmin(),
+    ]);
+
     let rubros: Rubro[] = [];
     let datosUtiles: DatoUtil[] = [];
     let itemCounts: Map<string, number> = new Map();
 
-    if (selectedDestinoId) {
-      const [r, d] = await Promise.all([
-        listRubros(),
-        listDatosUtilesByDestino(selectedDestinoId),
-      ]);
+    if (scopeIdParam) {
+      const [r] = await Promise.all([listRubros()]);
       rubros = r;
-      datosUtiles = d;
-      itemCounts = await countItemsByRubro(selectedDestinoId);
+
+      if (scopeTypeParam === "destino") {
+        const [d, counts] = await Promise.all([
+          listDatosUtilesByDestino(scopeIdParam),
+          countItemsByRubro(scopeIdParam),
+        ]);
+        datosUtiles = d;
+        itemCounts = counts;
+      } else if (scopeTypeParam === "ciudad") {
+        const [d, counts] = await Promise.all([
+          listDatosUtilesByCiudad(scopeIdParam),
+          countItemsByRubroCiudad(scopeIdParam),
+        ]);
+        datosUtiles = d;
+        itemCounts = counts;
+      } else if (scopeTypeParam === "zona") {
+        const [d, counts] = await Promise.all([
+          listDatosUtilesByZona(scopeIdParam),
+          countItemsByRubroZona(scopeIdParam),
+        ]);
+        datosUtiles = d;
+        itemCounts = counts;
+      }
     }
 
     return (
       <DatosUtilesSuperAdminView
         destinos={destinos}
-        selectedDestinoId={selectedDestinoId || null}
+        ciudades={ciudades}
+        zonas={zonas}
+        selectedScopeType={scopeTypeParam}
+        selectedScopeId={scopeIdParam}
         selectedRubros={rubros}
         selectedDatosUtiles={datosUtiles}
         selectedItemCounts={itemCounts}
