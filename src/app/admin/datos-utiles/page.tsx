@@ -4,9 +4,6 @@ import {
   listDatosUtilesByDestino,
   listDatosUtilesByCiudad,
   listDatosUtilesByZona,
-  countItemsByRubro,
-  countItemsByRubroCiudad,
-  countItemsByRubroZona,
   getDestinosByZona,
 } from "@/features/datos-utiles/lib/queries";
 import { DatosUtilesPanel } from "@/features/datos-utiles/components/DatosUtilesPanel";
@@ -32,55 +29,34 @@ export default async function DatosUtilesPage({ searchParams }: PageProps) {
 
   // Super admin ve selector de scope; admin local solo ve su destino
   if (user.isSuperAdmin) {
-    const [destinos, ciudades, zonas, destinosZona] = await Promise.all([
+    const [destinos, ciudades, zonas, rubros, destinosZona] = await Promise.all([
       listDestinosAdmin(),
       listCiudadesAdmin(),
       listZonasAdmin(),
+      listRubros(),
       getDestinosByZona(),
     ]);
 
-    let rubros: Rubro[] = [];
-    let datosUtiles: DatoUtil[] = [];
-    let itemCounts: Map<string, number> = new Map();
+    // Cargar todos los datos de ciudad/zona/destino en paralelo
+    const [datosCiudades, datosZonas, datosDestinos] = await Promise.all([
+      Promise.all(ciudades.map((c) => listDatosUtilesByCiudad(c.id))),
+      Promise.all(zonas.map((z) => listDatosUtilesByZona(z.id))),
+      Promise.all(destinos.map((d) => listDatosUtilesByDestino(d.id))),
+    ]);
 
-    if (scopeIdParam) {
-      const [r] = await Promise.all([listRubros()]);
-      rubros = r;
-
-      if (scopeTypeParam === "destino") {
-        const [d, counts] = await Promise.all([
-          listDatosUtilesByDestino(scopeIdParam),
-          countItemsByRubro(scopeIdParam),
-        ]);
-        datosUtiles = d;
-        itemCounts = counts;
-      } else if (scopeTypeParam === "ciudad") {
-        const [d, counts] = await Promise.all([
-          listDatosUtilesByCiudad(scopeIdParam),
-          countItemsByRubroCiudad(scopeIdParam),
-        ]);
-        datosUtiles = d;
-        itemCounts = counts;
-      } else if (scopeTypeParam === "zona") {
-        const [d, counts] = await Promise.all([
-          listDatosUtilesByZona(scopeIdParam),
-          countItemsByRubroZona(scopeIdParam),
-        ]);
-        datosUtiles = d;
-        itemCounts = counts;
-      }
-    }
+    // Agrupar por scope_id para acceso rápido
+    const datosMap = new Map<string, DatoUtil[]>();
+    ciudades.forEach((c, i) => datosMap.set(`ciudad:${c.id}`, datosCiudades[i]));
+    zonas.forEach((z, i) => datosMap.set(`zona:${z.id}`, datosZonas[i]));
+    destinos.forEach((d, i) => datosMap.set(`destino:${d.id}`, datosDestinos[i]));
 
     return (
       <DatosUtilesSuperAdminView
         destinos={destinos}
         ciudades={ciudades}
         zonas={zonas}
-        selectedScopeType={scopeTypeParam}
-        selectedScopeId={scopeIdParam}
-        selectedRubros={rubros}
-        selectedDatosUtiles={datosUtiles}
-        selectedItemCounts={itemCounts}
+        rubros={rubros}
+        datosMap={datosMap}
         destinosZona={destinosZona}
       />
     );
@@ -105,8 +81,6 @@ export default async function DatosUtilesPage({ searchParams }: PageProps) {
     listDatosUtilesByDestino(user.destinoId),
   ]);
 
-  const itemCounts = await countItemsByRubro(user.destinoId);
-
   return (
     <div className="max-w-4xl space-y-6">
       <header>
@@ -120,7 +94,7 @@ export default async function DatosUtilesPage({ searchParams }: PageProps) {
         destinoId={user.destinoId}
         rubros={rubros}
         datosUtiles={datosUtiles}
-        itemCounts={itemCounts}
+        itemCounts={new Map()}
       />
     </div>
   );

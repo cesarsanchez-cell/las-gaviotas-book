@@ -76,11 +76,20 @@ export async function actualizarDatoUtilAction(
 
   const parsed = actualizarDatoUtilSchema.parse(input);
 
-  const updateData = {
+  const updateData: Record<string, unknown> = {
     nombre: parsed.nombre,
     direccion: parsed.direccion || null,
     contacto: parsed.contacto || null,
   };
+
+  // Solo super admin puede cambiar rubro y scope
+  if (me.isSuperAdmin) {
+    if (parsed.rubroId) updateData.rubro_id = parsed.rubroId;
+    if (parsed.scopeType && parsed.scopeId) {
+      updateData.scope_type = parsed.scopeType;
+      updateData.scope_id = parsed.scopeId;
+    }
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (sb.from("datos_utiles") as any)

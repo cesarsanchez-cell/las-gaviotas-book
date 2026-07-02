@@ -2,12 +2,18 @@
 
 import { useState } from "react";
 import { useTransition } from "react";
-import { useRouter } from "next/navigation";
 import type { DestinoListRow } from "@/features/admin/lib/destino-management";
 import type { CiudadListRow } from "@/features/admin/lib/ciudad-management";
 import type { ZonaListRow } from "@/features/admin/lib/zona-management";
 import type { Rubro, DatoUtil } from "@/lib/types";
-import { DatosUtilesSuperAdminPanel } from "./DatosUtilesSuperAdminPanel";
+import { DatoUtilEditModal } from "./DatoUtilEditModal";
+import { Button } from "@/components/ui/button";
+import { Plus, Edit2, Trash2 } from "lucide-react";
+import {
+  crearDatoUtilAction,
+  actualizarDatoUtilAction,
+  eliminarDatoUtilAction,
+} from "../lib/datos-utiles-actions";
 
 type ScopeType = "ciudad" | "zona" | "destino";
 
@@ -15,11 +21,8 @@ interface DatosUtilesSuperAdminViewProps {
   destinos: DestinoListRow[];
   ciudades: CiudadListRow[];
   zonas: ZonaListRow[];
-  selectedScopeType: ScopeType;
-  selectedScopeId: string | null;
-  selectedRubros: Rubro[];
-  selectedDatosUtiles: DatoUtil[];
-  selectedItemCounts: Map<string, number>;
+  rubros: Rubro[];
+  datosMap: Map<string, DatoUtil[]>;
   destinosZona?: Map<string, string[]>;
 }
 
@@ -27,61 +30,25 @@ export function DatosUtilesSuperAdminView({
   destinos,
   ciudades,
   zonas,
-  selectedScopeType,
-  selectedScopeId,
-  selectedRubros,
-  selectedDatosUtiles,
-  selectedItemCounts,
+  rubros,
+  datosMap,
   destinosZona = new Map(),
 }: DatosUtilesSuperAdminViewProps) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   // Cascada progresiva: ciudad → zona → destino
-  // Pre-llenar si vienen de URL params
-  const [selectedCiudadId, setSelectedCiudadId] = useState<string | null>(() => {
-    if (selectedScopeType === "ciudad" && selectedScopeId) return selectedScopeId;
-    if (selectedScopeType === "zona" && selectedScopeId) {
-      const zona = zonas.find((z) => z.id === selectedScopeId);
-      return zona?.ciudad_id || null;
-    }
-    if (selectedScopeType === "destino" && selectedScopeId) {
-      const destino = destinos.find((d) => d.id === selectedScopeId);
-      return destino?.ciudad_id || null;
-    }
-    return null;
-  });
+  const [selectedCiudadId, setSelectedCiudadId] = useState<string | null>(null);
+  const [advanceToZonas, setAdvanceToZonas] = useState(false);
+  const [selectedZonaId, setSelectedZonaId] = useState<string | null>(null);
+  const [advanceToDestinos, setAdvanceToDestinos] = useState(false);
+  const [selectedDestinoId, setSelectedDestinoId] = useState<string | null>(null);
 
-  const [advanceToZonas, setAdvanceToZonas] = useState(() => {
-    return selectedScopeType === "zona" || selectedScopeType === "destino";
-  });
+  // Edición
+  const [editingDato, setEditingDato] = useState<DatoUtil | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [datos, setDatos] = useState<DatoUtil[]>([]);
 
-  const [selectedZonaId, setSelectedZonaId] = useState<string | null>(() => {
-    if (selectedScopeType === "zona" && selectedScopeId) return selectedScopeId;
-    if (selectedScopeType === "destino" && selectedScopeId) {
-      // Buscar la zona que contiene este destino
-      const destino = destinos.find((d) => d.id === selectedScopeId);
-      if (destino) {
-        for (const [zonaId, destIds] of destinosZona.entries()) {
-          if (destIds.includes(destino.id)) {
-            return zonaId;
-          }
-        }
-      }
-    }
-    return null;
-  });
-
-  const [advanceToDestinos, setAdvanceToDestinos] = useState(
-    selectedScopeType === "destino"
-  );
-
-  const [selectedDestinoId, setSelectedDestinoId] = useState<string | null>(() => {
-    if (selectedScopeType === "destino" && selectedScopeId) return selectedScopeId;
-    return null;
-  });
-
-  // Determinar el scope_type y scope_id actual basado en la cascada
+  // Determinar scope actual
   const getCurrentScopeType = (): ScopeType => {
     if (advanceToDestinos && selectedDestinoId) return "destino";
     if (advanceToZonas && selectedZonaId) return "zona";
@@ -95,6 +62,16 @@ export function DatosUtilesSuperAdminView({
     return selectedCiudadId;
   };
 
+  const getScopeName = (): string => {
+    const scopeType = getCurrentScopeType();
+    const scopeId = getCurrentScopeId();
+    if (!scopeId) return "";
+    if (scopeType === "ciudad") return ciudades.find((c) => c.id === scopeId)?.nombre || "";
+    if (scopeType === "zona") return zonas.find((z) => z.id === scopeId)?.nombre || "";
+    if (scopeType === "destino") return destinos.find((d) => d.id === scopeId)?.nombre || "";
+    return "";
+  };
+
   const handleCiudadChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const cidId = e.target.value;
     setSelectedCiudadId(cidId);
@@ -102,6 +79,7 @@ export function DatosUtilesSuperAdminView({
     setSelectedZonaId(null);
     setAdvanceToDestinos(false);
     setSelectedDestinoId(null);
+    updateDatos(cidId, "ciudad");
   };
 
   const handleZonaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -109,49 +87,103 @@ export function DatosUtilesSuperAdminView({
     setSelectedZonaId(zonaId);
     setAdvanceToDestinos(false);
     setSelectedDestinoId(null);
+    updateDatos(zonaId, "zona");
   };
 
   const handleDestinoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const destId = e.target.value;
     setSelectedDestinoId(destId);
+    updateDatos(destId, "destino");
   };
 
-  const handleCreateDatos = () => {
+  const updateDatos = (scopeId: string, scopeType: ScopeType) => {
+    const key = `${scopeType}:${scopeId}`;
+    const loaded = datosMap.get(key) || [];
+    setDatos(loaded);
+  };
+
+  const handleCreateNew = async () => {
     const scopeType = getCurrentScopeType();
     const scopeId = getCurrentScopeId();
+    if (!scopeId) return;
 
-    if (scopeId) {
-      startTransition(() => {
-        router.push(
-          `/admin/datos-utiles?scope_type=${scopeType}&scope_id=${scopeId}`
-        );
-      });
+    setEditingDato(null);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEdit = (dato: DatoUtil) => {
+    setEditingDato(dato);
+    setIsEditModalOpen(true);
+  };
+
+  const handleDelete = async (datoId: string) => {
+    if (!confirm("¿Eliminar este dato?")) return;
+    try {
+      await eliminarDatoUtilAction(datoId);
+      setDatos((prev) => prev.filter((d) => d.id !== datoId));
+    } catch {
+      alert("Error al eliminar");
     }
   };
 
-  // Filtrar zonas por ciudad
+  const handleSaveDato = async (formData: {
+    rubroId: string;
+    nombre: string;
+    direccion?: string;
+    contacto?: string;
+    scopeType?: ScopeType;
+    scopeId?: string;
+  }) => {
+    const scopeType = formData.scopeType || getCurrentScopeType();
+    const scopeId = formData.scopeId || getCurrentScopeId();
+
+    if (!scopeId) return;
+
+    try {
+      if (editingDato) {
+        const updated = await actualizarDatoUtilAction(editingDato.id, {
+          rubroId: formData.rubroId,
+          nombre: formData.nombre,
+          direccion: formData.direccion,
+          contacto: formData.contacto,
+          scopeType,
+          scopeId,
+        });
+        setDatos((prev) =>
+          prev.map((d) => (d.id === editingDato.id ? updated : d))
+        );
+      } else {
+        const newDato = await crearDatoUtilAction({
+          rubroId: formData.rubroId,
+          nombre: formData.nombre,
+          direccion: formData.direccion,
+          contacto: formData.contacto,
+          scopeType,
+          scopeId,
+        });
+        setDatos((prev) => [...prev, newDato]);
+      }
+      setIsEditModalOpen(false);
+      setEditingDato(null);
+    } catch (err) {
+      alert("Error al guardar");
+    }
+  };
+
   const getZonasByCiudad = (): ZonaListRow[] => {
     if (!selectedCiudadId) return [];
     return zonas.filter((z) => z.ciudad_id === selectedCiudadId);
   };
 
-  // Filtrar destinos por zona
   const getDestinosByZona = (): DestinoListRow[] => {
     if (!selectedZonaId) return [];
     const destIds = destinosZona.get(selectedZonaId) || [];
     return destinos.filter((d) => destIds.includes(d.id));
   };
 
-  const getScopeLabel = (type: ScopeType, id: string | null): string => {
-    if (!id) return "";
-    if (type === "ciudad") return ciudades.find((c) => c.id === id)?.nombre || "";
-    if (type === "zona") return zonas.find((z) => z.id === id)?.nombre || "";
-    if (type === "destino") return destinos.find((d) => d.id === id)?.nombre || "";
-    return "";
-  };
-
-  const currentScopeType = getCurrentScopeType();
-  const currentScopeId = getCurrentScopeId();
+  const scopeName = getScopeName();
+  const scopeType = getCurrentScopeType();
+  const scopeId = getCurrentScopeId();
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -179,28 +211,21 @@ export function DatosUtilesSuperAdminView({
           </select>
         </div>
 
-        {selectedCiudadId && !advanceToZonas && (
-          <button
-            onClick={handleCreateDatos}
-            disabled={isPending}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
-          >
-            Crear dato útil para {getScopeLabel("ciudad", selectedCiudadId)}
-          </button>
-        )}
-
         {selectedCiudadId && (
           <label className="flex items-center gap-2 mt-4">
             <input
               type="checkbox"
               checked={advanceToZonas}
-              onChange={(e) => setAdvanceToZonas(e.target.checked)}
+              onChange={(e) => {
+                setAdvanceToZonas(e.target.checked);
+                setSelectedZonaId(null);
+                setAdvanceToDestinos(false);
+                setSelectedDestinoId(null);
+              }}
               disabled={isPending}
               className="h-4 w-4"
             />
-            <span className="text-sm font-medium">
-              Avanzar a zonas de {getScopeLabel("ciudad", selectedCiudadId)}
-            </span>
+            <span className="text-sm font-medium">Avanzar a zonas</span>
           </label>
         )}
       </div>
@@ -212,7 +237,7 @@ export function DatosUtilesSuperAdminView({
 
           <div>
             <label htmlFor="zona-select" className="block text-sm font-medium">
-              Selecciona zona de {getScopeLabel("ciudad", selectedCiudadId)}
+              Selecciona zona
             </label>
             <select
               id="zona-select"
@@ -230,28 +255,19 @@ export function DatosUtilesSuperAdminView({
             </select>
           </div>
 
-          {selectedZonaId && !advanceToDestinos && (
-            <button
-              onClick={handleCreateDatos}
-              disabled={isPending}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
-            >
-              Crear dato útil para {getScopeLabel("zona", selectedZonaId)}
-            </button>
-          )}
-
           {selectedZonaId && (
             <label className="flex items-center gap-2 mt-4">
               <input
                 type="checkbox"
                 checked={advanceToDestinos}
-                onChange={(e) => setAdvanceToDestinos(e.target.checked)}
+                onChange={(e) => {
+                  setAdvanceToDestinos(e.target.checked);
+                  setSelectedDestinoId(null);
+                }}
                 disabled={isPending}
                 className="h-4 w-4"
               />
-              <span className="text-sm font-medium">
-                Avanzar a destinos de {getScopeLabel("zona", selectedZonaId)}
-              </span>
+              <span className="text-sm font-medium">Avanzar a destinos</span>
             </label>
           )}
         </div>
@@ -264,7 +280,7 @@ export function DatosUtilesSuperAdminView({
 
           <div>
             <label htmlFor="destino-select" className="block text-sm font-medium">
-              Selecciona destino de {getScopeLabel("zona", selectedZonaId)}
+              Selecciona destino
             </label>
             <select
               id="destino-select"
@@ -281,37 +297,100 @@ export function DatosUtilesSuperAdminView({
               ))}
             </select>
           </div>
+        </div>
+      )}
 
-          {selectedDestinoId && (
-            <button
-              onClick={handleCreateDatos}
-              disabled={isPending}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
-            >
-              Crear dato útil para {getScopeLabel("destino", selectedDestinoId)}
-            </button>
+      {/* Panel de datos para el scope seleccionado */}
+      {scopeId && scopeName && (
+        <div className="rounded-lg border border-input bg-card p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-lg">
+                Datos para: {scopeName}
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                {scopeType === "ciudad" && "Cobertura: Ciudad"}
+                {scopeType === "zona" && "Cobertura: Zona"}
+                {scopeType === "destino" && "Cobertura: Destino"}
+              </p>
+            </div>
+            <Button size="sm" onClick={handleCreateNew}>
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo
+            </Button>
+          </div>
+
+          {datos.length === 0 ? (
+            <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+              Sin datos aún
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {datos.map((dato) => {
+                const rubro = rubros.find((r) => r.id === dato.rubro_id);
+                return (
+                  <div
+                    key={dato.id}
+                    className="rounded-md border p-4 flex items-start justify-between gap-4"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm">{dato.nombre}</p>
+                      {rubro && (
+                        <p className="text-xs text-muted-foreground">
+                          {rubro.nombre}
+                        </p>
+                      )}
+                      {dato.direccion && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          📍 {dato.direccion}
+                        </p>
+                      )}
+                      {dato.contacto && (
+                        <p className="text-xs text-muted-foreground">
+                          📱 {dato.contacto}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEdit(dato)}
+                        className="p-2 hover:bg-secondary rounded"
+                        title="Editar"
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(dato.id)}
+                        className="p-2 hover:bg-red-50 text-red-600 rounded"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       )}
 
-      {/* Panel de edición si ya hay scope seleccionado en URL */}
-      {selectedScopeId && (
-        <>
-          <div className="rounded-lg border border-input bg-card p-4">
-            <p className="text-sm">
-              <strong>Editando:</strong> {selectedScopeType} -{" "}
-              {getScopeLabel(selectedScopeType as ScopeType, selectedScopeId)}
-            </p>
-          </div>
-
-          <DatosUtilesSuperAdminPanel
-            scopeType={selectedScopeType as ScopeType}
-            scopeId={selectedScopeId}
-            rubros={selectedRubros}
-            datosUtiles={selectedDatosUtiles}
-            itemCounts={selectedItemCounts}
-          />
-        </>
+      {/* Modal de edición */}
+      {isEditModalOpen && (
+        <DatoUtilEditModal
+          rubros={rubros}
+          ciudades={ciudades}
+          zonas={zonas}
+          destinos={destinos}
+          editingDato={editingDato}
+          defaultScopeType={scopeType}
+          defaultScopeId={scopeId}
+          onSave={handleSaveDato}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingDato(null);
+          }}
+        />
       )}
     </div>
   );
