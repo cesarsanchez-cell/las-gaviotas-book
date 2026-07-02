@@ -50,6 +50,12 @@ export function DatosUtilesSuperAdminView({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [datos, setDatos] = useState<DatoUtil[]>([]);
 
+  // Mapa local que se actualiza cuando editas/creas/eliminas datos
+  const [localDatosMap, setLocalDatosMap] = useState(() => {
+    const map = new Map(datosMap);
+    return map;
+  });
+
   // Determinar scope actual
   const getCurrentScopeType = (): ScopeType => {
     if (advanceToDestinos && selectedDestinoId) return "destino";
@@ -100,8 +106,8 @@ export function DatosUtilesSuperAdminView({
 
   const updateDatos = (scopeId: string, scopeType: ScopeType) => {
     const key = `${scopeType}:${scopeId}`;
-    const loaded = datosMap.get(key) || [];
-    setDatos(loaded);
+    const loaded = localDatosMap.get(key) || [];
+    setDatos([...loaded]);
   };
 
   const handleCreateNew = async () => {
@@ -122,9 +128,24 @@ export function DatosUtilesSuperAdminView({
     if (!confirm("¿Eliminar este dato?")) return;
     try {
       await eliminarDatoUtilAction(datoId);
+
+      const scopeType = getCurrentScopeType();
+      const scopeId = getCurrentScopeId();
+
       setDatos((prev) => prev.filter((d) => d.id !== datoId));
-    } catch {
-      alert("Error al eliminar");
+
+      // Actualizar localDatosMap
+      if (scopeId) {
+        setLocalDatosMap((prevMap) => {
+          const newMap = new Map(prevMap);
+          const key = `${scopeType}:${scopeId}`;
+          const scopeDatos = newMap.get(key) || [];
+          newMap.set(key, scopeDatos.filter((d) => d.id !== datoId));
+          return newMap;
+        });
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Error al eliminar");
     }
   };
 
@@ -151,9 +172,20 @@ export function DatosUtilesSuperAdminView({
           scopeType,
           scopeId,
         });
+
+        // Actualizar estado local
         setDatos((prev) =>
           prev.map((d) => (d.id === editingDato.id ? updated : d))
         );
+
+        // Actualizar localDatosMap para persistencia si navegas a otra zona y vuelves
+        setLocalDatosMap((prevMap) => {
+          const newMap = new Map(prevMap);
+          const key = `${scopeType}:${scopeId}`;
+          const scopeDatos = newMap.get(key) || [];
+          newMap.set(key, scopeDatos.map((d) => (d.id === editingDato.id ? updated : d)));
+          return newMap;
+        });
       } else {
         const newDato = await crearDatoUtilAction({
           rubroId: formData.rubroId,
@@ -163,12 +195,22 @@ export function DatosUtilesSuperAdminView({
           scopeType,
           scopeId,
         });
+
         setDatos((prev) => [...prev, newDato]);
+
+        // Agregar a localDatosMap
+        setLocalDatosMap((prevMap) => {
+          const newMap = new Map(prevMap);
+          const key = `${scopeType}:${scopeId}`;
+          const scopeDatos = newMap.get(key) || [];
+          newMap.set(key, [...scopeDatos, newDato]);
+          return newMap;
+        });
       }
       setIsEditModalOpen(false);
       setEditingDato(null);
     } catch (err) {
-      alert("Error al guardar");
+      alert(err instanceof Error ? err.message : "Error al guardar");
     }
   };
 
