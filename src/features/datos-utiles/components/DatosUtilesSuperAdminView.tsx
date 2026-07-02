@@ -100,7 +100,7 @@ export function DatosUtilesSuperAdminView({
         </div>
 
         {/* Selector específico según scope */}
-        {selectedScopeId || !scopeType ? (
+        {!selectedScopeId ? (
           <div>
             <label htmlFor="scope-select" className="block text-sm font-medium">
               Selecciona {scopeType}
