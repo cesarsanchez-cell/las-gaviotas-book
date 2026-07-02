@@ -38,11 +38,48 @@ export function DatosUtilesSuperAdminView({
   const [isPending, startTransition] = useTransition();
 
   // Cascada progresiva: ciudad → zona → destino
-  const [selectedCiudadId, setSelectedCiudadId] = useState<string | null>(null);
-  const [advanceToZonas, setAdvanceToZonas] = useState(false);
-  const [selectedZonaId, setSelectedZonaId] = useState<string | null>(null);
-  const [advanceToDestinos, setAdvanceToDestinos] = useState(false);
-  const [selectedDestinoId, setSelectedDestinoId] = useState<string | null>(null);
+  // Pre-llenar si vienen de URL params
+  const [selectedCiudadId, setSelectedCiudadId] = useState<string | null>(() => {
+    if (selectedScopeType === "ciudad" && selectedScopeId) return selectedScopeId;
+    if (selectedScopeType === "zona" && selectedScopeId) {
+      const zona = zonas.find((z) => z.id === selectedScopeId);
+      return zona?.ciudad_id || null;
+    }
+    if (selectedScopeType === "destino" && selectedScopeId) {
+      const destino = destinos.find((d) => d.id === selectedScopeId);
+      return destino?.ciudad_id || null;
+    }
+    return null;
+  });
+
+  const [advanceToZonas, setAdvanceToZonas] = useState(() => {
+    return selectedScopeType === "zona" || selectedScopeType === "destino";
+  });
+
+  const [selectedZonaId, setSelectedZonaId] = useState<string | null>(() => {
+    if (selectedScopeType === "zona" && selectedScopeId) return selectedScopeId;
+    if (selectedScopeType === "destino" && selectedScopeId) {
+      // Buscar la zona que contiene este destino
+      const destino = destinos.find((d) => d.id === selectedScopeId);
+      if (destino) {
+        for (const [zonaId, destIds] of destinosZona.entries()) {
+          if (destIds.includes(destino.id)) {
+            return zonaId;
+          }
+        }
+      }
+    }
+    return null;
+  });
+
+  const [advanceToDestinos, setAdvanceToDestinos] = useState(
+    selectedScopeType === "destino"
+  );
+
+  const [selectedDestinoId, setSelectedDestinoId] = useState<string | null>(() => {
+    if (selectedScopeType === "destino" && selectedScopeId) return selectedScopeId;
+    return null;
+  });
 
   // Determinar el scope_type y scope_id actual basado en la cascada
   const getCurrentScopeType = (): ScopeType => {
