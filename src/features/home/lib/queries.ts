@@ -36,6 +36,7 @@ export interface VerticalItem {
 }
 
 export interface DestinoPublicadoLite {
+  id: string;
   slug: string;
   nombre: string;
   region_label: string | null;
@@ -404,6 +405,7 @@ export async function listDestinosPublicados(): Promise<DestinoPublicadoLite[]> 
         (!d.region_id || activeRegionIds.has(d.region_id))
     )
     .map((d) => ({
+      id: d.id,
       slug: d.slug,
       nombre: d.nombre,
       // Label de orientación: el nombre REAL de la región vinculada (vía

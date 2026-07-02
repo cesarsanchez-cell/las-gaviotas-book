@@ -83,6 +83,7 @@ export default async function DestinoPage({ params }: PageProps) {
 
   // Lite mínimo para el hub (en modo scopeado no se usan biomas/geo/conteo).
   const destinoLite: DestinoPublicadoLite = {
+    id: destino.id,
     slug: destino.slug,
     nombre: destino.nombre,
     region_label: destino.region ?? destino.provincia,

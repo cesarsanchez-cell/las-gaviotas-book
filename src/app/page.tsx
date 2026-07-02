@@ -62,7 +62,7 @@ export default async function HubPage() {
     listRegionesVisibles(destinos),
     listPromosRed(),
     listCombosRed(),
-    listAtraccionesHero(),
+    listAtraccionesHero(destinos.length === 1 ? destinos[0].id : undefined),
   ]);
 
   const verticalData: Record<VerticalKey, VerticalItem[]> = {
