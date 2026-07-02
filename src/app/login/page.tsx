@@ -21,10 +21,10 @@ export default async function LoginPage({ searchParams }: PageProps) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/30">
       <Container size="sm">
-        <div className="mx-auto max-w-md">
+        <div className="mx-auto max-w-sm px-4 sm:max-w-md sm:px-0">
           <Link
             href="/"
-            className="block text-center font-display text-2xl tracking-tight text-foreground"
+            className="block text-center font-display text-xl tracking-tight text-foreground sm:text-2xl"
           >
             {siteConfig.name}
           </Link>
@@ -38,7 +38,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
             </div>
           )}
 
-          <div className="mt-8 rounded-xl border border-border bg-card p-8 shadow-sm">
+          <div className="mt-8 rounded-xl border border-border bg-card p-6 shadow-sm sm:p-8">
             <OtherSessionWarning />
             <LoginFormResponsable next={next} />
             <p className="mt-4 text-center text-sm">
