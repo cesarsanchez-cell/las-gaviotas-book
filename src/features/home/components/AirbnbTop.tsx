@@ -67,7 +67,7 @@ export function AirbnbTop({
           onClick={() => onChangeVertical(v.key)}
           aria-pressed={active}
           className={cn(
-            "inline-flex shrink-0 items-center gap-2 border-b-2 px-1 pb-1 text-sm transition",
+            "inline-flex shrink-0 flex-col items-center gap-1 border-b-2 px-2 pb-1 text-xs transition",
             active
               ? "border-primary font-semibold text-foreground"
               : "border-transparent text-muted-foreground hover:text-foreground"
