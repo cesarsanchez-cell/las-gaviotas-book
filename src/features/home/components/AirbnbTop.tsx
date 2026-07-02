@@ -66,7 +66,7 @@ export function AirbnbTop({
           onClick={() => onChangeVertical(v.key)}
           aria-pressed={active}
           className={cn(
-            "inline-flex shrink-0 flex-col items-center gap-1 border-b-2 px-2 pb-1 text-xs transition",
+            "inline-flex shrink-0 flex-col items-center gap-1.5 border-b-2 px-3 pb-1 text-xs transition",
             active
               ? "border-primary font-semibold text-foreground"
               : "border-transparent text-muted-foreground hover:text-foreground"
@@ -75,9 +75,9 @@ export function AirbnbTop({
           <Image
             src={v.icon}
             alt={v.label}
-            width={size}
-            height={size}
-            className="h-5 w-5 object-contain"
+            width={32}
+            height={32}
+            className="h-8 w-8 object-contain"
           />
           <span>{v.label}</span>
         </button>
