@@ -40,33 +40,37 @@ export function ComboTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full text-sm">
         <thead className="border-b border-border bg-muted/30 text-left">
           <tr>
-            <th className="px-4 py-3 font-medium">Combo</th>
-            <th className="px-4 py-3 font-medium">Incluye</th>
-            {showDestino && <th className="px-4 py-3 font-medium">Destino</th>}
-            <th className="px-4 py-3 font-medium">Precio</th>
-            <th className="px-4 py-3 font-medium">Estado</th>
+            <th className="px-2 py-2 font-medium sm:px-4">Combo</th>
+            <th className="hidden px-4 py-2 font-medium sm:table-cell">Incluye</th>
+            {showDestino && <th className="hidden px-4 py-2 font-medium md:table-cell">Destino</th>}
+            <th className="px-2 py-2 font-medium sm:px-4">Precio</th>
+            <th className="px-2 py-2 font-medium sm:px-4">Estado</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {rows.map((c) => (
             <tr key={c.id} className="transition hover:bg-muted/40">
-              <td className="px-4 py-3">
+              <td className="px-2 py-3 sm:px-4">
                 <Link
                   href={`${basePath}/${c.id}`}
-                  className="font-medium text-foreground hover:text-primary"
+                  className="font-medium text-xs text-foreground hover:text-primary sm:text-sm"
                 >
                   {c.titulo}
                 </Link>
               </td>
-              <td className="px-4 py-3 text-muted-foreground">{c.itemsResumen}</td>
+              <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
+                {c.itemsResumen}
+              </td>
               {showDestino && (
-                <td className="px-4 py-3 text-muted-foreground">{c.destinoNombre}</td>
+                <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
+                  {c.destinoNombre}
+                </td>
               )}
-              <td className="px-4 py-3 text-muted-foreground">
+              <td className="px-2 py-3 text-xs text-muted-foreground sm:px-4 sm:text-sm">
                 {c.precio_desde
                   ? `$${c.precio_desde.toLocaleString("es-AR")}`
                   : "—"}
@@ -74,7 +78,7 @@ export function ComboTable({
                   <span className="ml-1 text-xs text-emerald-700">-{c.ahorro_pct}%</span>
                 ) : null}
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-3 sm:px-4">
                 <Badge className={ESTADO_COMBO_CLASS[c.estado]}>
                   {ESTADO_COMBO_LABEL[c.estado]}
                 </Badge>

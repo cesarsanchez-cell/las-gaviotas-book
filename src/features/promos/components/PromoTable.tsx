@@ -37,44 +37,44 @@ export function PromoTable({
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full text-sm">
         <thead className="border-b border-border bg-muted/30 text-left">
           <tr>
-            <th className="px-4 py-3 font-medium">Promo</th>
-            <th className="px-4 py-3 font-medium">Comercio</th>
-            <th className="px-4 py-3 font-medium">Beneficio</th>
-            <th className="px-4 py-3 font-medium">Vigencia</th>
-            <th className="px-4 py-3 font-medium">Estado</th>
+            <th className="px-2 py-2 font-medium sm:px-4">Promo</th>
+            <th className="px-2 py-2 font-medium sm:px-4">Comercio</th>
+            <th className="hidden px-4 py-2 font-medium sm:table-cell">Beneficio</th>
+            <th className="hidden px-4 py-2 font-medium md:table-cell">Vigencia</th>
+            <th className="px-2 py-2 font-medium sm:px-4">Estado</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {rows.map((p) => (
             <tr key={p.id} className="transition hover:bg-muted/40">
-              <td className="px-4 py-3">
+              <td className="px-2 py-3 sm:px-4">
                 <Link
                   href={`${basePath}/${p.id}`}
-                  className="font-medium text-foreground hover:text-primary"
+                  className="font-medium text-xs text-foreground hover:text-primary sm:text-sm"
                 >
                   {p.titulo}
                 </Link>
               </td>
-              <td className="px-4 py-3 text-muted-foreground">
+              <td className="px-2 py-3 text-xs text-muted-foreground sm:px-4 sm:text-sm">
                 {p.comercioNombre}
                 <span className="ml-1 text-xs text-muted-foreground/70">
                   · {TIPO_LABEL[p.comercio_tipo]}
                 </span>
               </td>
-              <td className="px-4 py-3 text-muted-foreground">
+              <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
                 {p.pct ? (
                   <span className="font-medium text-foreground">-{p.pct}%</span>
                 ) : null}{" "}
                 {p.beneficio}
               </td>
-              <td className="px-4 py-3 text-muted-foreground">
+              <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
                 {vigenciaLabel(p.vigencia_desde, p.vigencia_hasta)}
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-3 sm:px-4">
                 <Badge
                   className={
                     p.activo
