@@ -54,11 +54,11 @@ export function PromoDetailModal({
       aria-modal="true"
       aria-label={promo.titulo}
       onClick={onClose}
-      className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto bg-slate-950/60 p-0 backdrop-blur-sm sm:p-6"
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm md:p-6"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-4xl overflow-hidden bg-background shadow-xl sm:rounded-2xl"
+        className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-background shadow-xl"
       >
         <button
           type="button"
