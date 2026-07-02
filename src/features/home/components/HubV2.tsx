@@ -84,6 +84,16 @@ export function HubV2({
   const [comboSel, setComboSel] = React.useState<ComboPublic | null>(null);
   const [promoSel, setPromoSel] = React.useState<PromoPublic | null>(null);
 
+  // Si hay un único destino, preseleccionarlo en el buscador.
+  React.useEffect(() => {
+    if (destinos.length === 1 && !search.donde) {
+      setSearch((prev) => ({
+        ...prev,
+        donde: destinos[0].nombre,
+      }));
+    }
+  }, [destinos, search.donde]);
+
   // Persistimos la vertical en la URL (?v=) con history.replaceState — sin
   // navegación de Next. Tocar la vertical activa de nuevo vuelve al landing.
   const changeTab = React.useCallback(
