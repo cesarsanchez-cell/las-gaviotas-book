@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Home, BedDouble, UtensilsCrossed, Compass, Search, X, type LucideIcon } from "lucide-react";
+import { Home, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "./UserMenu";
 import { DatosUtilesButton } from "@/features/datos-utiles/components/DatosUtilesButton";
@@ -10,10 +10,10 @@ import type { HeaderSession } from "@/features/home/lib/header-session";
 import type { Rubro, DatoUtil } from "@/lib/types";
 
 // Las verticales del menú. Las promos ya no son una pestaña: viven en el hero.
-const TABS: Array<{ key: HubTab; label: string; icon: LucideIcon }> = [
-  { key: "hospedajes", label: "Hospedajes", icon: BedDouble },
-  { key: "gastronomia", label: "Gastronomía", icon: UtensilsCrossed },
-  { key: "atractivos", label: "Qué hacer", icon: Compass },
+const TABS: Array<{ key: HubTab; label: string; icon: string }> = [
+  { key: "hospedajes", label: "Hospedajes", icon: "/images/hospedaje.png" },
+  { key: "gastronomia", label: "Gastronomía", icon: "/images/gastro.png" },
+  { key: "atractivos", label: "Qué hacer", icon: "/images/quehacer.png" },
 ];
 
 interface AirbnbTopProps {
@@ -58,7 +58,6 @@ export function AirbnbTop({
 
   const Verticales = ({ size }: { size: number }) =>
     tabs.map((v) => {
-      const Icon = v.icon;
       const active = vertical === v.key;
       return (
         <button
@@ -73,7 +72,13 @@ export function AirbnbTop({
               : "border-transparent text-muted-foreground hover:text-foreground"
           )}
         >
-          <Icon size={size} aria-hidden />
+          <Image
+            src={v.icon}
+            alt={v.label}
+            width={size}
+            height={size}
+            className="h-5 w-5 object-contain"
+          />
           <span>{v.label}</span>
         </button>
       );
@@ -105,7 +110,7 @@ export function AirbnbTop({
           </button>
 
           <nav
-            className="mx-auto hidden items-center gap-6 md:flex"
+            className="mx-auto hidden items-center justify-center gap-6 md:flex"
             aria-label="Categorías"
           >
             <Verticales size={18} />
