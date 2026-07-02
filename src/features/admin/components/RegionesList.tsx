@@ -60,24 +60,24 @@ export function RegionesList({ regiones, canEdit }: Props) {
           {error}
         </div>
       )}
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
             <tr>
-              <th className="px-4 py-2 text-left font-medium">Región</th>
-              <th className="px-4 py-2 text-left font-medium">Biomas</th>
-              <th className="px-4 py-2 text-right font-medium">Destinos</th>
-              <th className="px-4 py-2 text-center font-medium">Orden</th>
-              <th className="px-4 py-2 text-center font-medium">Estado</th>
-              <th className="px-4 py-2 text-right font-medium">Acciones</th>
+              <th className="px-2 py-2 text-left font-medium sm:px-4">Región</th>
+              <th className="hidden px-4 py-2 text-left font-medium sm:table-cell">Biomas</th>
+              <th className="hidden px-4 py-2 text-right font-medium md:table-cell">Destinos</th>
+              <th className="hidden px-4 py-2 text-center font-medium lg:table-cell">Orden</th>
+              <th className="px-2 py-2 text-center font-medium sm:px-4">Estado</th>
+              <th className="px-2 py-2 text-right font-medium sm:px-4">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {regiones.map((r) => (
               <tr key={r.id} className="border-t border-border">
-                <td className="px-4 py-3">
+                <td className="px-2 py-3 sm:px-4">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{r.nombre}</span>
+                    <span className="font-medium text-xs sm:text-sm">{r.nombre}</span>
                     {r.destacado && (
                       <Star
                         className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
@@ -89,7 +89,7 @@ export function RegionesList({ regiones, canEdit }: Props) {
                     <code>/regiones/{r.slug}</code>
                   </div>
                 </td>
-                <td className="px-4 py-3">
+                <td className="hidden px-4 py-3 sm:table-cell">
                   <div className="flex flex-wrap gap-1">
                     {r.biomas.map((b) => (
                       <span
@@ -102,11 +102,11 @@ export function RegionesList({ regiones, canEdit }: Props) {
                     ))}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-right">{r.destinosCount}</td>
-                <td className="px-4 py-3 text-center text-muted-foreground">
+                <td className="hidden px-4 py-3 text-right md:table-cell">{r.destinosCount}</td>
+                <td className="hidden px-4 py-3 text-center text-muted-foreground lg:table-cell">
                   {r.orden}
                 </td>
-                <td className="px-4 py-3 text-center">
+                <td className="px-2 py-3 text-center sm:px-4">
                   <span
                     className={cn(
                       "rounded-full px-2 py-0.5 text-xs font-medium",
@@ -118,8 +118,8 @@ export function RegionesList({ regiones, canEdit }: Props) {
                     {r.activo ? "Activa" : "Inactiva"}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <div className="flex items-center justify-end gap-1.5">
+                <td className="px-2 py-3 text-right sm:px-4">
+                  <div className="flex items-center justify-end gap-1">
                     {canEdit && (
                       <>
                         <button
@@ -127,16 +127,17 @@ export function RegionesList({ regiones, canEdit }: Props) {
                           onClick={() => handleToggle(r)}
                           disabled={pending}
                           title={r.activo ? "Desactivar" : "Activar"}
-                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs transition hover:bg-secondary disabled:opacity-50"
+                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-1.5 py-1 text-xs transition hover:bg-secondary disabled:opacity-50 sm:px-2"
                         >
                           <Power className="h-3 w-3" />
                         </button>
                         <Link
                           href={`/admin/regiones/${r.id}`}
-                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs transition hover:bg-secondary"
+                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-1.5 py-1 text-xs transition hover:bg-secondary sm:px-2"
+                          title="Editar"
                         >
                           <Pencil className="h-3 w-3" />
-                          Editar
+                          <span className="hidden sm:inline">Editar</span>
                         </Link>
                         <button
                           type="button"
@@ -147,7 +148,7 @@ export function RegionesList({ regiones, canEdit }: Props) {
                               ? "Tiene destinos — no se puede borrar"
                               : "Borrar"
                           }
-                          className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1 text-xs text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                          className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-1.5 py-1 text-xs text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 sm:px-2"
                         >
                           <Trash2 className="h-3 w-3" />
                         </button>

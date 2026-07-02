@@ -51,38 +51,38 @@ export function AtraccionesList({
           {error}
         </div>
       )}
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
             <tr>
-              <th className="px-4 py-2 text-left font-medium">Atracción</th>
-              <th className="px-4 py-2 text-left font-medium">Zona</th>
-              <th className="px-4 py-2 text-left font-medium">Ancla</th>
-              <th className="px-4 py-2 text-left font-medium">Vigencia</th>
-              <th className="px-4 py-2 text-center font-medium">Estado</th>
-              <th className="px-4 py-2 text-right font-medium">Acciones</th>
+              <th className="px-2 py-2 text-left font-medium sm:px-4">Atracción</th>
+              <th className="hidden px-4 py-2 text-left font-medium sm:table-cell">Zona</th>
+              <th className="hidden px-4 py-2 text-left font-medium md:table-cell">Ancla</th>
+              <th className="hidden px-4 py-2 text-left font-medium lg:table-cell">Vigencia</th>
+              <th className="px-2 py-2 text-center font-medium sm:px-4">Estado</th>
+              <th className="px-2 py-2 text-right font-medium sm:px-4">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {atracciones.map((a) => (
               <tr key={a.id} className="border-t border-border">
-                <td className="px-4 py-3">
-                  <span className="font-medium">{a.nombre}</span>
+                <td className="px-2 py-3 sm:px-4">
+                  <span className="font-medium text-xs sm:text-sm">{a.nombre}</span>
                   <div className="text-xs text-muted-foreground">
                     {a.categoria ? `${a.categoria} · ` : ""}
                     <code>{a.slug}</code>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
                   {a.zonaNombre ?? "—"}
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
                   {a.destinoAnclaNombre ?? "Toda la zona"}
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">
                   {a.vigenciaLabel}
                 </td>
-                <td className="px-4 py-3 text-center">
+                <td className="px-2 py-3 text-center sm:px-4">
                   <span
                     className={cn(
                       "rounded-full px-2 py-0.5 text-xs font-medium",
@@ -94,14 +94,14 @@ export function AtraccionesList({
                     {a.publicada ? "Publicada" : "Borrador"}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <div className="flex items-center justify-end gap-1.5">
+                <td className="px-2 py-3 text-right sm:px-4">
+                  <div className="flex items-center justify-end gap-1">
                     <button
                       type="button"
                       onClick={() => handleToggle(a)}
                       disabled={pending}
                       title={a.publicada ? "Despublicar" : "Publicar"}
-                      className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs transition hover:bg-secondary disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-1.5 py-1 text-xs transition hover:bg-secondary disabled:opacity-50 sm:px-2"
                     >
                       {a.publicada ? (
                         <EyeOff className="h-3 w-3" />
@@ -111,17 +111,18 @@ export function AtraccionesList({
                     </button>
                     <Link
                       href={`/admin/atracciones/${a.id}`}
-                      className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs transition hover:bg-secondary"
+                      className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-1.5 py-1 text-xs transition hover:bg-secondary sm:px-2"
+                      title="Editar"
                     >
                       <Pencil className="h-3 w-3" />
-                      Editar
+                      <span className="hidden sm:inline">Editar</span>
                     </Link>
                     <button
                       type="button"
                       onClick={() => handleDelete(a)}
                       disabled={pending}
                       title="Borrar"
-                      className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1 text-xs text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-1.5 py-1 text-xs text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 sm:px-2"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>

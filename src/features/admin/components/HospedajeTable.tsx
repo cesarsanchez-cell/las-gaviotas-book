@@ -37,25 +37,25 @@ export function HospedajeTable({ rows }: HospedajeTableProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full text-sm">
         <thead className="border-b border-border bg-muted/30 text-left">
           <tr>
-            <th className="px-4 py-3 font-medium">Nombre</th>
-            <th className="px-4 py-3 font-medium">Tipo</th>
-            <th className="px-4 py-3 font-medium">Destino</th>
-            <th className="px-4 py-3 font-medium">Estado</th>
-            <th className="px-4 py-3 font-medium">Responsable</th>
-            <th className="px-4 py-3 font-medium">Actualizado</th>
+            <th className="px-2 py-3 font-medium sm:px-4">Nombre</th>
+            <th className="hidden px-4 py-3 font-medium sm:table-cell">Tipo</th>
+            <th className="hidden px-4 py-3 font-medium md:table-cell">Destino</th>
+            <th className="px-2 py-3 font-medium text-center sm:px-4">Estado</th>
+            <th className="hidden px-4 py-3 font-medium lg:table-cell">Responsable</th>
+            <th className="hidden px-4 py-3 font-medium sm:table-cell text-right">Actualizado</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {rows.map((h) => (
             <tr key={h.id} className="transition hover:bg-muted/40">
-              <td className="px-4 py-3">
+              <td className="px-2 py-3 sm:px-4">
                 <Link
                   href={`/admin/hospedajes/${h.id}`}
-                  className="font-medium text-foreground hover:text-primary"
+                  className="font-medium text-foreground hover:text-primary text-xs sm:text-sm"
                 >
                   {h.nombre}
                 </Link>
@@ -66,21 +66,21 @@ export function HospedajeTable({ rows }: HospedajeTableProps) {
                 )}
                 <p className="text-xs text-muted-foreground">{h.slug}</p>
               </td>
-              <td className="px-4 py-3 text-muted-foreground">
+              <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
                 {TIPO_HOSPEDAJE_LABEL[h.tipo]}
               </td>
-              <td className="px-4 py-3 text-muted-foreground">{h.destino_nombre}</td>
-              <td className="px-4 py-3">
+              <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">{h.destino_nombre}</td>
+              <td className="px-2 py-3 text-center sm:px-4">
                 <span
                   className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_CLASS[h.estado]}`}
                 >
                   {ESTADO_LABEL[h.estado]}
                 </span>
               </td>
-              <td className="px-4 py-3 text-muted-foreground">
+              <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">
                 {h.responsable_nombre}
               </td>
-              <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums">
+              <td className="hidden px-4 py-3 text-xs text-muted-foreground tabular-nums text-right sm:table-cell">
                 {new Date(h.updated_at).toLocaleDateString("es-AR")}
               </td>
             </tr>

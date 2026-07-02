@@ -60,37 +60,37 @@ export function ZonasList({ zonas, canEdit }: Props) {
           {error}
         </div>
       )}
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
             <tr>
-              <th className="px-4 py-2 text-left font-medium">Zona</th>
-              <th className="px-4 py-2 text-left font-medium">Ciudad</th>
-              <th className="px-4 py-2 text-left font-medium">Curador</th>
-              <th className="px-4 py-2 text-right font-medium">Destinos</th>
-              <th className="px-4 py-2 text-right font-medium">Atracciones</th>
-              <th className="px-4 py-2 text-center font-medium">Estado</th>
-              <th className="px-4 py-2 text-right font-medium">Acciones</th>
+              <th className="px-2 py-2 text-left font-medium sm:px-4">Zona</th>
+              <th className="hidden px-4 py-2 text-left font-medium sm:table-cell">Ciudad</th>
+              <th className="hidden px-4 py-2 text-left font-medium md:table-cell">Curador</th>
+              <th className="hidden px-4 py-2 text-right font-medium lg:table-cell">Destinos</th>
+              <th className="hidden px-4 py-2 text-right font-medium lg:table-cell">Atracciones</th>
+              <th className="px-2 py-2 text-center font-medium sm:px-4">Estado</th>
+              <th className="px-2 py-2 text-right font-medium sm:px-4">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {zonas.map((z) => (
               <tr key={z.id} className="border-t border-border">
-                <td className="px-4 py-3">
-                  <span className="font-medium">{z.nombre}</span>
+                <td className="px-2 py-3 sm:px-4">
+                  <span className="font-medium text-xs sm:text-sm">{z.nombre}</span>
                   <div className="text-xs text-muted-foreground">
                     <code>{z.slug}</code>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
                   {z.ciudadNombre ?? "—"}
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
                   {z.curadorNombre ?? "—"}
                 </td>
-                <td className="px-4 py-3 text-right">{z.destinosCount}</td>
-                <td className="px-4 py-3 text-right">{z.atraccionesCount}</td>
-                <td className="px-4 py-3 text-center">
+                <td className="hidden px-4 py-3 text-right lg:table-cell">{z.destinosCount}</td>
+                <td className="hidden px-4 py-3 text-right lg:table-cell">{z.atraccionesCount}</td>
+                <td className="px-2 py-3 text-center sm:px-4">
                   <span
                     className={cn(
                       "rounded-full px-2 py-0.5 text-xs font-medium",
@@ -102,8 +102,8 @@ export function ZonasList({ zonas, canEdit }: Props) {
                     {z.activo ? "Activa" : "Inactiva"}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <div className="flex items-center justify-end gap-1.5">
+                <td className="px-2 py-3 text-right sm:px-4">
+                  <div className="flex items-center justify-end gap-1">
                     {canEdit && (
                       <>
                         <button
@@ -111,23 +111,24 @@ export function ZonasList({ zonas, canEdit }: Props) {
                           onClick={() => handleToggle(z)}
                           disabled={pending}
                           title={z.activo ? "Desactivar" : "Activar"}
-                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs transition hover:bg-secondary disabled:opacity-50"
+                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-1.5 py-1 text-xs transition hover:bg-secondary disabled:opacity-50 sm:px-2"
                         >
                           <Power className="h-3 w-3" />
                         </button>
                         <Link
                           href={`/admin/zonas/${z.id}`}
-                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs transition hover:bg-secondary"
+                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-1.5 py-1 text-xs transition hover:bg-secondary sm:px-2"
+                          title="Editar"
                         >
                           <Pencil className="h-3 w-3" />
-                          Editar
+                          <span className="hidden sm:inline">Editar</span>
                         </Link>
                         <button
                           type="button"
                           onClick={() => handleDelete(z)}
                           disabled={pending}
                           title="Borrar"
-                          className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1 text-xs text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                          className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-1.5 py-1 text-xs text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 sm:px-2"
                         >
                           <Trash2 className="h-3 w-3" />
                         </button>

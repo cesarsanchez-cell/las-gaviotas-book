@@ -44,27 +44,27 @@ export function LugarTable({ rows, tipo, basePath }: LugarTableProps) {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card">
+    <div className="overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full text-sm">
         <thead className="border-b border-border bg-muted/30 text-left">
           <tr>
-            <th className="px-4 py-3 font-medium">Nombre</th>
-            <th className="px-4 py-3 font-medium">Categoría</th>
-            <th className="px-4 py-3 font-medium">Destino</th>
-            <th className="px-4 py-3 font-medium">Estado</th>
+            <th className="px-2 py-3 font-medium sm:px-4">Nombre</th>
+            <th className="hidden px-4 py-3 font-medium sm:table-cell">Categoría</th>
+            <th className="hidden px-4 py-3 font-medium md:table-cell">Destino</th>
+            <th className="px-2 py-3 font-medium text-center sm:px-4">Estado</th>
             {tipo === "gastronomico" && (
-              <th className="px-4 py-3 font-medium">Responsable</th>
+              <th className="hidden px-4 py-3 font-medium lg:table-cell">Responsable</th>
             )}
-            <th className="px-4 py-3 font-medium">Actualizado</th>
+            <th className="hidden px-4 py-3 font-medium text-right sm:table-cell">Actualizado</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
           {rows.map((l) => (
             <tr key={l.id} className="transition hover:bg-muted/40">
-              <td className="px-4 py-3">
+              <td className="px-2 py-3 sm:px-4">
                 <Link
                   href={`${basePath}/${l.id}`}
-                  className="font-medium text-foreground hover:text-primary"
+                  className="font-medium text-foreground hover:text-primary text-xs sm:text-sm"
                 >
                   {l.nombre}
                 </Link>
@@ -82,13 +82,13 @@ export function LugarTable({ rows, tipo, basePath }: LugarTableProps) {
                 </div>
                 <p className="text-xs text-muted-foreground">{l.slug}</p>
               </td>
-              <td className="px-4 py-3 text-muted-foreground">
+              <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
                 {getCategoriaLabel(l.tipo, l.categoria) ?? l.categoria}
               </td>
-              <td className="px-4 py-3 text-muted-foreground">
+              <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
                 {l.destino_nombre}
               </td>
-              <td className="px-4 py-3">
+              <td className="px-2 py-3 text-center sm:px-4">
                 <span
                   className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${ESTADO_CLASS[l.estado]}`}
                 >
@@ -96,7 +96,7 @@ export function LugarTable({ rows, tipo, basePath }: LugarTableProps) {
                 </span>
               </td>
               {tipo === "gastronomico" && (
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="hidden px-4 py-3 text-muted-foreground lg:table-cell">
                   {l.responsable_nombre ?? (
                     <span className="text-amber-700 italic">
                       Sin responsable
@@ -104,7 +104,7 @@ export function LugarTable({ rows, tipo, basePath }: LugarTableProps) {
                   )}
                 </td>
               )}
-              <td className="px-4 py-3 text-xs text-muted-foreground tabular-nums">
+              <td className="hidden px-4 py-3 text-xs text-muted-foreground tabular-nums text-right sm:table-cell">
                 {new Date(l.updated_at).toLocaleDateString("es-AR")}
               </td>
             </tr>
