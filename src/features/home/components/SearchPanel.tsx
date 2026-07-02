@@ -68,7 +68,11 @@ export function SearchPanel({
   destinos,
   vertical,
 }: SearchPanelProps) {
-  const [donde, setDonde] = React.useState(search.donde);
+  // Si hay un único destino, pre-asignarlo automáticamente.
+  const unicoDestino = destinos.length === 1 ? destinos[0] : null;
+  const dondeInicial = search.donde || unicoDestino?.nombre || "";
+
+  const [donde, setDonde] = React.useState(dondeInicial);
   const [cuando, setCuando] = React.useState(search.cuando);
   const [fechaIn, setFechaIn] = React.useState(search.fechas.in);
   const [fechaOut, setFechaOut] = React.useState(search.fechas.out);
@@ -76,7 +80,9 @@ export function SearchPanel({
   const [adultos, setAdultos] = React.useState(search.pax.adultos);
   const [menores, setMenores] = React.useState(search.pax.menores);
   const [bebes, setBebes] = React.useState(search.pax.bebes);
-  const [step, setStep] = React.useState<Step>("donde");
+  // Si hay único destino, saltear directamente al siguiente step.
+  const stepInicial: Step = unicoDestino && !search.donde ? "cuando" : "donde";
+  const [step, setStep] = React.useState<Step>(stepInicial);
 
   // En landing (vertical null) la búsqueda es de hospedajes (disponibilidad).
   const esHospedaje = vertical === "hospedajes" || vertical === null;
@@ -217,55 +223,57 @@ export function SearchPanel({
         </header>
 
         <div className="flex flex-col gap-2 overflow-y-auto p-4 pt-3">
-          {/* Dónde */}
-          <section>
-            <button type="button" className={secHeadClass} onClick={() => setStep("donde")}>
-              <span className="text-sm font-medium text-foreground">Dónde</span>
-              <span className="truncate text-sm text-muted-foreground">
-                {donde || "Elegí destino"}
-              </span>
-            </button>
-            {step === "donde" && (
-              <div className="mt-2 rounded-xl border border-border bg-card p-3">
-                <div className="flex items-center gap-2 rounded-lg border border-border px-3">
-                  <Search className="h-4 w-4 text-muted-foreground" aria-hidden />
-                  <input
-                    type="search"
-                    autoFocus
-                    placeholder="ej: Las Gaviotas · Sierras de Córdoba"
-                    value={donde}
-                    onChange={(e) => setDonde(e.target.value)}
-                    className="h-10 w-full bg-transparent text-sm outline-none"
-                  />
+          {/* Dónde — oculto si hay único destino (ya está preseleccionado) */}
+          {!unicoDestino && (
+            <section>
+              <button type="button" className={secHeadClass} onClick={() => setStep("donde")}>
+                <span className="text-sm font-medium text-foreground">Dónde</span>
+                <span className="truncate text-sm text-muted-foreground">
+                  {donde || "Elegí destino"}
+                </span>
+              </button>
+              {step === "donde" && (
+                <div className="mt-2 rounded-xl border border-border bg-card p-3">
+                  <div className="flex items-center gap-2 rounded-lg border border-border px-3">
+                    <Search className="h-4 w-4 text-muted-foreground" aria-hidden />
+                    <input
+                      type="search"
+                      autoFocus
+                      placeholder="ej: Las Gaviotas · Sierras de Córdoba"
+                      value={donde}
+                      onChange={(e) => setDonde(e.target.value)}
+                      className="h-10 w-full bg-transparent text-sm outline-none"
+                    />
+                  </div>
+                  {matches.length > 0 && (
+                    <ul className="mt-2 flex flex-col gap-1">
+                      {matches.map((m) => (
+                        <li key={m.nombre}>
+                          <button
+                            type="button"
+                            onClick={() => setDonde(m.nombre)}
+                            className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-secondary"
+                          >
+                            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+                              <MapPin className="h-4 w-4" aria-hidden />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block truncate text-sm font-medium text-foreground">
+                                {m.nombre}
+                              </span>
+                              <span className="block truncate text-xs text-muted-foreground">
+                                {m.sub}
+                              </span>
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
-                {matches.length > 0 && (
-                  <ul className="mt-2 flex flex-col gap-1">
-                    {matches.map((m) => (
-                      <li key={m.nombre}>
-                        <button
-                          type="button"
-                          onClick={() => setDonde(m.nombre)}
-                          className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-secondary"
-                        >
-                          <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
-                            <MapPin className="h-4 w-4" aria-hidden />
-                          </span>
-                          <span className="min-w-0">
-                            <span className="block truncate text-sm font-medium text-foreground">
-                              {m.nombre}
-                            </span>
-                            <span className="block truncate text-xs text-muted-foreground">
-                              {m.sub}
-                            </span>
-                          </span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-          </section>
+              )}
+            </section>
+          )}
 
           {/* Tipo — gastronomía / qué hacer */}
           {showTipo && (
