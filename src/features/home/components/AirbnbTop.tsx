@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Home, Search, X } from "lucide-react";
+import { Home, BedDouble, UtensilsCrossed, Compass, Search, X, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserMenu } from "./UserMenu";
 import { DatosUtilesButton } from "@/features/datos-utiles/components/DatosUtilesButton";
@@ -10,10 +10,10 @@ import type { HeaderSession } from "@/features/home/lib/header-session";
 import type { Rubro, DatoUtil } from "@/lib/types";
 
 // Las verticales del menú. Las promos ya no son una pestaña: viven en el hero.
-const TABS: Array<{ key: HubTab; label: string; icon: string }> = [
-  { key: "hospedajes", label: "Hospedajes", icon: "/images/hospedaje.png" },
-  { key: "gastronomia", label: "Gastronomía", icon: "/images/gastro.png" },
-  { key: "atractivos", label: "Qué hacer", icon: "/images/quehacer.png" },
+const TABS: Array<{ key: HubTab; label: string; icon: LucideIcon }> = [
+  { key: "hospedajes", label: "Hospedajes", icon: BedDouble },
+  { key: "gastronomia", label: "Gastronomía", icon: UtensilsCrossed },
+  { key: "atractivos", label: "Qué hacer", icon: Compass },
 ];
 
 interface AirbnbTopProps {
@@ -58,6 +58,7 @@ export function AirbnbTop({
 
   const Verticales = ({ size }: { size: number }) =>
     tabs.map((v) => {
+      const Icon = v.icon;
       const active = vertical === v.key;
       return (
         <button
@@ -72,13 +73,7 @@ export function AirbnbTop({
               : "border-transparent text-muted-foreground hover:text-foreground"
           )}
         >
-          <Image
-            src={v.icon}
-            alt={v.label}
-            width={32}
-            height={32}
-            className="h-8 w-8 object-contain"
-          />
+          <Icon size={size} aria-hidden />
           <span>{v.label}</span>
         </button>
       );
