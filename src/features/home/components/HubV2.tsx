@@ -152,19 +152,20 @@ export function HubV2({
   }, [hasDonde, search.donde, destinos, regiones]);
 
   // Slugs permitidos combinando región + dónde (null = sin filtro).
+  // Con un único destino, ignorar el filtro de dónde para mantener el hero visible.
   const allowedSlugs = React.useMemo(() => {
     let set: Set<string> | null = null;
     if (regionFilter) {
       const region = regiones.find((r) => r.slug === regionFilter);
       set = new Set(region?.destinos_slugs ?? []);
     }
-    if (dondeSlugs) {
+    if (dondeSlugs && destinos.length > 1) {
       set = set
         ? new Set([...set].filter((s) => dondeSlugs.has(s)))
         : new Set(dondeSlugs);
     }
     return set;
-  }, [regionFilter, dondeSlugs, regiones]);
+  }, [regionFilter, dondeSlugs, regiones, destinos.length]);
 
   // Vertical que se muestra en la grilla: la enfocada, o hospedajes en landing.
   const activeVertical: VerticalKey = tab ?? "hospedajes";
