@@ -7,6 +7,7 @@ import {
   countItemsByRubro,
   countItemsByRubroCiudad,
   countItemsByRubroZona,
+  getDestinosByZona,
 } from "@/features/datos-utiles/lib/queries";
 import { DatosUtilesPanel } from "@/features/datos-utiles/components/DatosUtilesPanel";
 import { DatosUtilesSuperAdminView } from "@/features/datos-utiles/components/DatosUtilesSuperAdminView";
@@ -31,10 +32,11 @@ export default async function DatosUtilesPage({ searchParams }: PageProps) {
 
   // Super admin ve selector de scope; admin local solo ve su destino
   if (user.isSuperAdmin) {
-    const [destinos, ciudades, zonas] = await Promise.all([
+    const [destinos, ciudades, zonas, destinosZona] = await Promise.all([
       listDestinosAdmin(),
       listCiudadesAdmin(),
       listZonasAdmin(),
+      getDestinosByZona(),
     ]);
 
     let rubros: Rubro[] = [];
@@ -79,6 +81,7 @@ export default async function DatosUtilesPage({ searchParams }: PageProps) {
         selectedRubros={rubros}
         selectedDatosUtiles={datosUtiles}
         selectedItemCounts={itemCounts}
+        destinosZona={destinosZona}
       />
     );
   }

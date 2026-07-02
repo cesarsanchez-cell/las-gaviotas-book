@@ -19,6 +19,7 @@ export interface DestinoListRow {
   restricciones_habilitadas: boolean;
   orden: number;
   hospedajesCount: number;
+  ciudad_id?: string;
 }
 
 /**
@@ -34,7 +35,7 @@ export async function listDestinosAdmin(
   let q = sb
     .from("destinos")
     .select(
-      "id, slug, nombre, region, provincia, pais, activo, restricciones_habilitadas, orden"
+      "id, slug, nombre, region, provincia, pais, activo, restricciones_habilitadas, orden, ciudad_id"
     );
 
   // Si destinoId está definido (admin local), filtrar por ese destino
@@ -56,6 +57,7 @@ export async function listDestinosAdmin(
         activo: boolean;
         restricciones_habilitadas: boolean;
         orden: number;
+        ciudad_id: string;
       }>
     >();
   if (!destinos) return [];

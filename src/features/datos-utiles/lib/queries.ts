@@ -332,3 +332,47 @@ export async function countItemsByRubroZona(zonaId: string) {
 
   return counts;
 }
+
+export async function getDestinosByCiudad(): Promise<Map<string, string[]>> {
+  const sb = createAdminClient();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: destinos, error } = await (sb as any).from("destinos").select(
+    "id, ciudad_id"
+  );
+
+  if (error) throw error;
+
+  const map = new Map<string, string[]>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  destinos?.forEach((d: any) => {
+    if (!map.has(d.ciudad_id)) {
+      map.set(d.ciudad_id, []);
+    }
+    map.get(d.ciudad_id)!.push(d.id);
+  });
+
+  return map;
+}
+
+export async function getDestinosByZona(): Promise<Map<string, string[]>> {
+  const sb = createAdminClient();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: zonaDestinos, error } = await (sb as any).from(
+    "zona_destinos"
+  ).select("zona_id, destino_id");
+
+  if (error) throw error;
+
+  const map = new Map<string, string[]>();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  zonaDestinos?.forEach((zd: any) => {
+    if (!map.has(zd.zona_id)) {
+      map.set(zd.zona_id, []);
+    }
+    map.get(zd.zona_id)!.push(zd.destino_id);
+  });
+
+  return map;
+}
