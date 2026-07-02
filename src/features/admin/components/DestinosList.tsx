@@ -82,36 +82,36 @@ export function DestinosList({
           {error}
         </div>
       )}
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
             <tr>
-              <th className="px-4 py-2 text-left font-medium">Destino</th>
-              <th className="px-4 py-2 text-left font-medium">Ubicación</th>
-              <th className="px-4 py-2 text-right font-medium">Hospedajes</th>
-              <th className="px-4 py-2 text-center font-medium">Orden</th>
-              <th className="px-4 py-2 text-center font-medium">Activo</th>
-              <th className="px-4 py-2 text-center font-medium">Restricciones</th>
-              <th className="px-4 py-2 text-right font-medium">Acciones</th>
+              <th className="px-2 py-2 text-left font-medium sm:px-4">Destino</th>
+              <th className="hidden px-4 py-2 text-left font-medium sm:table-cell">Ubicación</th>
+              <th className="hidden px-4 py-2 text-right font-medium sm:table-cell">Hospedajes</th>
+              <th className="hidden px-4 py-2 text-center font-medium md:table-cell">Orden</th>
+              <th className="px-2 py-2 text-center font-medium sm:px-4">Activo</th>
+              <th className="hidden px-4 py-2 text-center font-medium lg:table-cell">Restricciones</th>
+              <th className="px-2 py-2 text-right font-medium sm:px-4">Acciones</th>
             </tr>
           </thead>
           <tbody>
             {destinos.map((d) => (
               <tr key={d.id} className="border-t border-border">
-                <td className="px-4 py-3">
-                  <div className="font-medium">{d.nombre}</div>
+                <td className="px-2 py-2 sm:px-4 sm:py-3">
+                  <div className="font-medium text-xs sm:text-sm">{d.nombre}</div>
                   <div className="text-xs text-muted-foreground">
                     <code>/{d.slug}</code>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="hidden px-4 py-3 text-muted-foreground sm:table-cell">
                   {[d.region, d.provincia, d.pais].filter(Boolean).join(" · ") || "—"}
                 </td>
-                <td className="px-4 py-3 text-right">{d.hospedajesCount}</td>
-                <td className="px-4 py-3 text-center text-muted-foreground">
+                <td className="hidden px-4 py-3 text-right sm:table-cell">{d.hospedajesCount}</td>
+                <td className="hidden px-4 py-3 text-center text-muted-foreground md:table-cell">
                   {d.orden}
                 </td>
-                <td className="px-4 py-3 text-center">
+                <td className="px-2 py-2 text-center sm:px-4 sm:py-3">
                   <span
                     className={cn(
                       "rounded-full px-2 py-0.5 text-xs font-medium",
@@ -123,7 +123,7 @@ export function DestinosList({
                     {d.activo ? "Activo" : "Inactivo"}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-center">
+                <td className="hidden px-4 py-3 text-center lg:table-cell">
                   {canToggleRestricciones(d) ? (
                     <button
                       type="button"
@@ -142,7 +142,9 @@ export function DestinosList({
                       )}
                     >
                       <SlidersHorizontal className="h-3 w-3" />
-                      {d.restricciones_habilitadas ? "Activadas" : "Desactivadas"}
+                      <span className="hidden sm:inline">
+                        {d.restricciones_habilitadas ? "Activadas" : "Desactivadas"}
+                      </span>
                     </button>
                   ) : (
                     <span
@@ -153,16 +155,18 @@ export function DestinosList({
                           : "bg-slate-100 text-slate-600"
                       )}
                     >
-                      {d.restricciones_habilitadas ? "Activadas" : "Desactivadas"}
+                      <span className="hidden sm:inline">
+                        {d.restricciones_habilitadas ? "Activadas" : "Desactivadas"}
+                      </span>
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <div className="flex items-center justify-end gap-1.5">
+                <td className="px-2 py-2 text-right sm:px-4 sm:py-3">
+                  <div className="flex items-center justify-end gap-1">
                     <Link
                       href={`/${d.slug}`}
                       target="_blank"
-                      className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs text-muted-foreground transition hover:text-foreground"
+                      className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-1.5 py-1 text-xs text-muted-foreground transition hover:text-foreground sm:px-2"
                       title="Ver público"
                     >
                       <ExternalLink className="h-3 w-3" />
@@ -174,16 +178,17 @@ export function DestinosList({
                           onClick={() => handleToggle(d)}
                           disabled={pending}
                           title={d.activo ? "Desactivar" : "Activar"}
-                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs transition hover:bg-secondary disabled:opacity-50"
+                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-1.5 py-1 text-xs transition hover:bg-secondary disabled:opacity-50 sm:px-2"
                         >
                           <Power className="h-3 w-3" />
                         </button>
                         <Link
                           href={`/admin/destinos/${d.id}`}
-                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs transition hover:bg-secondary"
+                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-1.5 py-1 text-xs transition hover:bg-secondary sm:px-2"
+                          title="Editar"
                         >
                           <Pencil className="h-3 w-3" />
-                          Editar
+                          <span className="hidden sm:inline">Editar</span>
                         </Link>
                         <button
                           type="button"
@@ -194,7 +199,7 @@ export function DestinosList({
                               ? "Tiene hospedajes — no se puede borrar"
                               : "Borrar"
                           }
-                          className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1 text-xs text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                          className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-1.5 py-1 text-xs text-rose-700 transition hover:bg-rose-50 disabled:opacity-50 sm:px-2"
                         >
                           <Trash2 className="h-3 w-3" />
                         </button>
