@@ -20,7 +20,7 @@ interface DatosUtilesSuperAdminViewProps {
   selectedRubros: Rubro[];
   selectedDatosUtiles: DatoUtil[];
   selectedItemCounts: Map<string, number>;
-  destinosZona?: Map<string, string[]>;   // zona_id → destino_id[]
+  destinosZona?: Map<string, string[]>;
 }
 
 export function DatosUtilesSuperAdminView({
@@ -36,184 +36,239 @@ export function DatosUtilesSuperAdminView({
 }: DatosUtilesSuperAdminViewProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [scopeType, setScopeType] = useState<ScopeType>(selectedScopeType);
-  const [selectedPrimaryScopeId, setSelectedPrimaryScopeId] = useState<string | null>(null);
 
-  const handleScopeTypeChange = (newType: ScopeType) => {
-    setScopeType(newType);
-    setSelectedPrimaryScopeId(null);
-    startTransition(() => {
-      router.push(`/admin/datos-utiles?scope_type=${newType}`);
-    });
+  // Cascada progresiva: ciudad → zona → destino
+  const [selectedCiudadId, setSelectedCiudadId] = useState<string | null>(null);
+  const [advanceToZonas, setAdvanceToZonas] = useState(false);
+  const [selectedZonaId, setSelectedZonaId] = useState<string | null>(null);
+  const [advanceToDestinos, setAdvanceToDestinos] = useState(false);
+  const [selectedDestinoId, setSelectedDestinoId] = useState<string | null>(null);
+
+  // Determinar el scope_type y scope_id actual basado en la cascada
+  const getCurrentScopeType = (): ScopeType => {
+    if (advanceToDestinos && selectedDestinoId) return "destino";
+    if (advanceToZonas && selectedZonaId) return "zona";
+    if (selectedCiudadId) return "ciudad";
+    return "ciudad";
   };
 
-  const handlePrimaryScopeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const primaryId = e.target.value;
-    setSelectedPrimaryScopeId(primaryId);
+  const getCurrentScopeId = (): string | null => {
+    if (advanceToDestinos && selectedDestinoId) return selectedDestinoId;
+    if (advanceToZonas && selectedZonaId) return selectedZonaId;
+    return selectedCiudadId;
   };
 
-  const handleDestinChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const destinId = e.target.value;
-    startTransition(() => {
-      if (destinId) {
+  const handleCiudadChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const cidId = e.target.value;
+    setSelectedCiudadId(cidId);
+    setAdvanceToZonas(false);
+    setSelectedZonaId(null);
+    setAdvanceToDestinos(false);
+    setSelectedDestinoId(null);
+  };
+
+  const handleZonaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const zonaId = e.target.value;
+    setSelectedZonaId(zonaId);
+    setAdvanceToDestinos(false);
+    setSelectedDestinoId(null);
+  };
+
+  const handleDestinoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const destId = e.target.value;
+    setSelectedDestinoId(destId);
+  };
+
+  const handleCreateDatos = () => {
+    const scopeType = getCurrentScopeType();
+    const scopeId = getCurrentScopeId();
+
+    if (scopeId) {
+      startTransition(() => {
         router.push(
-          `/admin/datos-utiles?scope_type=${scopeType}&scope_id=${destinId}`
+          `/admin/datos-utiles?scope_type=${scopeType}&scope_id=${scopeId}`
         );
-      }
-    });
+      });
+    }
+  };
+
+  // Filtrar zonas por ciudad
+  const getZonasByCiudad = (): ZonaListRow[] => {
+    if (!selectedCiudadId) return [];
+    return zonas.filter((z) => z.ciudad_id === selectedCiudadId);
+  };
+
+  // Filtrar destinos por zona
+  const getDestinosByZona = (): DestinoListRow[] => {
+    if (!selectedZonaId) return [];
+    const destIds = destinosZona.get(selectedZonaId) || [];
+    return destinos.filter((d) => destIds.includes(d.id));
   };
 
   const getScopeLabel = (type: ScopeType, id: string | null): string => {
     if (!id) return "";
-    if (type === "destino") {
-      return destinos.find((d) => d.id === id)?.nombre || "";
-    }
-    if (type === "ciudad") {
-      return ciudades.find((c) => c.id === id)?.nombre || "";
-    }
-    if (type === "zona") {
-      return zonas.find((z) => z.id === id)?.nombre || "";
-    }
+    if (type === "ciudad") return ciudades.find((c) => c.id === id)?.nombre || "";
+    if (type === "zona") return zonas.find((z) => z.id === id)?.nombre || "";
+    if (type === "destino") return destinos.find((d) => d.id === id)?.nombre || "";
     return "";
   };
 
-  const getPrimaryItems = (type: ScopeType) => {
-    if (type === "destino") return destinos;
-    if (type === "ciudad") return ciudades;
-    if (type === "zona") return zonas;
-    return [];
-  };
-
-  // Filtrar destinos según la selección primaria
-  const getFilteredDestinos = (): DestinoListRow[] => {
-    if (!selectedPrimaryScopeId) return [];
-
-    if (scopeType === "ciudad") {
-      // Destinos de esa ciudad (filtra por ciudad_id)
-      const cidId = selectedPrimaryScopeId;
-      return destinos.filter((d) => d.ciudad_id === cidId);
-    }
-
-    if (scopeType === "zona") {
-      // Destinos de esa zona (usa map de zona → destinos)
-      const zoneDestIds = destinosZona.get(selectedPrimaryScopeId) || [];
-      return destinos.filter((d) => zoneDestIds.includes(d.id));
-    }
-
-    if (scopeType === "destino") {
-      // Todos los destinos
-      return destinos;
-    }
-
-    return [];
-  };
+  const currentScopeType = getCurrentScopeType();
+  const currentScopeId = getCurrentScopeId();
 
   return (
-    <div className="max-w-6xl space-y-6">
-      {/* Selector de scope */}
-      <div className="rounded-lg border border-input bg-card p-6 space-y-6">
-        <h3 className="font-semibold">¿A qué scope aplica?</h3>
+    <div className="max-w-4xl space-y-6">
+      {/* Nivel 1: Ciudad */}
+      <div className="rounded-lg border border-input bg-card p-6 space-y-4">
+        <h3 className="font-semibold">Nivel 1: Ciudad</h3>
 
-        {/* Radio buttons: Ciudad, Zona, Destino (en ese orden) */}
-        <div className="flex gap-4">
-          {(["ciudad", "zona", "destino"] as ScopeType[]).map((type) => (
-            <label key={type} className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="scope_type"
-                value={type}
-                checked={scopeType === type}
-                onChange={() => handleScopeTypeChange(type)}
-                disabled={isPending}
-                className="h-4 w-4"
-              />
-              <span className="text-sm font-medium capitalize">{type}</span>
-            </label>
-          ))}
-        </div>
-
-        {/* Dropdown 1: Selecciona ciudad/zona/destino primario */}
         <div>
-          <label htmlFor="primary-select" className="block text-sm font-medium">
-            Selecciona {scopeType}
+          <label htmlFor="ciudad-select" className="block text-sm font-medium">
+            Selecciona ciudad
           </label>
           <select
-            id="primary-select"
-            value={selectedPrimaryScopeId || ""}
-            onChange={handlePrimaryScopeChange}
+            id="ciudad-select"
+            value={selectedCiudadId || ""}
+            onChange={handleCiudadChange}
             disabled={isPending}
             className="mt-2 w-full max-w-md rounded-md border border-input bg-background px-3 py-2 text-sm"
           >
-            <option value="">— Elige {scopeType} —</option>
-            {getPrimaryItems(scopeType).map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.nombre}
+            <option value="">— Elige ciudad —</option>
+            {ciudades.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nombre}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Dropdown 2: Selecciona destino (solo si city/zona) */}
-        {selectedPrimaryScopeId && scopeType !== "destino" && (
-          <div>
-            <label htmlFor="destino-select" className="block text-sm font-medium">
-              Selecciona destino en {getScopeLabel(scopeType, selectedPrimaryScopeId)}
-            </label>
-            <select
-              id="destino-select"
-              value={selectedScopeId || ""}
-              onChange={handleDestinChange}
-              disabled={isPending}
-              className="mt-2 w-full max-w-md rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="">— Elige destino —</option>
-              {getFilteredDestinos().map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
+        {selectedCiudadId && !advanceToZonas && (
+          <button
+            onClick={handleCreateDatos}
+            disabled={isPending}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+          >
+            Crear dato útil para {getScopeLabel("ciudad", selectedCiudadId)}
+          </button>
         )}
 
-        {/* Dropdown directo para destino (si scopeType === "destino") */}
-        {scopeType === "destino" && (
-          <div>
-            <label htmlFor="destino-direct" className="block text-sm font-medium">
-              Selecciona destino
-            </label>
-            <select
-              id="destino-direct"
-              value={selectedScopeId || ""}
-              onChange={handleDestinChange}
+        {selectedCiudadId && (
+          <label className="flex items-center gap-2 mt-4">
+            <input
+              type="checkbox"
+              checked={advanceToZonas}
+              onChange={(e) => setAdvanceToZonas(e.target.checked)}
               disabled={isPending}
-              className="mt-2 w-full max-w-md rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="">— Elige destino —</option>
-              {destinos.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.nombre}
-                </option>
-              ))}
-            </select>
-          </div>
+              className="h-4 w-4"
+            />
+            <span className="text-sm font-medium">
+              Avanzar a zonas de {getScopeLabel("ciudad", selectedCiudadId)}
+            </span>
+          </label>
         )}
       </div>
 
-      {/* Panel de edición si hay scope seleccionado */}
+      {/* Nivel 2: Zona */}
+      {advanceToZonas && selectedCiudadId && (
+        <div className="rounded-lg border border-input bg-card p-6 space-y-4">
+          <h3 className="font-semibold">Nivel 2: Zona</h3>
+
+          <div>
+            <label htmlFor="zona-select" className="block text-sm font-medium">
+              Selecciona zona de {getScopeLabel("ciudad", selectedCiudadId)}
+            </label>
+            <select
+              id="zona-select"
+              value={selectedZonaId || ""}
+              onChange={handleZonaChange}
+              disabled={isPending}
+              className="mt-2 w-full max-w-md rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="">— Elige zona —</option>
+              {getZonasByCiudad().map((z) => (
+                <option key={z.id} value={z.id}>
+                  {z.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {selectedZonaId && !advanceToDestinos && (
+            <button
+              onClick={handleCreateDatos}
+              disabled={isPending}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+            >
+              Crear dato útil para {getScopeLabel("zona", selectedZonaId)}
+            </button>
+          )}
+
+          {selectedZonaId && (
+            <label className="flex items-center gap-2 mt-4">
+              <input
+                type="checkbox"
+                checked={advanceToDestinos}
+                onChange={(e) => setAdvanceToDestinos(e.target.checked)}
+                disabled={isPending}
+                className="h-4 w-4"
+              />
+              <span className="text-sm font-medium">
+                Avanzar a destinos de {getScopeLabel("zona", selectedZonaId)}
+              </span>
+            </label>
+          )}
+        </div>
+      )}
+
+      {/* Nivel 3: Destino */}
+      {advanceToDestinos && selectedZonaId && (
+        <div className="rounded-lg border border-input bg-card p-6 space-y-4">
+          <h3 className="font-semibold">Nivel 3: Destino</h3>
+
+          <div>
+            <label htmlFor="destino-select" className="block text-sm font-medium">
+              Selecciona destino de {getScopeLabel("zona", selectedZonaId)}
+            </label>
+            <select
+              id="destino-select"
+              value={selectedDestinoId || ""}
+              onChange={handleDestinoChange}
+              disabled={isPending}
+              className="mt-2 w-full max-w-md rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="">— Elige destino —</option>
+              {getDestinosByZona().map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {selectedDestinoId && (
+            <button
+              onClick={handleCreateDatos}
+              disabled={isPending}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+            >
+              Crear dato útil para {getScopeLabel("destino", selectedDestinoId)}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Panel de edición si ya hay scope seleccionado en URL */}
       {selectedScopeId && (
         <>
           <div className="rounded-lg border border-input bg-card p-4">
             <p className="text-sm">
-              <strong>Scope:</strong>{" "}
-              {scopeType === "destino"
-                ? `destino - ${getScopeLabel("destino", selectedScopeId)}`
-                : `${scopeType} - ${getScopeLabel(scopeType, selectedPrimaryScopeId)} → destino ${getScopeLabel("destino", selectedScopeId)}`}
+              <strong>Editando:</strong> {selectedScopeType} -{" "}
+              {getScopeLabel(selectedScopeType as ScopeType, selectedScopeId)}
             </p>
           </div>
 
           <DatosUtilesSuperAdminPanel
-            scopeType={scopeType}
+            scopeType={selectedScopeType as ScopeType}
             scopeId={selectedScopeId}
             rubros={selectedRubros}
             datosUtiles={selectedDatosUtiles}

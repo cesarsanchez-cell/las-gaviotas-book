@@ -18,6 +18,7 @@ export interface ZonaListRow {
   atraccionesCount: number;
   activo: boolean;
   orden: number;
+  ciudad_id?: string | null;
 }
 
 /** Opción para el multi-select de destinos / dropdowns. */
@@ -136,6 +137,7 @@ export async function listZonasAdmin(): Promise<ZonaListRow[]> {
     atraccionesCount: atraccionesCount.get(z.id) ?? 0,
     activo: z.activo,
     orden: z.orden,
+    ciudad_id: z.ciudad_id ?? null,
   }));
 }
 
