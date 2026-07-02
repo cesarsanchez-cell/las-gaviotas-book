@@ -103,7 +103,7 @@ export default async function AdminConsultasPage({ searchParams }: PageProps) {
       ) : (
         <div className="space-y-4">
           {consultas.map((c) => (
-            <ConsultaCard key={c.id} consulta={c} />
+            <ConsultaCard key={c.id} consulta={c} mode="admin-view" />
           ))}
         </div>
       )}

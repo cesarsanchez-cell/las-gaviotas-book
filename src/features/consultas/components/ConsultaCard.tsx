@@ -30,12 +30,13 @@ interface Props {
   consulta: ConsultaListRow & { disponibilidad?: DisponibilidadStatus };
   /**
    * Define qué server actions usa la card y qué botones muestra:
+   * - "admin-view": solo lectura, admins ven la info sin poder responder ni cambiar estado.
    * - "admin": usa admin-actions, muestra "Borrar" (purga definitiva), link
    *   al hospedaje en /admin/hospedajes.
    * - "responsable": usa responsable-actions, sin borrar, link al hospedaje
    *   en /panel/hospedajes.
    */
-  mode?: "admin" | "responsable";
+  mode?: "admin-view" | "admin" | "responsable";
 }
 
 const DISPONIBILIDAD_BADGE: Record<
@@ -86,10 +87,11 @@ function formatDateTime(iso: string): string {
   });
 }
 
-export function ConsultaCard({ consulta, mode = "admin" }: Props) {
+export function ConsultaCard({ consulta, mode = "admin-view" }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [estado, setEstado] = useState<EstadoConsulta>(consulta.estado);
+  const isReadOnly = mode === "admin-view";
 
   function cambiarEstado(nuevo: EstadoConsulta) {
     setError(null);
@@ -167,25 +169,29 @@ export function ConsultaCard({ consulta, mode = "admin" }: Props) {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <a
-            href={`mailto:${consulta.email}?subject=${mailtoSubject}`}
-            className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs font-medium transition hover:bg-secondary"
-            title={`Mandar mail a ${consulta.email}`}
-          >
-            <Mail className="h-3.5 w-3.5" />
-            Mail
-          </a>
-          {waNumber && (
-            <a
-              href={`https://wa.me/${waNumber}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100"
-              title={`WhatsApp a ${consulta.whatsapp}`}
-            >
-              <MessageCircle className="h-3.5 w-3.5" />
-              WhatsApp
-            </a>
+          {!isReadOnly && (
+            <>
+              <a
+                href={`mailto:${consulta.email}?subject=${mailtoSubject}`}
+                className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-xs font-medium transition hover:bg-secondary"
+                title={`Mandar mail a ${consulta.email}`}
+              >
+                <Mail className="h-3.5 w-3.5" />
+                Mail
+              </a>
+              {waNumber && (
+                <a
+                  href={`https://wa.me/${waNumber}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100"
+                  title={`WhatsApp a ${consulta.whatsapp}`}
+                >
+                  <MessageCircle className="h-3.5 w-3.5" />
+                  WhatsApp
+                </a>
+              )}
+            </>
           )}
           <Link
             href={`/${consulta.destino_slug}/hospedajes/${consulta.hospedaje_slug}`}
@@ -248,65 +254,67 @@ export function ConsultaCard({ consulta, mode = "admin" }: Props) {
         </div>
       )}
 
-      <footer className="mt-4 flex flex-wrap items-center gap-1.5 border-t border-border pt-3">
-        {estado === "nueva" && (
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => cambiarEstado("leida")}
-            className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1 text-xs font-medium transition hover:bg-secondary disabled:opacity-50"
-          >
-            <Inbox className="h-3.5 w-3.5" />
-            Marcar leída
-          </button>
-        )}
-        {estado !== "respondida" && estado !== "descartada" && (
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => cambiarEstado("respondida")}
-            className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-50"
-          >
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            Marcar respondida
-          </button>
-        )}
-        {estado !== "descartada" && (
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => cambiarEstado("descartada")}
-            className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1 text-xs text-muted-foreground transition hover:bg-secondary disabled:opacity-50"
-          >
-            <XCircle className="h-3.5 w-3.5" />
-            Descartar
-          </button>
-        )}
-        {estado !== "nueva" && (
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => cambiarEstado("nueva")}
-            className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1 text-xs text-muted-foreground transition hover:bg-secondary disabled:opacity-50"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            Volver a nueva
-          </button>
-        )}
-        <span className="flex-1" />
-        {mode === "admin" && (
-          <button
-            type="button"
-            disabled={pending}
-            onClick={borrar}
-            className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2.5 py-1 text-xs text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
-            title="Borrar definitivo (para spam)"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Borrar
-          </button>
-        )}
-      </footer>
+      {!isReadOnly && (
+        <footer className="mt-4 flex flex-wrap items-center gap-1.5 border-t border-border pt-3">
+          {estado === "nueva" && (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => cambiarEstado("leida")}
+              className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1 text-xs font-medium transition hover:bg-secondary disabled:opacity-50"
+            >
+              <Inbox className="h-3.5 w-3.5" />
+              Marcar leída
+            </button>
+          )}
+          {estado !== "respondida" && estado !== "descartada" && (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => cambiarEstado("respondida")}
+              className="inline-flex items-center gap-1 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100 disabled:opacity-50"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Marcar respondida
+            </button>
+          )}
+          {estado !== "descartada" && (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => cambiarEstado("descartada")}
+              className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1 text-xs text-muted-foreground transition hover:bg-secondary disabled:opacity-50"
+            >
+              <XCircle className="h-3.5 w-3.5" />
+              Descartar
+            </button>
+          )}
+          {estado !== "nueva" && (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => cambiarEstado("nueva")}
+              className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2.5 py-1 text-xs text-muted-foreground transition hover:bg-secondary disabled:opacity-50"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Volver a nueva
+            </button>
+          )}
+          <span className="flex-1" />
+          {mode === "admin" && (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={borrar}
+              className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2.5 py-1 text-xs text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+              title="Borrar definitivo (para spam)"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Borrar
+            </button>
+          )}
+        </footer>
+      )}
     </article>
   );
 }
